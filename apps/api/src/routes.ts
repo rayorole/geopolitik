@@ -13,7 +13,7 @@ export function createApp() {
 		"*",
 		cors({
 			origin: env.WEB_ORIGIN,
-			allowMethods: ["GET", "POST", "OPTIONS"],
+			allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
 			allowHeaders: ["Content-Type", "Authorization"],
 			credentials: true,
 		}),
@@ -35,7 +35,7 @@ export function createApp() {
 		}),
 	);
 
-	app.on(["GET", "POST"], "/api/auth/**", (c) => auth.handler(c.req.raw));
+	app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
 	app.route("/", createGamesRouter());
 	app.route("/", createWorldRouter());
