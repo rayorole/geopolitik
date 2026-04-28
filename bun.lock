@@ -6,6 +6,7 @@
       "name": "geopolitik",
       "devDependencies": {
         "@biomejs/biome": "1.9.4",
+        "@types/node": "22.9.0",
         "turbo": "2.5.0",
         "typescript": "5.6.3",
       },

@@ -1,8 +1,6 @@
 {
 	"extends": "@geopolitik/config/tsconfig/library",
 	"compilerOptions": {
-		"rootDir": "src",
-		"outDir": "dist",
 		"jsx": "preserve"
 	},
 	"include": ["src"],

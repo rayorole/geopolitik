@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { wsInboundMessage, wsOutboundMessage } from "./ws-messages.ts";
+import { wsInboundMessage, wsOutboundMessage } from "./ws-messages";
 
 describe("wsInboundMessage", () => {
 	it("accepts a valid ping", () => {

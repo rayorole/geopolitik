@@ -219,6 +219,7 @@ When in doubt, look at the 8-point list above. If a feature isn't differentiatin
 - Keep branches small enough to merge within a day or two. If a feature is bigger, split it into a sequence of stacked PRs rather than a long branch.
 - **Commit messages:** Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`, `ci:`). Not currently enforced by a hook; adopt by discipline so the history stays auto-changelog-ready.
 - **Merge style:** squash-only on GitHub. Linear history. Merged branches are kept (not auto-deleted).
+- **Branch protection:** GitHub Free does not allow branch protection rules or rulesets on private repos. The "PR + green CI" rule is honored by discipline for now; flip on classic protection (or a ruleset) when the repo goes public or the account is on Pro.
 
 ---
 

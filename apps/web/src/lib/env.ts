@@ -9,4 +9,4 @@ const schema = z.object({
 export const publicEnv = parseEnv(schema, {
 	NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
 	NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL,
-} as NodeJS.ProcessEnv);
+});

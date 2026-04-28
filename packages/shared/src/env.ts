@@ -4,7 +4,10 @@ import type { z } from "zod";
  * Validate a process.env-shaped object against a Zod schema.
  * Throws a readable error listing every missing/invalid key.
  */
-export function parseEnv<T extends z.ZodTypeAny>(schema: T, source: NodeJS.ProcessEnv): z.infer<T> {
+export function parseEnv<T extends z.ZodTypeAny>(
+	schema: T,
+	source: Record<string, string | undefined>,
+): z.infer<T> {
 	const parsed = schema.safeParse(source);
 	if (!parsed.success) {
 		const issues = parsed.error.issues

@@ -1,2 +1,2 @@
-export * from "./ws-messages.ts";
-export * from "./env.ts";
+export * from "./ws-messages";
+export * from "./env";

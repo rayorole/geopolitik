@@ -1,3 +1,3 @@
-export { createDb, type Database } from "./client.ts";
-export { newId } from "./id.ts";
-export * as schema from "./schema/index.ts";
+export { createDb, type Database } from "./client";
+export { newId } from "./id";
+export * as schema from "./schema/index";

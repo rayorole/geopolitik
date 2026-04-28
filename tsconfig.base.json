@@ -6,7 +6,8 @@
 		"module": "ESNext",
 		"moduleResolution": "bundler",
 		"moduleDetection": "force",
-		"allowImportingTsExtensions": false,
+		"allowImportingTsExtensions": true,
+		"noEmit": true,
 		"verbatimModuleSyntax": true,
 		"resolveJsonModule": true,
 		"esModuleInterop": true,
@@ -18,10 +19,7 @@
 		"noFallthroughCasesInSwitch": true,
 		"noPropertyAccessFromIndexSignature": false,
 		"skipLibCheck": true,
-		"declaration": true,
-		"declarationMap": true,
-		"sourceMap": true,
-		"types": ["bun-types"]
+		"sourceMap": true
 	},
 	"exclude": ["node_modules", "dist", "build", ".next", ".turbo"]
 }

@@ -1,9 +1,5 @@
 {
 	"extends": "@geopolitik/config/tsconfig/library",
-	"compilerOptions": {
-		"rootDir": "src",
-		"outDir": "dist"
-	},
-	"include": ["src", "drizzle.config.ts"],
+	"include": ["src"],
 	"exclude": ["node_modules", "dist", "drizzle"]
 }

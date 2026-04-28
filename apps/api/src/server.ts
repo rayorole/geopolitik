@@ -1,7 +1,7 @@
-import { env } from "./env.ts";
-import { logger } from "./logger.ts";
-import { createApp } from "./routes.ts";
-import { handleUpgrade, websocketHandlers } from "./ws.ts";
+import { env } from "./env";
+import { logger } from "./logger";
+import { createApp } from "./routes";
+import { handleUpgrade, websocketHandlers } from "./ws";
 
 const app = createApp();
 

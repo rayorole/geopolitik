@@ -1,8 +1,8 @@
 import { newId, schema } from "@geopolitik/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from "./db.ts";
-import { env } from "./env.ts";
+import { db } from "./db";
+import { env } from "./env";
 
 export const auth = betterAuth({
 	baseURL: env.BETTER_AUTH_URL,
@@ -34,9 +34,7 @@ export const auth = betterAuth({
 		updateAge: 60 * 60 * 24, // refresh on activity within 24h
 	},
 	advanced: {
-		database: {
-			generateId: () => newId(),
-		},
+		generateId: () => newId(),
 	},
 });
 

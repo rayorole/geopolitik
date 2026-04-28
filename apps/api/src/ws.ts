@@ -1,7 +1,7 @@
 import { type WsOutboundMessage, wsInboundMessage } from "@geopolitik/shared";
 import type { ServerWebSocket } from "bun";
-import { auth } from "./auth.ts";
-import { logger } from "./logger.ts";
+import { auth } from "./auth";
+import { logger } from "./logger";
 
 type WsData = {
 	userId: string;
@@ -11,7 +11,7 @@ export async function handleUpgrade(
 	req: Request,
 	server: { upgrade: (req: Request, opts?: { data?: WsData }) => boolean },
 ): Promise<Response | undefined> {
-	const session = await auth.api.getSession({ headers: req.headers });
+	const session = await auth.api.getSession({ headers: req.headers as unknown as Headers });
 	if (!session) {
 		return new Response("Unauthorized", { status: 401 });
 	}
