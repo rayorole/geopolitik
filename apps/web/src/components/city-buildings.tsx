@@ -79,7 +79,10 @@ function CityBuildingsBody({
 	const queryClient = useQueryClient();
 
 	const { complete, inProgress } = useMemo(() => {
-		const cityBuildings = snapshot.cityBuildings.filter((b) => b.cityId === cityId);
+		// snapshot.cityBuildings is required at the type level but a stale
+		// snapshot from a pre-3d API can omit it. Defend with `?? []`.
+		const all = snapshot.cityBuildings ?? [];
+		const cityBuildings = all.filter((b) => b.cityId === cityId);
 		return {
 			complete: cityBuildings.filter((b) => b.state === "complete"),
 			inProgress: cityBuildings.filter((b) => b.state === "in_progress"),

@@ -104,24 +104,28 @@ export default function PlayPage() {
 	);
 
 	// Pre-compute the per-city render rows once per snapshot/world change. Lookup
-	// owner color via a Map<playerId, color>, mark mine for stroke accent.
+	// owner color + display name via Map<playerId, ...>, mark mine for stroke
+	// accent and pass capital + country through for the city popover.
 	const citiesRender = useMemo<CityRender[]>(() => {
 		if (!snapshot.data || !world.data) return [];
-		const colorByPlayer = new Map(snapshot.data.players.map((p) => [p.id, p.color]));
+		const playerById = new Map(snapshot.data.players.map((p) => [p.id, p]));
 		const popByCity = new Map(snapshot.data.cityState.map((cs) => [cs.cityId, cs]));
 		return world.data.cities
 			.map((c) => {
 				const cs = popByCity.get(c.id);
 				if (!cs) return null;
-				const ownerColor = cs.ownerPlayerId ? (colorByPlayer.get(cs.ownerPlayerId) ?? null) : null;
+				const owner = cs.ownerPlayerId ? playerById.get(cs.ownerPlayerId) : undefined;
 				return {
 					id: c.id,
 					lng: c.lng,
 					lat: c.lat,
 					name: c.name,
 					population: cs.population,
-					ownerColor,
+					ownerColor: owner?.color ?? null,
+					ownerName: owner?.displayName ?? null,
 					isMine: !!cs.ownerPlayerId && cs.ownerPlayerId === snapshot.data?.mePlayerId,
+					isCapital: c.isCapital,
+					countryCode: c.countryCode,
 				} satisfies CityRender;
 			})
 			.filter((row): row is CityRender => row !== null);
