@@ -1,7 +1,7 @@
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
-import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import type { Metadata } from "next";
+import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
 
