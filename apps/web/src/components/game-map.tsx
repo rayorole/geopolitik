@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -8,6 +10,7 @@ import {
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { Minus, Plus } from "lucide-react";
 import maplibregl, { type Map as MapInstance } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -127,7 +130,6 @@ export function GameMap({ onCursorMove, onHoverCountry }: GameMapProps) {
 		requestAnimationFrame(() => map.resize());
 		const ro = new ResizeObserver(() => map.resize());
 		ro.observe(containerRef.current);
-		map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
 		map.addControl(
 			new maplibregl.AttributionControl({
 				customAttribution:
@@ -199,43 +201,73 @@ export function GameMap({ onCursorMove, onHoverCountry }: GameMapProps) {
 		void navigator.clipboard?.writeText(contextCoord.iso3);
 	}, [contextCoord]);
 
+	const zoomIn = useCallback(() => mapRef.current?.zoomIn(), []);
+	const zoomOut = useCallback(() => mapRef.current?.zoomOut(), []);
+
 	return (
-		<ContextMenu>
-			<ContextMenuTrigger asChild>
-				<div
-					onContextMenu={onContextMenu}
-					className="absolute inset-0"
-					style={{ position: "absolute", inset: 0 }}
-				>
+		<>
+			<ContextMenu>
+				<ContextMenuTrigger asChild>
 					<div
-						ref={containerRef}
-						style={{ width: "100%", height: "100%" }}
-						className="h-full w-full"
-					/>
-				</div>
-			</ContextMenuTrigger>
-			<ContextMenuContent className="font-mono text-xs">
-				{contextCoord && (
-					<ContextMenuLabel className="text-muted-foreground">
-						{contextCoord.name ? `${contextCoord.name} · ${contextCoord.iso3}` : "Open ocean"}
-					</ContextMenuLabel>
-				)}
-				<ContextMenuSeparator />
-				<ContextMenuItem onSelect={copyCoords} disabled={!contextCoord}>
-					Copy coordinates
+						onContextMenu={onContextMenu}
+						className="absolute inset-0"
+						style={{ position: "absolute", inset: 0 }}
+					>
+						<div
+							ref={containerRef}
+							style={{ width: "100%", height: "100%" }}
+							className="h-full w-full"
+						/>
+					</div>
+				</ContextMenuTrigger>
+				<ContextMenuContent className="font-mono text-xs">
 					{contextCoord && (
-						<span className="ml-auto pl-3 text-muted-foreground">
-							{fmt(contextCoord.lat, 2)}, {fmt(contextCoord.lng, 2)}
-						</span>
+						<ContextMenuLabel className="text-muted-foreground">
+							{contextCoord.name ? `${contextCoord.name} · ${contextCoord.iso3}` : "Open ocean"}
+						</ContextMenuLabel>
 					)}
-				</ContextMenuItem>
-				<ContextMenuItem onSelect={copyCountry} disabled={!contextCoord?.iso3}>
-					Copy country code
-					{contextCoord?.iso3 && (
-						<span className="ml-auto pl-3 text-muted-foreground">{contextCoord.iso3}</span>
-					)}
-				</ContextMenuItem>
-			</ContextMenuContent>
-		</ContextMenu>
+					<ContextMenuSeparator />
+					<ContextMenuItem onSelect={copyCoords} disabled={!contextCoord}>
+						Copy coordinates
+						{contextCoord && (
+							<span className="ml-auto pl-3 text-muted-foreground">
+								{fmt(contextCoord.lat, 2)}, {fmt(contextCoord.lng, 2)}
+							</span>
+						)}
+					</ContextMenuItem>
+					<ContextMenuItem onSelect={copyCountry} disabled={!contextCoord?.iso3}>
+						Copy country code
+						{contextCoord?.iso3 && (
+							<span className="ml-auto pl-3 text-muted-foreground">{contextCoord.iso3}</span>
+						)}
+					</ContextMenuItem>
+				</ContextMenuContent>
+			</ContextMenu>
+
+			<ButtonGroup
+				orientation="vertical"
+				className="absolute right-3 bottom-12 z-10 backdrop-blur-sm"
+				aria-label="Map zoom controls"
+			>
+				<Button
+					variant="outline"
+					size="icon"
+					onClick={zoomIn}
+					aria-label="Zoom in"
+					className="border-border bg-card/95 hover:bg-accent"
+				>
+					<Plus />
+				</Button>
+				<Button
+					variant="outline"
+					size="icon"
+					onClick={zoomOut}
+					aria-label="Zoom out"
+					className="border-border bg-card/95 hover:bg-accent"
+				>
+					<Minus />
+				</Button>
+			</ButtonGroup>
+		</>
 	);
 }
