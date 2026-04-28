@@ -390,7 +390,7 @@ export default function PlayPage() {
 								</li>
 							)}
 							{myCities.map(({ state, def }) => (
-								<li key={state.cityId} className="contents">
+								<li key={state.cityId}>
 									<CityRowMini
 										name={def.name}
 										population={state.population}

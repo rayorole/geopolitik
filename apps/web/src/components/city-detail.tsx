@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import type { GameSnapshot, PlayerInGame, WorldDataset } from "@geopolitik/shared/api";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
@@ -216,14 +215,14 @@ export function CityRowMini({
 	onClick: () => void;
 }) {
 	return (
-		<Button
-			variant="ghost"
+		<button
+			type="button"
 			onClick={onClick}
-			className={`grid h-auto grid-cols-[1fr_auto_auto] items-baseline gap-2 rounded-none border-b border-border px-3 py-1.5 hover:bg-accent ${
+			className={`grid w-full cursor-pointer grid-cols-[1fr_auto_auto] items-baseline gap-2 border-b border-border px-3 py-1.5 text-left transition-colors hover:bg-accent ${
 				isSelected ? "bg-accent" : ""
 			}`}
 		>
-			<span className="text-left text-sm text-foreground">
+			<span className="truncate text-sm text-foreground">
 				{name}
 				{isCapital && (
 					<span className="ml-1 font-mono text-[9px] uppercase tracking-[0.18em] text-primary">
@@ -235,6 +234,6 @@ export function CityRowMini({
 				{population.toLocaleString()}
 			</span>
 			<ChevronRight className="size-3 text-muted-foreground" aria-hidden />
-		</Button>
+		</button>
 	);
 }
