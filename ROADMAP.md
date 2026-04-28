@@ -84,11 +84,11 @@ Phases are sequential by default. Adjacent phases (notably 5↔6 and 7↔8) can 
 
 **In scope**
 - Tick worker process in `apps/api` (single Bun worker; Redis-backed schedule)
-- Per-world Postgres lock; transactional tick; idempotent on retry
+- Per-game Postgres lock; transactional tick; idempotent on retry
 - Order queue table + REST endpoint to enqueue
 - Resource model (exact set TBD in grilling)
 - City production rules
-- WS `tick` delta broadcast on world topic
+- WS `tick` delta broadcast on game topic
 - Snapshot REST endpoint for late joiners / desync recovery
 - Client reconciliation in Zustand
 - Sentry transactions wrapping each tick
@@ -98,17 +98,17 @@ Phases are sequential by default. Adjacent phases (notably 5↔6 and 7↔8) can 
 - Combat resolution (Phase 4)
 
 **Done criteria**
-- Player joins a world and sees city resource numbers grow every 30s without polling.
+- Player joins a game and sees city resource numbers grow every 30s without polling.
 - Disconnect/reconnect during a tick → no desync; snapshot endpoint recovers state.
-- Tick processing < 2s for a 500-city world (Sentry budget enforced).
+- Tick processing < 2s for a 500-city game (Sentry budget enforced).
 
 **Grilling topics**
 - Resource list — exact resources at MVP. (CoN's exact set is a legal risk; pick a different combination.)
 - Production formula: city size × terrain × infrastructure, or simpler?
 - Dev tick cadence — keep 30s or run faster (e.g., 5s) for testability?
-- Order queue: per-player or per-world? TTL? Cancellation rules?
+- Order queue: per-player or per-game? TTL? Cancellation rules?
 - Delta payload: changed cities only, or per-player snapshot diffs?
-- What happens if a tick errors mid-way — full rollback, partial commit, or quarantine the world?
+- What happens if a tick errors mid-way — full rollback, partial commit, or quarantine the game?
 
 ---
 
@@ -155,14 +155,14 @@ Phases are sequential by default. Adjacent phases (notably 5↔6 and 7↔8) can 
 - Damage curves with branch modifiers (land/air/sea/armor types)
 - Combat log surfaced via WS `event`
 - Minimal AI for unowned cities (defenders only, just enough to make combat feel real)
-- Private alpha onboarding (invite-link world creation)
+- Private alpha onboarding (invite-link game creation)
 
 **Out of scope**
 - AI nation strategy (Phase 7)
 - Espionage during combat (Phase 6)
 
 **Done criteria**
-- 5 friends in a private world. Each has units, moves them, engages.
+- 5 friends in a private game. Each has units, moves them, engages.
 - A battle plays out across multiple ticks with both players watching health change live.
 - Slowest-unit convoy works: mixing a tank with a slow truck slows the stack.
 
@@ -237,7 +237,7 @@ Phases are sequential by default. Adjacent phases (notably 5↔6 and 7↔8) can 
 ---
 
 ## Phase 7 — AI Nations & Dynamic Events
-**Goal:** Empty world slots filled with believable AI. Matches stay interesting in week 3+ via dynamic events.
+**Goal:** Empty game slots filled with believable AI. Matches stay interesting in week 3+ via dynamic events.
 
 **In scope**
 - AI nation behavior: production, recruitment, basic tactical movement, diplomatic responses
@@ -260,7 +260,7 @@ Phases are sequential by default. Adjacent phases (notably 5↔6 and 7↔8) can 
 - Event catalog size at MVP — 10, 50, 200 events?
 - Match length cap — soft (player vote), hard (calendar limit), or victory-only?
 - Stagnation signals — what triggers a dynamic event?
-- Defeated players: spectate, control AI, or matched into a new world?
+- Defeated players: spectate, control AI, or matched into a new game?
 - Event authorship: code-only at MVP, or community-submitted later?
 
 ---
@@ -352,11 +352,11 @@ Phases are sequential by default. Adjacent phases (notably 5↔6 and 7↔8) can 
 ---
 
 ## Phase 11 — Open Beta & Launch
-**Goal:** Public, scalable, multiple concurrent worlds. Ship it.
+**Goal:** Public, scalable, multiple concurrent games. Ship it.
 
 **In scope**
 - Public matchmaking lobby
-- Multiple concurrent worlds (sharded tick workers, world router)
+- Multiple concurrent games (sharded tick workers, game router)
 - World presets (small / medium / large, regional, themed)
 - Marketing site polish (landing, features, pricing, FAQ, privacy, ToS)
 - Press kit
@@ -365,11 +365,11 @@ Phases are sequential by default. Adjacent phases (notably 5↔6 and 7↔8) can 
 - Status page (custom or Better Stack)
 
 **Done criteria**
-- 200+ concurrent players across 3+ worlds, p95 tick processing within SLO.
+- 200+ concurrent players across 3+ games, p95 tick processing within SLO.
 - Landing page converts visitor → signup → first tick at ≥X% (target set in grilling).
 
 **Grilling topics**
-- Cross-world play: can a player be in multiple matches at once?
+- Cross-game play: can a player be in multiple matches at once?
 - World shard size — 100, 150, 200 players?
 - Pricing display — local currency via Stripe estimate, or USD/EUR primary?
 - Press strategy — soft launch + influencer keys, or hard launch?

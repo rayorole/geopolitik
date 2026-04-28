@@ -1,6 +1,8 @@
 # GeoPolitik
 
-Async, persistent, real-world-map grand strategy browser game. ~140 playable countries, city-level granularity (province rollup), OSM-based geography, ~150 concurrent players per world, multi-week matches, 30-second tick-based offline progression. Direct genre competitor: Conflict of Nations (Bytro / Stillfront) — see "Differentiation & legal guardrails" below.
+Async, persistent, real-world-map grand strategy browser game. ~140 playable countries, city-level granularity (province rollup), OSM-based geography, ~150 concurrent players per game, multi-week matches, 30-second tick-based offline progression. Direct genre competitor: Conflict of Nations (Bytro / Stillfront) — see "Differentiation & legal guardrails" below.
+
+> **Terminology.** The **world** is the Earth map — the geographic substrate produced by `apps/worldgen` (cities, provinces, adjacency). A **game** is one match instance running on top of that world: ~150 players, multi-week duration, its own tick loop. Every game uses the same underlying world; we do not generate fictional maps. Code, IDs, WS topics, and DB rows that scope to a match instance are named with `game` (e.g. `gameId`, `/play/[gameId]`, `game` topic). Code that touches the geographic substrate stays named with `world` (e.g. `apps/worldgen`, `packages/world-data`).
 
 Working name. Solo dev. Target: private alpha in ~12 weeks.
 
@@ -19,8 +21,9 @@ Working name. Solo dev. Target: private alpha in ~12 weeks.
 ### Frontend (`apps/web`)
 - **Next.js 15** App Router. Server components by default for non-interactive surfaces (marketing, auth UI, account, leaderboards, alliance forum, profile, shop). Client components only where interactivity demands it.
 - **Tailwind CSS v4** + **shadcn/ui**.
-- **Zustand** for client game state (order queue, UI state, optimistic updates).
-- **TanStack Query** for server data over REST.
+- **TanStack Query (React Query)** as the single source of truth for all server-derived state — REST data and WebSocket-pushed deltas alike. The WS handler writes directly into the query cache via `setQueryData`; components read with `useQuery`. **No `useEffect` to mirror server state into `useState`** — that pattern is the bug we're avoiding. Mutations (orders, sign-out, etc.) go through `useMutation`.
+- **`useState`** is reserved for ephemeral UI-only state (modal open, hover, drag delta). **Zustand** may be added later if we get cross-component UI state that doesn't belong in the query cache.
+- **React Hook Form + Zod resolver** for forms. No ad-hoc `useState` chains.
 - **MapLibre GL JS** for the OSM base layer. Mounted client-only on the in-game canvas route.
 - **PixiJS v8** rendered as a custom MapLibre layer for units, buildings, fog overlay, satellite scope reveals.
 - **Protomaps** `.pmtiles` for self-hosted tiles, served from **Cloudflare R2** (no egress fees, no per-tile cost).
@@ -36,8 +39,8 @@ Working name. Solo dev. Target: private alpha in ~12 weeks.
 
 ### Tick engine
 - **30-second tick** interval.
-- One Bun worker per world (single worker process for MVP; scale horizontally later via `SELECT FOR UPDATE SKIP LOCKED`).
-- A tick = one Postgres transaction. Lock the world row, drain the order queue, recompute resources/movement/combat/research/unrest, commit, broadcast deltas to WS subscribers on the world topic.
+- One Bun worker per game (single worker process for MVP; scale horizontally later via `SELECT FOR UPDATE SKIP LOCKED`).
+- A tick = one Postgres transaction. Lock the game row, drain the order queue, recompute resources/movement/combat/research/unrest, commit, broadcast deltas to WS subscribers on the game topic.
 - **Server-authoritative everything.** Clients submit orders; clients never compute game state. The client view is a projection of the latest server snapshot plus an optimistic queue of pending orders.
 
 ### Database
@@ -48,7 +51,7 @@ Working name. Solo dev. Target: private alpha in ~12 weeks.
 ### World generation pipeline (`apps/worldgen`)
 - One-shot Bun CLI run locally. Inputs: OSM admin boundaries from Geofabrik, OSM `place=city|town` filtered by population.
 - **Local PostGIS** (in `docker-compose.yml`) does the heavy spatial work: city → province (`admin_level=4`) `ST_Contains` join, neighbor adjacency precompute, distance matrices, terrain classification.
-- Output: SQL dump + JSON files committed under `packages/world-data/`. Runtime DB imports the dump on world creation. Neon never sees PostGIS.
+- Output: SQL dump + JSON files committed under `packages/world-data/`. Runtime DB imports the dump on game creation. Neon never sees PostGIS.
 
 ### Game content & data
 - **Postgres + JSON in repo.** No Sanity, no headless CMS.
@@ -160,7 +163,7 @@ bun run dev
 
 ### Tick engine invariants
 - A tick is atomic. Either every effect in a tick lands or none do. Wrap each tick in a single Postgres transaction.
-- Orders are append-only. The tick consumes the queue under the world lock.
+- Orders are append-only. The tick consumes the queue under the game lock.
 - Clients receive deltas, not full snapshots, except on initial connect or desync recovery.
 - A late-joining client fetches a snapshot via REST, then subscribes to WS deltas using the snapshot's `tick_id` as a high-water mark.
 
@@ -169,7 +172,7 @@ bun run dev
 - Auth: Better Auth session cookie validated on the WS upgrade. Reject the upgrade if invalid.
 - Inbound messages: typed and Zod-validated against schemas in `packages/shared/ws-messages.ts`. Validation failure = disconnect with a logged reason.
 - Outbound message types: `tick` (delta), `event` (random events, alliance invites, treaty proposals, espionage outcomes), `ack` (order accepted / rejected with reason), `desync` (client must refetch snapshot).
-- Topics: per-world. A connection is subscribed to exactly one world topic at a time.
+- Topics: per-game. A connection is subscribed to exactly one game topic at a time.
 
 ### Anti-cheat baseline (non-negotiable, enforced from day one)
 - Server-authoritative state. Client state is a projection.
@@ -232,6 +235,7 @@ When in doubt, look at the 8-point list above. If a feature isn't differentiatin
 - **Zod is the boundary.** Every external input — WS message, REST body, env var, JSON game data file — passes through a Zod parse. Internal code trusts its types.
 - **Drizzle for runtime app schema.** Raw SQL is fine inside `apps/worldgen` (PostGIS, one-shot tooling). Avoid raw SQL in the runtime API path unless there is a measured reason.
 - **Game balance constants** live in `packages/shared/data/*.json` and are the single source of truth. No magic numbers in code.
+- **No `useEffect` to sync server state into local component state.** Server-derived data (REST responses, WS-pushed deltas) lives in the TanStack Query cache; components read it via `useQuery`. The only acceptable `useEffect` cases are: subscribing to non-React DOM APIs (e.g. `window` resize), running cleanup on unmount that the framework can't express otherwise, and wiring imperative third-party libraries (MapLibre, PixiJS). Auth-redirect "useEffect to push the router" is forbidden — render conditional UI (a "Sign in required" card) instead.
 
 ---
 

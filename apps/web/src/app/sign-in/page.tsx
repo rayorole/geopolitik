@@ -29,7 +29,11 @@ export default function SignInPage() {
 	}
 
 	async function onDiscord() {
-		await signIn.social({ provider: "discord", callbackURL: "/account" });
+		await signIn.social({
+			provider: "discord",
+			callbackURL: `${window.location.origin}/account`,
+			errorCallbackURL: `${window.location.origin}/sign-in`,
+		});
 	}
 
 	return (

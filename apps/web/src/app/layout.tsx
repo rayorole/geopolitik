@@ -1,3 +1,4 @@
+import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
@@ -14,7 +15,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 	return (
 		<html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} dark`}>
 			<body className="min-h-screen antialiased">
-				{children}
+				<Providers>{children}</Providers>
 				<Toaster />
 			</body>
 		</html>

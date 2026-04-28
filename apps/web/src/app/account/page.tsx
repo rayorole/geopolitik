@@ -5,27 +5,43 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { signOut, useSession } from "@/lib/auth-client";
+import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
 export default function AccountPage() {
 	const router = useRouter();
 	const { data, isPending } = useSession();
 
-	useEffect(() => {
-		if (!isPending && !data) router.replace("/sign-in");
-	}, [data, isPending, router]);
+	const signOutMutation = useMutation({
+		mutationFn: async () => {
+			await signOut();
+		},
+		onSuccess: () => router.replace("/"),
+	});
 
-	async function onSignOut() {
-		await signOut();
-		router.replace("/");
-	}
-
-	if (isPending || !data) {
+	if (isPending) {
 		return (
 			<main className="flex min-h-screen items-center justify-center p-6">
 				<Skeleton className="h-48 w-full max-w-sm" />
+			</main>
+		);
+	}
+
+	if (!data) {
+		return (
+			<main className="flex min-h-screen items-center justify-center p-6">
+				<Card className="w-full max-w-sm">
+					<CardHeader>
+						<CardTitle>Sign in required</CardTitle>
+						<CardDescription>You need an active session to view your account.</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<Button asChild>
+							<Link href="/sign-in">Sign in</Link>
+						</Button>
+					</CardContent>
+				</Card>
 			</main>
 		);
 	}
@@ -50,10 +66,14 @@ export default function AccountPage() {
 					</div>
 					<div className="flex gap-2">
 						<Button asChild>
-							<Link href="/play/test-world">Open WS test</Link>
+							<Link href="/play/test-game">Open WS test</Link>
 						</Button>
-						<Button onClick={onSignOut} variant="secondary">
-							Sign out
+						<Button
+							onClick={() => signOutMutation.mutate()}
+							variant="secondary"
+							disabled={signOutMutation.isPending}
+						>
+							{signOutMutation.isPending ? "Signing out…" : "Sign out"}
 						</Button>
 					</div>
 				</CardContent>
