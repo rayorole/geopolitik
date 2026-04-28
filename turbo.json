@@ -41,7 +41,8 @@
 			"outputs": []
 		},
 		"db:generate": {
-			"cache": false
+			"cache": false,
+			"env": ["DATABASE_URL"]
 		},
 		"db:migrate": {
 			"cache": false,
