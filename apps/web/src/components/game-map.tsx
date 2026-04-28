@@ -81,7 +81,6 @@ const STYLE: maplibregl.StyleSpecification = {
 			},
 		},
 	],
-	glyphs: undefined,
 };
 
 export type CursorCoord = { lat: number; lng: number };
