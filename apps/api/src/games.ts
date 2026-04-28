@@ -6,9 +6,9 @@ import {
 	gameSnapshot,
 	gameSummary,
 	joinGameBody,
-	submitOrderBody,
 	submitOrderResponse,
 } from "@geopolitik/shared/api";
+import { submitOrderBodyV3 } from "@geopolitik/shared/orders";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { auth } from "./auth";
@@ -324,6 +324,11 @@ export function createGamesRouter() {
 				steel: schema.nationState.steel,
 				electronics: schema.nationState.electronics,
 				population: schema.nationState.population,
+				rp: schema.nationState.rp,
+				taxation: schema.nationState.taxation,
+				welfare: schema.nationState.welfare,
+				healthcare: schema.nationState.healthcare,
+				propaganda: schema.nationState.propaganda,
 			})
 			.from(schema.nationState)
 			.where(eq(schema.nationState.gameId, gameId));
@@ -378,7 +383,7 @@ export function createGamesRouter() {
 		const { userId } = authResult;
 
 		const gameId = c.req.param("id");
-		const parsed = submitOrderBody.safeParse(await c.req.json().catch(() => null));
+		const parsed = submitOrderBodyV3.safeParse(await c.req.json().catch(() => null));
 		if (!parsed.success) return c.json({ error: "invalid_body" }, 400);
 
 		const [me] = await db

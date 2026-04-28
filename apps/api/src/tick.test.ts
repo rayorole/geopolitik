@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyProductionToCity, growCityPopulation } from "./tick-formula";
+import { applyProductionToCity, applySliderEconomics, growCityPopulation } from "./tick-formula";
 
 describe("tick — pure production formula", () => {
 	it("a 1M-pop city with default multipliers contributes +100/+5/+0.2 (× 100 storage)", () => {
@@ -90,7 +90,7 @@ describe("tick — pure production formula", () => {
 });
 
 describe("growCityPopulation", () => {
-	it("grows by 0.05%/tick (5/10000), rounded down", () => {
+	it("grows by 0.05%/tick at the healthcare reference (50)", () => {
 		expect(growCityPopulation(1_000_000)).toBe(1_000_500);
 		expect(growCityPopulation(2_000_000)).toBe(2_001_000);
 	});
@@ -98,14 +98,86 @@ describe("growCityPopulation", () => {
 	it("is monotonic and idempotent at zero", () => {
 		expect(growCityPopulation(0)).toBe(0);
 		expect(growCityPopulation(1)).toBe(1); // Math.floor(1 * 5/10000) = 0
-		expect(growCityPopulation(2_000)).toBe(2_001); // Math.floor(2000*5/10000)=1
+		expect(growCityPopulation(2_000)).toBe(2_001);
 	});
 
 	it("compounds across many ticks above the floor threshold", () => {
 		let pop = 1_000_000;
 		for (let i = 0; i < 100; i++) pop = growCityPopulation(pop);
-		// Approx 1.0005^100 = 1.0512 → ~1.051M; integer floor each tick is close.
 		expect(pop).toBeGreaterThan(1_050_000);
 		expect(pop).toBeLessThan(1_055_000);
+	});
+
+	it("scales with healthcare slider — half rate at 25, double at 100", () => {
+		expect(growCityPopulation(1_000_000, 0)).toBe(1_000_000);
+		expect(growCityPopulation(1_000_000, 25)).toBe(1_000_250);
+		expect(growCityPopulation(1_000_000, 50)).toBe(1_000_500);
+		expect(growCityPopulation(1_000_000, 100)).toBe(1_001_000);
+	});
+});
+
+describe("applySliderEconomics", () => {
+	const defaults = { taxation: 30, welfare: 50, healthcare: 50, propaganda: 30 } as const;
+
+	it("zero population yields zero economic effect (only propaganda fires)", () => {
+		const d = applySliderEconomics(defaults, 0);
+		// Defaults at 0 pop: only propaganda flat costs (money + electronics).
+		expect(d.money).toBeLessThan(0);
+		expect(d.electronics).toBeLessThan(0);
+		expect(d.oil).toBe(0);
+		expect(d.steel).toBe(0);
+	});
+
+	it("higher taxation = more money in", () => {
+		const low = applySliderEconomics({ ...defaults, taxation: 10 }, 10_000_000);
+		const high = applySliderEconomics({ ...defaults, taxation: 80 }, 10_000_000);
+		expect(high.money).toBeGreaterThan(low.money);
+	});
+
+	it("welfare and healthcare cost money proportional to population", () => {
+		const noWelfare = applySliderEconomics({ ...defaults, welfare: 0 }, 5_000_000);
+		const maxWelfare = applySliderEconomics({ ...defaults, welfare: 100 }, 5_000_000);
+		expect(maxWelfare.money).toBeLessThan(noWelfare.money);
+	});
+
+	it("propaganda burns money + electronics, scales with notch count, not pop", () => {
+		const off = applySliderEconomics({ ...defaults, propaganda: 0 }, 1_000_000);
+		const on = applySliderEconomics({ ...defaults, propaganda: 100 }, 1_000_000);
+		expect(on.electronics).toBeLessThan(off.electronics);
+		expect(on.money).toBeLessThan(off.money);
+	});
+
+	it("scales linearly with population", () => {
+		const _small = applySliderEconomics(defaults, 1_000_000);
+		const _large = applySliderEconomics(defaults, 10_000_000);
+		// Money delta has a non-pop component (propaganda) — assert taxation-driven part.
+		const taxOnlySmall = applySliderEconomics(
+			{ ...defaults, propaganda: 0, welfare: 0, healthcare: 0 },
+			1_000_000,
+		);
+		const taxOnlyLarge = applySliderEconomics(
+			{ ...defaults, propaganda: 0, welfare: 0, healthcare: 0 },
+			10_000_000,
+		);
+		expect(taxOnlyLarge.money).toBe(taxOnlySmall.money * 10);
+	});
+
+	it("max-tax + min-spend at high pop is strongly net-positive money", () => {
+		const max = applySliderEconomics(
+			{ taxation: 100, welfare: 0, healthcare: 0, propaganda: 0 },
+			50_000_000,
+		);
+		expect(max.money).toBeGreaterThan(0);
+	});
+
+	it("default slider mix at modest pop is net-negative money (ongoing welfare cost)", () => {
+		const d = applySliderEconomics(defaults, 5_000_000);
+		expect(d.money).toBeLessThan(0);
+	});
+
+	it("clamps a negative population input to zero scale", () => {
+		const d = applySliderEconomics(defaults, -100);
+		// Only propaganda flat costs survive; pop-scaled terms are zero.
+		expect(d.money).toBe(applySliderEconomics(defaults, 0).money);
 	});
 });

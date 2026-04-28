@@ -36,11 +36,16 @@ export const cityInSnapshot = z.object({
 
 export const nationInSnapshot = z.object({
 	playerId: z.string().uuid(),
-	money: z.number().int().nonnegative(),
+	money: z.number().int(),
 	oil: z.number().int().nonnegative(),
 	steel: z.number().int().nonnegative(),
-	electronics: z.number().int().nonnegative(),
+	electronics: z.number().int(),
 	population: z.number().int().nonnegative(),
+	rp: z.number().int().nonnegative(),
+	taxation: z.number().int().min(0).max(100),
+	welfare: z.number().int().min(0).max(100),
+	healthcare: z.number().int().min(0).max(100),
+	propaganda: z.number().int().min(0).max(100),
 });
 
 export const myOrder = z.object({

@@ -8,10 +8,10 @@ import type {
 	GameSnapshot,
 	GameSummary,
 	JoinGameBody,
-	SubmitOrderBody,
 	SubmitOrderResponse,
 	WorldDataset,
 } from "@geopolitik/shared/api";
+import type { SubmitOrderBodyV3 } from "@geopolitik/shared/orders";
 import { publicEnv } from "./env";
 
 const API = publicEnv.NEXT_PUBLIC_API_URL;
@@ -46,7 +46,7 @@ export const gamesApi = {
 	snapshot: (gameId: string): Promise<GameSnapshot> =>
 		api<GameSnapshot>(`/games/${gameId}/snapshot`),
 
-	submitOrder: (gameId: string, body: SubmitOrderBody): Promise<SubmitOrderResponse> =>
+	submitOrder: (gameId: string, body: SubmitOrderBodyV3): Promise<SubmitOrderResponse> =>
 		api(`/games/${gameId}/orders`, { method: "POST", body: JSON.stringify(body) }),
 
 	cancelOrder: (gameId: string, orderId: string): Promise<{ ok: true }> =>

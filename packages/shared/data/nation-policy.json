@@ -1,0 +1,25 @@
+{
+	"version": 1,
+	"sliders": {
+		"taxation": { "default": 30, "min": 0, "max": 100 },
+		"welfare": { "default": 50, "min": 0, "max": 100 },
+		"healthcare": { "default": 50, "min": 0, "max": 100 },
+		"propaganda": { "default": 30, "min": 0, "max": 100 }
+	},
+	"economic": {
+		"taxationMoneyPerPopMillionPerNotch": 50,
+		"welfareMoneyPerPopMillionPerNotch": 30,
+		"healthcareMoneyPerPopMillionPerNotch": 25,
+		"propagandaMoneyPerNotch": 20,
+		"propagandaElectronicsPerNotch": 5,
+		"healthcareGrowthRefSlider": 50
+	},
+	"unrest": {
+		"taxationPerNotchAboveDefault": 4,
+		"welfarePerNotchBelowDefault": 3,
+		"propagandaPerNotch": 2,
+		"defaultsTaxation": 30,
+		"defaultsWelfare": 50,
+		"populationScaleDivisor": 1000000
+	}
+}
