@@ -134,48 +134,53 @@ export default function PlayPage() {
 			<div className="relative flex-1">
 				<GameMap onCursorMove={onCursorMove} onHoverCountry={onHoverCountry} />
 
-				{/* Top HUD bar */}
-				<header className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-4 p-3">
-					<div className="pointer-events-auto flex items-center gap-2 border border-border bg-card/95 px-3 py-2 backdrop-blur-sm">
-						<Button asChild variant="ghost" size="sm" className="h-7 px-2">
-							<Link href="/games">← Menu</Link>
-						</Button>
-						<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-							Game
-						</span>
-						<code className="font-mono text-sm tracking-[0.14em] text-foreground">
-							{snapshot.data?.game.code ?? "…"}
-						</code>
-					</div>
+				{/* Top HUD — each panel anchored absolutely so cursor-readout
+					 width changes don't shove the tick counter around. */}
+				<div className="pointer-events-auto absolute top-3 left-3 flex items-center gap-2 border border-border bg-card/95 px-3 py-2 backdrop-blur-sm">
+					<Button asChild variant="ghost" size="sm" className="h-7 px-2">
+						<Link href="/games">← Menu</Link>
+					</Button>
+					<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+						Game
+					</span>
+					<code className="font-mono text-sm tracking-[0.14em] text-foreground">
+						{snapshot.data?.game.code ?? "…"}
+					</code>
+				</div>
 
-					<div className="pointer-events-auto flex flex-col items-center gap-1 border border-border bg-card/95 px-4 py-2 backdrop-blur-sm">
-						<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-							Tick
-						</span>
-						<span className="font-mono text-lg leading-none text-primary">
-							#{snapshot.data?.game.tick.toLocaleString() ?? "—"}
-						</span>
-					</div>
+				<div className="pointer-events-auto absolute top-3 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1 border border-border bg-card/95 px-4 py-2 backdrop-blur-sm">
+					<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+						Tick
+					</span>
+					<span className="font-mono text-lg leading-none text-primary tabular-nums">
+						#{snapshot.data?.game.tick.toLocaleString() ?? "—"}
+					</span>
+				</div>
 
-					<div className="pointer-events-auto flex flex-col items-end gap-1 border border-border bg-card/95 px-3 py-2 font-mono text-xs backdrop-blur-sm">
+				<div className="pointer-events-auto absolute top-3 right-3 flex w-56 flex-col items-end gap-1 border border-border bg-card/95 px-3 py-2 font-mono text-xs backdrop-blur-sm">
+					<span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+						Cursor
+					</span>
+					<div className="grid grid-cols-[auto_1fr] items-baseline gap-x-2 tabular-nums">
 						<span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-							Cursor
+							LAT
 						</span>
-						{cursor ? (
-							<span className="text-foreground">
-								<span className="text-muted-foreground">LAT</span> {fmtCoord(cursor.lat)}°
-								<span className="ml-2 text-muted-foreground">LON</span> {fmtCoord(cursor.lng)}°
-							</span>
-						) : (
-							<span className="text-muted-foreground">—</span>
-						)}
-						{hover?.iso3 && (
-							<span className="text-[11px] tracking-[0.06em] text-primary">
-								{hover.name} · {hover.iso3}
-							</span>
-						)}
+						<span className="text-right text-foreground">
+							{cursor ? `${fmtCoord(cursor.lat)}°` : "—"}
+						</span>
+						<span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+							LON
+						</span>
+						<span className="text-right text-foreground">
+							{cursor ? `${fmtCoord(cursor.lng)}°` : "—"}
+						</span>
 					</div>
-				</header>
+					<span
+						className={`mt-1 truncate text-[11px] tracking-[0.06em] ${hover?.iso3 ? "text-primary" : "text-muted-foreground/40"}`}
+					>
+						{hover?.iso3 ? `${hover.name} · ${hover.iso3}` : "—"}
+					</span>
+				</div>
 
 				{/* Bottom-left WS status pill */}
 				<div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2">
