@@ -43,15 +43,13 @@ const COLOR = {
 
 const NEVER_MATCH = "__NONE__";
 
-function fillExpression(myCountryCode: string | null | undefined): maplibregl.DataDrivenPropertyValueSpecification<string> {
+function fillExpression(
+	myCountryCode: string | null | undefined,
+): maplibregl.DataDrivenPropertyValueSpecification<string> {
 	const code = myCountryCode ?? NEVER_MATCH;
 	return [
 		"case",
-		[
-			"any",
-			["==", ["get", "ISO_A3"], code],
-			["==", ["get", "ADM0_A3"], code],
-		],
+		["any", ["==", ["get", "ISO_A3"], code], ["==", ["get", "ADM0_A3"], code]],
 		COLOR.signal500a40,
 		["boolean", ["feature-state", "hover"], false],
 		COLOR.signal500a18,
@@ -59,15 +57,13 @@ function fillExpression(myCountryCode: string | null | undefined): maplibregl.Da
 	] as maplibregl.DataDrivenPropertyValueSpecification<string>;
 }
 
-function lineColorExpression(myCountryCode: string | null | undefined): maplibregl.DataDrivenPropertyValueSpecification<string> {
+function lineColorExpression(
+	myCountryCode: string | null | undefined,
+): maplibregl.DataDrivenPropertyValueSpecification<string> {
 	const code = myCountryCode ?? NEVER_MATCH;
 	return [
 		"case",
-		[
-			"any",
-			["==", ["get", "ISO_A3"], code],
-			["==", ["get", "ADM0_A3"], code],
-		],
+		["any", ["==", ["get", "ISO_A3"], code], ["==", ["get", "ADM0_A3"], code]],
 		COLOR.signal500,
 		["boolean", ["feature-state", "hover"], false],
 		COLOR.signal500,

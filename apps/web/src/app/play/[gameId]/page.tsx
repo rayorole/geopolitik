@@ -86,7 +86,8 @@ export default function PlayPage() {
 	);
 
 	const myCountryCode = useMemo(
-		() => snapshot.data?.players.find((p) => p.id === snapshot.data?.mePlayerId)?.countryCode ?? null,
+		() =>
+			snapshot.data?.players.find((p) => p.id === snapshot.data?.mePlayerId)?.countryCode ?? null,
 		[snapshot.data],
 	);
 
