@@ -7,7 +7,7 @@ import { useSession } from "@/lib/auth-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function JoinGamePage() {
 	const params = useParams<{ gameId: string }>();
@@ -67,11 +67,14 @@ export default function JoinGamePage() {
 		);
 	}
 
-	if (snapshot.data?.mePlayerId) {
-		// Already a player — go straight in.
-		router.replace(`/play/${gameId}`);
-		return null;
-	}
+	const alreadyJoined = !!snapshot.data?.mePlayerId;
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: gameId/router are stable navigation targets
+	useEffect(() => {
+		if (alreadyJoined) router.replace(`/play/${gameId}`);
+	}, [alreadyJoined]);
+
+	if (alreadyJoined) return null;
 
 	return (
 		<main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-6 p-6">
