@@ -1,0 +1,112 @@
+{
+	"USA:Houston": { "oilMult": 3.0 },
+	"USA:Pittsburgh": { "steelMult": 2.0 },
+	"USA:San Jose": { "electronicsMult": 3.0 },
+	"USA:San Francisco": { "electronicsMult": 2.0, "moneyMult": 1.5 },
+	"USA:Seattle": { "electronicsMult": 2.0 },
+	"USA:Austin": { "electronicsMult": 1.8 },
+	"USA:New York City": { "moneyMult": 2.0, "electronicsMult": 1.3 },
+	"USA:New York": { "moneyMult": 2.0, "electronicsMult": 1.3 },
+	"USA:Chicago": { "steelMult": 1.4, "moneyMult": 1.3 },
+	"USA:Detroit": { "steelMult": 1.5 },
+	"USA:Dallas": { "oilMult": 1.5 },
+
+	"CAN:Calgary": { "oilMult": 2.5 },
+	"CAN:Edmonton": { "oilMult": 2.0 },
+	"CAN:Toronto": { "moneyMult": 1.5, "electronicsMult": 1.2 },
+
+	"GBR:Aberdeen": { "oilMult": 2.0 },
+	"GBR:London": { "moneyMult": 2.0 },
+	"GBR:Cambridge": { "electronicsMult": 1.6 },
+	"GBR:Sheffield": { "steelMult": 1.4 },
+
+	"NOR:Stavanger": { "oilMult": 3.0 },
+	"NOR:Oslo": { "moneyMult": 1.4 },
+
+	"DEU:Munich": { "electronicsMult": 1.8 },
+	"DEU:München": { "electronicsMult": 1.8 },
+	"DEU:Frankfurt": { "moneyMult": 1.6 },
+	"DEU:Frankfurt am Main": { "moneyMult": 1.6 },
+	"DEU:Duisburg": { "steelMult": 1.6 },
+	"DEU:Essen": { "steelMult": 1.4 },
+
+	"FRA:Paris": { "moneyMult": 1.7, "electronicsMult": 1.2 },
+	"NLD:Amsterdam": { "moneyMult": 1.5 },
+	"NLD:Eindhoven": { "electronicsMult": 1.7 },
+	"CHE:Zürich": { "moneyMult": 1.8 },
+	"CHE:Zurich": { "moneyMult": 1.8 },
+	"AUT:Linz": { "steelMult": 1.6 },
+	"FIN:Helsinki": { "electronicsMult": 1.5 },
+	"SWE:Stockholm": { "electronicsMult": 1.5, "moneyMult": 1.3 },
+	"SWE:Göteborg": { "steelMult": 1.3 },
+
+	"ESP:Bilbao": { "steelMult": 1.3 },
+	"ESP:Madrid": { "moneyMult": 1.4 },
+
+	"ITA:Milan": { "moneyMult": 1.5 },
+	"ITA:Milano": { "moneyMult": 1.5 },
+
+	"RUS:Tyumen": { "oilMult": 3.0 },
+	"RUS:Magnitogorsk": { "steelMult": 2.5 },
+	"RUS:Moscow": { "moneyMult": 1.5, "electronicsMult": 1.2 },
+	"RUS:Saint Petersburg": { "moneyMult": 1.2 },
+
+	"AZE:Baku": { "oilMult": 2.8 },
+	"KAZ:Atyrau": { "oilMult": 2.5 },
+	"KAZ:Almaty": { "oilMult": 1.5 },
+
+	"SAU:Riyadh": { "oilMult": 4.0, "moneyMult": 1.3 },
+	"SAU:Dhahran": { "oilMult": 4.0 },
+	"SAU:Jeddah": { "oilMult": 1.8 },
+	"ARE:Dubai": { "oilMult": 2.5, "moneyMult": 1.5 },
+	"ARE:Abu Dhabi": { "oilMult": 3.5, "moneyMult": 1.3 },
+	"QAT:Doha": { "oilMult": 3.0, "moneyMult": 1.3 },
+	"KWT:Kuwait City": { "oilMult": 3.5 },
+	"IRN:Tehran": { "oilMult": 2.0 },
+	"IRN:Ahvaz": { "oilMult": 2.5 },
+	"IRQ:Baghdad": { "oilMult": 2.0 },
+	"IRQ:Basra": { "oilMult": 2.5 },
+
+	"VEN:Caracas": { "oilMult": 2.0 },
+	"VEN:Maracaibo": { "oilMult": 2.8 },
+
+	"NGA:Lagos": { "oilMult": 2.0, "moneyMult": 1.2 },
+	"NGA:Port Harcourt": { "oilMult": 2.5 },
+	"AGO:Luanda": { "oilMult": 2.5 },
+	"DZA:Algiers": { "oilMult": 1.8 },
+	"EGY:Cairo": { "oilMult": 1.2 },
+
+	"CHN:Shenzhen": { "electronicsMult": 2.5 },
+	"CHN:Shanghai": { "moneyMult": 1.6, "electronicsMult": 1.5 },
+	"CHN:Beijing": { "electronicsMult": 1.5, "moneyMult": 1.3 },
+	"CHN:Suzhou": { "electronicsMult": 1.7 },
+	"CHN:Tangshan": { "steelMult": 2.5 },
+	"CHN:Anshan": { "steelMult": 2.0 },
+	"CHN:Wuhan": { "steelMult": 1.8 },
+	"CHN:Daqing": { "oilMult": 2.5 },
+
+	"JPN:Tokyo": { "electronicsMult": 1.8, "moneyMult": 1.5 },
+	"JPN:Yokohama": { "steelMult": 1.4, "electronicsMult": 1.3 },
+	"JPN:Nagoya": { "steelMult": 1.5 },
+	"JPN:Osaka": { "moneyMult": 1.3 },
+
+	"KOR:Seoul": { "electronicsMult": 2.0, "moneyMult": 1.3 },
+	"KOR:Pohang": { "steelMult": 2.5 },
+	"KOR:Ulsan": { "steelMult": 1.7 },
+
+	"TWN:Hsinchu": { "electronicsMult": 3.0 },
+	"TWN:Taipei": { "electronicsMult": 1.6, "moneyMult": 1.3 },
+
+	"IND:Bangalore": { "electronicsMult": 2.5 },
+	"IND:Bengaluru": { "electronicsMult": 2.5 },
+	"IND:Hyderabad": { "electronicsMult": 1.8 },
+	"IND:Mumbai": { "moneyMult": 1.5 },
+	"IND:Jamshedpur": { "steelMult": 2.0 },
+
+	"ISR:Tel Aviv": { "electronicsMult": 2.2 },
+	"ISR:Tel Aviv-Yafo": { "electronicsMult": 2.2 },
+
+	"BRA:Volta Redonda": { "steelMult": 1.6 },
+	"BRA:Sao Paulo": { "moneyMult": 1.4, "steelMult": 1.2 },
+	"BRA:São Paulo": { "moneyMult": 1.4, "steelMult": 1.2 }
+}

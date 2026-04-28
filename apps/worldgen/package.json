@@ -5,17 +5,23 @@
 	"type": "module",
 	"scripts": {
 		"start": "bun run src/cli.ts",
+		"fetch:test-cities": "bun run scripts/fetch-test-cities.ts",
 		"typecheck": "tsc --noEmit",
 		"clean": "rm -rf dist .turbo"
 	},
 	"dependencies": {
 		"@geopolitik/db": "*",
 		"@geopolitik/shared": "*",
+		"@geopolitik/world-data": "*",
+		"unzipper": "^0.12.3",
+		"uuid": "11.0.3",
 		"zod": "3.23.8"
 	},
 	"devDependencies": {
 		"@geopolitik/config": "*",
 		"@types/bun": "1.1.13",
+		"@types/unzipper": "^0.10.11",
+		"@types/uuid": "10.0.0",
 		"typescript": "5.6.3"
 	}
 }
