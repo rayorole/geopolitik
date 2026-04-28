@@ -142,12 +142,6 @@ export function GameMap({ onCursorMove, onHoverCountry }: GameMapProps) {
 			zoom: 1.5,
 			minZoom: 1,
 			maxZoom: 10,
-			// Cut the southern viewport at -60° so the empty ocean where
-			// Antarctica used to sit doesn't dominate the world view.
-			maxBounds: [
-				[-180, -60],
-				[180, 84],
-			],
 			renderWorldCopies: true,
 			attributionControl: false,
 			// Crisper borders on retina/high-DPI displays.
