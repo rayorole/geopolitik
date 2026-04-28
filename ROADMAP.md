@@ -90,7 +90,7 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 - City production rules
 - WS `tick` delta broadcast on game topic
 - Snapshot REST endpoint for late joiners / desync recovery
-- Client reconciliation in Zustand
+- Client reconciliation via TanStack Query: WS handler validates the delta and writes it into the query cache (`setQueryData`); components read with `useQuery`. No Zustand for server state per CLAUDE.md.
 - Sentry transactions wrapping each tick
 
 **Out of scope**
