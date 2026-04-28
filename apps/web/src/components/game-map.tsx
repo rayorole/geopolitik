@@ -37,8 +37,43 @@ const COLOR = {
 	ink3: "#1a212c", // country fill (default)
 	ink5: "#34404f", // country outline
 	signal500: "#d68b3e", // sodium-vapor amber, full opacity
-	signal500a18: "rgba(214, 139, 62, 0.22)", // same hue at ~22% alpha for hover fill
+	signal500a18: "rgba(214, 139, 62, 0.22)", // hover fill
+	signal500a40: "rgba(214, 139, 62, 0.45)", // owned-country fill
 } as const;
+
+const NEVER_MATCH = "__NONE__";
+
+function fillExpression(myCountryCode: string | null | undefined): maplibregl.DataDrivenPropertyValueSpecification<string> {
+	const code = myCountryCode ?? NEVER_MATCH;
+	return [
+		"case",
+		[
+			"any",
+			["==", ["get", "ISO_A3"], code],
+			["==", ["get", "ADM0_A3"], code],
+		],
+		COLOR.signal500a40,
+		["boolean", ["feature-state", "hover"], false],
+		COLOR.signal500a18,
+		COLOR.ink3,
+	] as maplibregl.DataDrivenPropertyValueSpecification<string>;
+}
+
+function lineColorExpression(myCountryCode: string | null | undefined): maplibregl.DataDrivenPropertyValueSpecification<string> {
+	const code = myCountryCode ?? NEVER_MATCH;
+	return [
+		"case",
+		[
+			"any",
+			["==", ["get", "ISO_A3"], code],
+			["==", ["get", "ADM0_A3"], code],
+		],
+		COLOR.signal500,
+		["boolean", ["feature-state", "hover"], false],
+		COLOR.signal500,
+		COLOR.ink5,
+	] as maplibregl.DataDrivenPropertyValueSpecification<string>;
+}
 
 const STYLE: maplibregl.StyleSpecification = {
 	version: 8,
@@ -61,12 +96,7 @@ const STYLE: maplibregl.StyleSpecification = {
 			source: "countries",
 			filter: ["!=", ["get", "ISO_A3"], "ATA"],
 			paint: {
-				"fill-color": [
-					"case",
-					["boolean", ["feature-state", "hover"], false],
-					COLOR.signal500a18,
-					COLOR.ink3,
-				],
+				"fill-color": fillExpression(null),
 				"fill-outline-color": COLOR.ink5,
 			},
 		},
@@ -80,12 +110,7 @@ const STYLE: maplibregl.StyleSpecification = {
 				"line-cap": "round",
 			},
 			paint: {
-				"line-color": [
-					"case",
-					["boolean", ["feature-state", "hover"], false],
-					COLOR.signal500,
-					COLOR.ink5,
-				],
+				"line-color": lineColorExpression(null),
 				// Scale border width with zoom — keeps the world view tidy
 				// (thin hairlines) and gives proper visible borders when
 				// zoomed in.
@@ -113,13 +138,14 @@ export type HoveredCountry = { iso3: string; name: string };
 export type GameMapProps = {
 	onCursorMove?: (coord: CursorCoord | null) => void;
 	onHoverCountry?: (country: HoveredCountry | null) => void;
+	myCountryCode?: string | null;
 };
 
 function fmt(n: number, dp = 3): string {
 	return n.toLocaleString(undefined, { minimumFractionDigits: dp, maximumFractionDigits: dp });
 }
 
-export function GameMap({ onCursorMove, onHoverCountry }: GameMapProps) {
+export function GameMap({ onCursorMove, onHoverCountry, myCountryCode }: GameMapProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<MapInstance | null>(null);
 	const hoverIdRef = useRef<number | null>(null);
@@ -197,6 +223,23 @@ export function GameMap({ onCursorMove, onHoverCountry }: GameMapProps) {
 			mapRef.current = null;
 		};
 	}, [styleSpec, onCursorMove, onHoverCountry]);
+
+	// Re-apply paint properties whenever the player's country changes so the
+	// owned country lights up in signal amber. Waits for the style to load
+	// the first time, then mutates the paint expressions in place.
+	useEffect(() => {
+		const map = mapRef.current;
+		if (!map) return;
+		const apply = () => {
+			map.setPaintProperty("country-fill", "fill-color", fillExpression(myCountryCode));
+			map.setPaintProperty("country-line", "line-color", lineColorExpression(myCountryCode));
+		};
+		if (map.isStyleLoaded()) {
+			apply();
+		} else {
+			map.once("load", apply);
+		}
+	}, [myCountryCode]);
 
 	const onContextMenu = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
 		const map = mapRef.current;

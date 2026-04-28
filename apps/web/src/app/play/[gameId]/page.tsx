@@ -85,6 +85,11 @@ export default function PlayPage() {
 		[snapshot.data],
 	);
 
+	const myCountryCode = useMemo(
+		() => snapshot.data?.players.find((p) => p.id === snapshot.data?.mePlayerId)?.countryCode ?? null,
+		[snapshot.data],
+	);
+
 	const onCursorMove = useCallback((c: CursorCoord | null) => setCursor(c), []);
 	const onHoverCountry = useCallback((c: HoveredCountry | null) => setHover(c), []);
 
@@ -132,7 +137,11 @@ export default function PlayPage() {
 		<div className="flex h-screen overflow-hidden bg-background text-foreground">
 			{/* ─── Map area ─────────────────────────────────────────────────────── */}
 			<div className="relative flex-1">
-				<GameMap onCursorMove={onCursorMove} onHoverCountry={onHoverCountry} />
+				<GameMap
+					onCursorMove={onCursorMove}
+					onHoverCountry={onHoverCountry}
+					myCountryCode={myCountryCode}
+				/>
 
 				{/* Top HUD — each panel anchored absolutely so cursor-readout
 					 width changes don't shove the tick counter around. */}
