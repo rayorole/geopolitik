@@ -10,9 +10,12 @@ import {
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import type { WorldDataset } from "@geopolitik/shared/api";
 import { Minus, Plus } from "lucide-react";
 import maplibregl, { type Map as MapInstance } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /*
@@ -135,13 +138,22 @@ export type GameMapProps = {
 	onCursorMove?: (coord: CursorCoord | null) => void;
 	onHoverCountry?: (country: HoveredCountry | null) => void;
 	myCountryCode?: string | null;
+	cities?: WorldDataset["cities"];
+};
+
+type CountryPopoverState = {
+	iso3: string;
+	iso2: string | null;
+	name: string;
+	x: number;
+	y: number;
 };
 
 function fmt(n: number, dp = 3): string {
 	return n.toLocaleString(undefined, { minimumFractionDigits: dp, maximumFractionDigits: dp });
 }
 
-export function GameMap({ onCursorMove, onHoverCountry, myCountryCode }: GameMapProps) {
+export function GameMap({ onCursorMove, onHoverCountry, myCountryCode, cities }: GameMapProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<MapInstance | null>(null);
 	const hoverIdRef = useRef<number | null>(null);
@@ -152,6 +164,21 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode }: GameMap
 		iso3: string | null;
 		name: string | null;
 	} | null>(null);
+	const [popover, setPopover] = useState<CountryPopoverState | null>(null);
+
+	// Index city stats by ISO_A3 / ADM0_A3 once per cities-prop update so the
+	// popover doesn't iterate the whole list on every click.
+	const cityStatsByCountry = useMemo(() => {
+		const map = new Map<string, { cityCount: number; capital: string | null }>();
+		if (!cities) return map;
+		for (const c of cities) {
+			const stat = map.get(c.countryCode) ?? { cityCount: 0, capital: null };
+			stat.cityCount++;
+			if (c.isCapital && !stat.capital) stat.capital = c.name;
+			map.set(c.countryCode, stat);
+		}
+		return map;
+	}, [cities]);
 
 	const styleSpec = useMemo(() => STYLE, []);
 
@@ -224,14 +251,31 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode }: GameMap
 			onHoverCountry?.(null);
 		});
 
-		map.on("click", "country-fill", () => {
+		map.on("click", "country-fill", (e) => {
 			const audio = clickAudioRef.current;
-			if (!audio) return;
-			audio.currentTime = 0;
-			void audio.play().catch(() => {
-				// Browsers block autoplay until the user has interacted with
-				// the page. A click on the map IS that interaction, but if a
-				// race condition still kills it, fail quietly.
+			if (audio) {
+				audio.currentTime = 0;
+				void audio.play().catch(() => {
+					// Browsers block autoplay until the user has interacted
+					// with the page. A click on the map IS that interaction,
+					// but fail quietly on edge-case races.
+				});
+			}
+			const f = e.features?.[0];
+			const props = f?.properties ?? {};
+			const iso3 = (props.ISO_A3 as string) ?? (props.ADM0_A3 as string) ?? "";
+			if (!iso3) {
+				setPopover(null);
+				return;
+			}
+			const iso2Raw =
+				(props.ISO_A2_EH as string | undefined) ?? (props.ISO_A2 as string | undefined);
+			setPopover({
+				iso3,
+				iso2: iso2Raw && iso2Raw !== "-99" ? iso2Raw.toLowerCase() : null,
+				name: (props.NAME as string) ?? (props.ADMIN as string) ?? iso3,
+				x: e.point.x,
+				y: e.point.y,
 			});
 		});
 
@@ -291,6 +335,12 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode }: GameMap
 
 	const zoomIn = useCallback(() => mapRef.current?.zoomIn(), []);
 	const zoomOut = useCallback(() => mapRef.current?.zoomOut(), []);
+
+	const popoverStats = popover
+		? (cityStatsByCountry.get(popover.iso3) ??
+			cityStatsByCountry.get(popover.iso3.toUpperCase()) ??
+			null)
+		: null;
 
 	return (
 		<>
@@ -356,6 +406,67 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode }: GameMap
 					<Minus />
 				</Button>
 			</ButtonGroup>
+
+			{popover && (
+				<Popover open onOpenChange={(o) => !o && setPopover(null)}>
+					<PopoverTrigger asChild>
+						<div
+							aria-hidden
+							style={{
+								position: "absolute",
+								left: popover.x,
+								top: popover.y,
+								width: 1,
+								height: 1,
+								pointerEvents: "none",
+							}}
+						/>
+					</PopoverTrigger>
+					<PopoverContent
+						side="top"
+						sideOffset={12}
+						align="center"
+						className="w-64 border border-border bg-card/95 p-3 backdrop-blur-sm"
+					>
+						<div className="flex items-center gap-3">
+							{popover.iso2 ? (
+								<Image
+									src={`https://flagcdn.com/w80/${popover.iso2}.png`}
+									alt=""
+									width={40}
+									height={28}
+									unoptimized
+									className="h-7 w-10 flex-shrink-0 border border-border object-cover"
+								/>
+							) : (
+								<div className="h-7 w-10 flex-shrink-0 border border-border bg-muted" />
+							)}
+							<div className="flex min-w-0 flex-col gap-0.5">
+								<span className="truncate font-display font-medium text-foreground text-sm">
+									{popover.name}
+								</span>
+								<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+									{popover.iso3}
+								</span>
+							</div>
+						</div>
+						<div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-3 font-mono text-[11px]">
+							<div className="flex flex-col">
+								<span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+									Cities
+								</span>
+								<span className="text-foreground">{popoverStats?.cityCount ?? "—"}</span>
+							</div>
+							<div className="flex flex-col">
+								<span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+									Capital
+								</span>
+								<span className="truncate text-foreground">{popoverStats?.capital ?? "—"}</span>
+							</div>
+						</div>
+					</PopoverContent>
+				</Popover>
+			)}
 		</>
 	);
 }

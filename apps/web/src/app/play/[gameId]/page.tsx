@@ -143,6 +143,7 @@ export default function PlayPage() {
 					onCursorMove={onCursorMove}
 					onHoverCountry={onHoverCountry}
 					myCountryCode={myCountryCode}
+					cities={world.data?.cities}
 				/>
 
 				{/* Top HUD — each panel anchored absolutely so cursor-readout
