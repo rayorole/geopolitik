@@ -8,17 +8,17 @@
 
 @theme {
 	/* ── Ink scale ── */
-	--color-ink-0:  oklch(4%  0.005 240);   /* #05070a — void / letterbox    */
-	--color-ink-1:  oklch(8%  0.010 240);   /* #0a0e14 — canvas              */
-	--color-ink-2:  oklch(10% 0.010 240);   /* #11161e — panel               */
-	--color-ink-3:  oklch(13% 0.010 240);   /* #1a212c — raised surface      */
-	--color-ink-4:  oklch(17% 0.015 240);   /* #232c3a — hairline / divider  */
-	--color-ink-5:  oklch(22% 0.015 240);   /* #34404f — muted border        */
-	--color-ink-6:  oklch(38% 0.015 240);   /* #4d5b6e — disabled text       */
-	--color-ink-7:  oklch(57% 0.015 240);   /* #7a8a9f — secondary text      */
-	--color-ink-8:  oklch(77% 0.010 240);   /* #b6c2d1 — primary text        */
-	--color-ink-9:  oklch(93% 0.010 240);   /* #e6ecf3 — emphasis text       */
-	--color-ink-10: oklch(100% 0 0);        /* #ffffff                       */
+	--color-ink-0: oklch(4% 0.005 240); /* #05070a — void / letterbox    */
+	--color-ink-1: oklch(8% 0.01 240); /* #0a0e14 — canvas              */
+	--color-ink-2: oklch(10% 0.01 240); /* #11161e — panel               */
+	--color-ink-3: oklch(13% 0.01 240); /* #1a212c — raised surface      */
+	--color-ink-4: oklch(17% 0.015 240); /* #232c3a — hairline / divider  */
+	--color-ink-5: oklch(22% 0.015 240); /* #34404f — muted border        */
+	--color-ink-6: oklch(38% 0.015 240); /* #4d5b6e — disabled text       */
+	--color-ink-7: oklch(57% 0.015 240); /* #7a8a9f — secondary text      */
+	--color-ink-8: oklch(77% 0.01 240); /* #b6c2d1 — primary text        */
+	--color-ink-9: oklch(93% 0.01 240); /* #e6ecf3 — emphasis text       */
+	--color-ink-10: oklch(100% 0 0); /* #ffffff                       */
 
 	/* ── Signal — sodium-vapor amber (single warm accent) ── */
 	--color-signal-100: oklch(96% 0.04 75);
@@ -28,70 +28,70 @@
 	--color-signal-700: oklch(54% 0.16 75);
 
 	/* ── Status — same chroma so they read as siblings ── */
-	--color-ok:   oklch(72% 0.14 152);   /* green  — treaty signed, tick ok  */
-	--color-warn: oklch(72% 0.14 60);    /* amber  — unrest rising, low supply */
-	--color-crit: oklch(64% 0.20 25);    /* red    — combat, breach, failure */
-	--color-info: oklch(72% 0.13 230);   /* blue   — satellite scope, intel  */
+	--color-ok: oklch(72% 0.14 152); /* green  — treaty signed, tick ok  */
+	--color-warn: oklch(72% 0.14 60); /* amber  — unrest rising, low supply */
+	--color-crit: oklch(64% 0.2 25); /* red    — combat, breach, failure */
+	--color-info: oklch(72% 0.13 230); /* blue   — satellite scope, intel  */
 
 	/* ── Faction palette — 12 hues, L70 C0.13, evenly spaced ── */
-	--color-faction-01: oklch(70% 0.13   0);   /* crimson   */
-	--color-faction-02: oklch(70% 0.13  30);   /* rust      */
-	--color-faction-03: oklch(70% 0.13  60);   /* ochre     */
-	--color-faction-04: oklch(70% 0.13  95);   /* moss      */
-	--color-faction-05: oklch(70% 0.13 140);   /* jade      */
-	--color-faction-06: oklch(70% 0.13 180);   /* teal      */
-	--color-faction-07: oklch(70% 0.13 215);   /* steel     */
-	--color-faction-08: oklch(70% 0.13 250);   /* indigo    */
-	--color-faction-09: oklch(70% 0.13 285);   /* violet    */
-	--color-faction-10: oklch(70% 0.13 320);   /* magenta   */
-	--color-faction-11: oklch(70% 0.13 350);   /* rose      */
-	--color-faction-12: oklch(78% 0.05  90);   /* neutral   */
+	--color-faction-01: oklch(70% 0.13 0); /* crimson   */
+	--color-faction-02: oklch(70% 0.13 30); /* rust      */
+	--color-faction-03: oklch(70% 0.13 60); /* ochre     */
+	--color-faction-04: oklch(70% 0.13 95); /* moss      */
+	--color-faction-05: oklch(70% 0.13 140); /* jade      */
+	--color-faction-06: oklch(70% 0.13 180); /* teal      */
+	--color-faction-07: oklch(70% 0.13 215); /* steel     */
+	--color-faction-08: oklch(70% 0.13 250); /* indigo    */
+	--color-faction-09: oklch(70% 0.13 285); /* violet    */
+	--color-faction-10: oklch(70% 0.13 320); /* magenta   */
+	--color-faction-11: oklch(70% 0.13 350); /* rose      */
+	--color-faction-12: oklch(78% 0.05 90); /* neutral   */
 
 	/* ── shadcn semantic tokens ── */
-	--color-background:             oklch(8%  0.010 240);   /* ink-1 */
-	--color-foreground:             oklch(77% 0.010 240);   /* ink-8 */
+	--color-background: oklch(8% 0.01 240); /* ink-1 */
+	--color-foreground: oklch(77% 0.01 240); /* ink-8 */
 
-	--color-card:                   oklch(10% 0.010 240);   /* ink-2 */
-	--color-card-foreground:        oklch(93% 0.010 240);   /* ink-9 */
+	--color-card: oklch(10% 0.01 240); /* ink-2 */
+	--color-card-foreground: oklch(93% 0.01 240); /* ink-9 */
 
-	--color-popover:                oklch(10% 0.010 240);
-	--color-popover-foreground:     oklch(93% 0.010 240);
+	--color-popover: oklch(10% 0.01 240);
+	--color-popover-foreground: oklch(93% 0.01 240);
 
-	--color-primary:                oklch(72% 0.17 75);     /* signal-500 */
-	--color-primary-foreground:     oklch(4%  0.005 240);   /* ink-0 */
+	--color-primary: oklch(72% 0.17 75); /* signal-500 */
+	--color-primary-foreground: oklch(4% 0.005 240); /* ink-0 */
 
-	--color-secondary:              oklch(13% 0.010 240);   /* ink-3 */
-	--color-secondary-foreground:   oklch(93% 0.010 240);
+	--color-secondary: oklch(13% 0.01 240); /* ink-3 */
+	--color-secondary-foreground: oklch(93% 0.01 240);
 
-	--color-muted:                  oklch(10% 0.010 240);   /* ink-2 */
-	--color-muted-foreground:       oklch(57% 0.015 240);   /* ink-7 */
+	--color-muted: oklch(10% 0.01 240); /* ink-2 */
+	--color-muted-foreground: oklch(57% 0.015 240); /* ink-7 */
 
-	--color-accent:                 oklch(17% 0.015 240);   /* ink-4 */
-	--color-accent-foreground:      oklch(93% 0.010 240);
+	--color-accent: oklch(17% 0.015 240); /* ink-4 */
+	--color-accent-foreground: oklch(93% 0.01 240);
 
-	--color-destructive:            oklch(64% 0.20 25);     /* crit */
-	--color-destructive-foreground: oklch(93% 0.010 240);
+	--color-destructive: oklch(64% 0.2 25); /* crit */
+	--color-destructive-foreground: oklch(93% 0.01 240);
 
-	--color-border:                 oklch(17% 0.015 240);   /* ink-4 */
-	--color-input:                  oklch(13% 0.010 240);   /* ink-3 */
-	--color-ring:                   oklch(72% 0.17 75);     /* signal-500 */
+	--color-border: oklch(17% 0.015 240); /* ink-4 */
+	--color-input: oklch(13% 0.01 240); /* ink-3 */
+	--color-ring: oklch(72% 0.17 75); /* signal-500 */
 
 	/* ── Charts (HUD readouts) ── */
-	--color-chart-1: oklch(72% 0.17 75);    /* signal */
-	--color-chart-2: oklch(72% 0.13 230);   /* info   */
-	--color-chart-3: oklch(72% 0.14 152);   /* ok     */
-	--color-chart-4: oklch(70% 0.13 250);   /* indigo */
-	--color-chart-5: oklch(64% 0.20 25);    /* crit   */
+	--color-chart-1: oklch(72% 0.17 75); /* signal */
+	--color-chart-2: oklch(72% 0.13 230); /* info   */
+	--color-chart-3: oklch(72% 0.14 152); /* ok     */
+	--color-chart-4: oklch(70% 0.13 250); /* indigo */
+	--color-chart-5: oklch(64% 0.2 25); /* crit   */
 
 	/* ── Border radius — hard-edge militaristic ── */
-	--radius:     0.125rem;   /* 2px — base (shadcn ref) */
-	--radius-sm:  0px;
-	--radius-md:  0.125rem;   /* 2px — buttons, inputs  */
-	--radius-lg:  0.25rem;    /* 4px — cards            */
-	--radius-xl:  0.5rem;     /* 8px — larger cards     */
+	--radius: 0.125rem; /* 2px — base (shadcn ref) */
+	--radius-sm: 0px;
+	--radius-md: 0.125rem; /* 2px — buttons, inputs  */
+	--radius-lg: 0.25rem; /* 4px — cards            */
+	--radius-xl: 0.5rem; /* 8px — larger cards     */
 
 	/* ── Fonts ── */
-	--font-sans:    var(--font-inter), "Inter", system-ui, sans-serif;
-	--font-mono:    var(--font-jetbrains-mono), "JetBrains Mono", ui-monospace, monospace;
+	--font-sans: var(--font-inter), "Inter", system-ui, sans-serif;
+	--font-mono: var(--font-jetbrains-mono), "JetBrains Mono", ui-monospace, monospace;
 	--font-display: var(--font-space-grotesk), "Space Grotesk", system-ui, sans-serif;
 }
