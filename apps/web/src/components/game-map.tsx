@@ -73,6 +73,10 @@ const STYLE: maplibregl.StyleSpecification = {
 			id: "country-line",
 			type: "line",
 			source: "countries",
+			layout: {
+				"line-join": "round",
+				"line-cap": "round",
+			},
 			paint: {
 				"line-color": [
 					"case",
@@ -80,7 +84,22 @@ const STYLE: maplibregl.StyleSpecification = {
 					COLOR.signal500,
 					COLOR.ink5,
 				],
-				"line-width": ["case", ["boolean", ["feature-state", "hover"], false], 1.5, 0.5],
+				// Scale border width with zoom — keeps the world view tidy
+				// (thin hairlines) and gives proper visible borders when
+				// zoomed in.
+				"line-width": [
+					"interpolate",
+					["linear"],
+					["zoom"],
+					1,
+					["case", ["boolean", ["feature-state", "hover"], false], 1.5, 0.4],
+					4,
+					["case", ["boolean", ["feature-state", "hover"], false], 2, 0.7],
+					7,
+					["case", ["boolean", ["feature-state", "hover"], false], 2.5, 1.2],
+					10,
+					["case", ["boolean", ["feature-state", "hover"], false], 3, 1.6],
+				],
 			},
 		},
 	],
@@ -120,9 +139,12 @@ export function GameMap({ onCursorMove, onHoverCountry }: GameMapProps) {
 			center: [10, 30],
 			zoom: 1.5,
 			minZoom: 1,
-			maxZoom: 8,
+			maxZoom: 10,
 			renderWorldCopies: true,
 			attributionControl: false,
+			// Crisper borders on retina/high-DPI displays.
+			pixelRatio: typeof window !== "undefined" ? window.devicePixelRatio : 1,
+			fadeDuration: 100,
 		});
 		// Force a resize once layout has settled — MapLibre captures the
 		// container size at construction and a 0-size container produces a
