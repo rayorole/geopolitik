@@ -1,0 +1,69 @@
+{
+	"version": 1,
+	"buildings": [
+		{
+			"type": "steel_industry",
+			"displayName": "Steel Industry",
+			"category": "economy",
+			"cost": { "money": 50000, "steel": 20000 },
+			"buildTimeTicks": 240,
+			"nationYieldPerTick": { "steel": 50000 }
+		},
+		{
+			"type": "oil_refinery",
+			"displayName": "Oil Refinery",
+			"category": "economy",
+			"cost": { "money": 40000, "steel": 10000 },
+			"buildTimeTicks": 240,
+			"nationYieldPerTick": { "oil": 50000 }
+		},
+		{
+			"type": "chip_factory",
+			"displayName": "Chip Factory",
+			"category": "economy",
+			"cost": { "money": 60000, "steel": 15000 },
+			"buildTimeTicks": 240,
+			"nationYieldPerTick": { "electronics": 20000 }
+		},
+		{
+			"type": "research_lab",
+			"displayName": "Research Lab",
+			"category": "research",
+			"cost": { "money": 80000, "steel": 20000 },
+			"buildTimeTicks": 720,
+			"nationYieldPerTick": { "rp": 10000 }
+		},
+		{
+			"type": "recruitment_office",
+			"displayName": "Recruitment Office",
+			"category": "military",
+			"cost": { "money": 30000, "steel": 5000 },
+			"buildTimeTicks": 360,
+			"nationYieldPerTick": {}
+		},
+		{
+			"type": "army_base",
+			"displayName": "Army Base",
+			"category": "military",
+			"cost": { "money": 70000, "steel": 25000 },
+			"buildTimeTicks": 480,
+			"nationYieldPerTick": {}
+		},
+		{
+			"type": "air_force_base",
+			"displayName": "Air Force Base",
+			"category": "military",
+			"cost": { "money": 100000, "steel": 30000 },
+			"buildTimeTicks": 720,
+			"nationYieldPerTick": {}
+		},
+		{
+			"type": "port",
+			"displayName": "Port",
+			"category": "military",
+			"cost": { "money": 80000, "steel": 25000 },
+			"buildTimeTicks": 480,
+			"nationYieldPerTick": {}
+		}
+	]
+}

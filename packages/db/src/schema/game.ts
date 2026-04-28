@@ -65,6 +65,8 @@ export const cityState = pgTable(
 			.references(() => city.id, { onDelete: "restrict" }),
 		ownerPlayerId: uuid("owner_player_id").references(() => player.id, { onDelete: "set null" }),
 		population: bigint("population", { mode: "number" }).notNull(),
+		unrest: integer("unrest").notNull().default(0),
+		inRevoltSinceTick: integer("in_revolt_since_tick"),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 	},
 	(t) => ({
@@ -86,6 +88,11 @@ export const nationState = pgTable(
 		steel: bigint("steel", { mode: "number" }).notNull().default(0),
 		electronics: bigint("electronics", { mode: "number" }).notNull().default(0),
 		population: bigint("population", { mode: "number" }).notNull().default(0),
+		rp: bigint("rp", { mode: "number" }).notNull().default(0),
+		taxation: integer("taxation").notNull().default(30),
+		welfare: integer("welfare").notNull().default(50),
+		healthcare: integer("healthcare").notNull().default(50),
+		propaganda: integer("propaganda").notNull().default(30),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 	},
 	(t) => ({

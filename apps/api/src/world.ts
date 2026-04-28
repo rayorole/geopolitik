@@ -1,5 +1,6 @@
 import { schema } from "@geopolitik/db";
 import { type WorldDataset, worldDataset } from "@geopolitik/shared/api";
+import { BUILDINGS_CATALOG } from "@geopolitik/shared/buildings";
 import { Hono } from "hono";
 import { db } from "./db";
 
@@ -31,6 +32,14 @@ export function createWorldRouter() {
 		const dataset: WorldDataset = { countries, cities };
 		c.header("Cache-Control", "public, max-age=3600");
 		return c.json(worldDataset.parse(dataset));
+	});
+
+	// ── GET /world/buildings ─────────────────────────────────────────────────
+	// Static catalog read at module load. No DB hit; HTTP cache one hour.
+	// 3b/3d consume this to drive UI affordability + tick math.
+	w.get("/world/buildings", (c) => {
+		c.header("Cache-Control", "public, max-age=3600");
+		return c.json(BUILDINGS_CATALOG);
 	});
 
 	return w;
