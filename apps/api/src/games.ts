@@ -313,6 +313,8 @@ export function createGamesRouter() {
 				cityId: schema.cityState.cityId,
 				ownerPlayerId: schema.cityState.ownerPlayerId,
 				population: schema.cityState.population,
+				unrest: schema.cityState.unrest,
+				inRevoltSinceTick: schema.cityState.inRevoltSinceTick,
 			})
 			.from(schema.cityState)
 			.where(eq(schema.cityState.gameId, gameId));
