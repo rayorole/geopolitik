@@ -6,8 +6,23 @@ body {
 	background: var(--color-background);
 	color: var(--color-foreground);
 	font-family: var(--font-sans);
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
 }
 
 * {
 	border-color: var(--color-border);
+}
+
+::selection {
+	background: var(--color-signal-500);
+	color: var(--color-ink-0);
+}
+
+/* Convenience tokens for custom CSS — not Tailwind utilities */
+:root {
+	--hairline: 1px solid var(--color-ink-4);
+	--hairline-strong: 1px solid var(--color-ink-5);
+	--signal-glow: 0 0 0 1px oklch(72% 0.17 75 / 0.45), 0 0 18px -4px oklch(72% 0.17 75 / 0.55);
+	--map-fog-opacity: 0.62;
 }
