@@ -1,21 +1,51 @@
 import { z } from "zod";
 
 /*
- * WebSocket message schemas — Phase 0 starter.
- * Server-authoritative: every inbound message is parsed by these schemas before
- * the server trusts it. Outbound messages are typed but not parsed by clients;
- * clients trust the server.
+ * WebSocket protocol — Phase 2.
  *
- * Phase 2 grows this with `tick`, `event`, `ack`, `desync` per CLAUDE.md.
+ * Inbound (client → server):
+ *   - ping         heartbeat round-trip (Phase 0)
+ *   - subscribe    join the topic for a game (Phase 2)
+ *   - unsubscribe  leave the topic (Phase 2)
+ *
+ * Outbound (server → client):
+ *   - pong              ping reply (Phase 0)
+ *   - error             malformed or rejected inbound (Phase 0)
+ *   - tick              per-tick broadcast on `game:<id>` topic (Phase 2)
+ *   - ack | nack        order accepted / rejected on `player:<id>` (Phase 2)
+ *   - order-resolved    order consumed by the tick on `player:<id>` (Phase 2)
+ *   - desync            client must refetch snapshot (Phase 2)
+ *
+ * Server-authoritative: every inbound message is parsed before the server
+ * trusts it. Outbound messages are typed but not parsed by clients; clients
+ * trust the server.
  */
+
+// ── Inbound ──────────────────────────────────────────────────────────────────
 
 export const wsInboundPing = z.object({
 	type: z.literal("ping"),
 	nonce: z.string().min(1).max(64),
 });
 
-export const wsInboundMessage = z.discriminatedUnion("type", [wsInboundPing]);
+export const wsInboundSubscribe = z.object({
+	type: z.literal("subscribe"),
+	gameId: z.string().uuid(),
+});
+
+export const wsInboundUnsubscribe = z.object({
+	type: z.literal("unsubscribe"),
+	gameId: z.string().uuid(),
+});
+
+export const wsInboundMessage = z.discriminatedUnion("type", [
+	wsInboundPing,
+	wsInboundSubscribe,
+	wsInboundUnsubscribe,
+]);
 export type WsInboundMessage = z.infer<typeof wsInboundMessage>;
+
+// ── Outbound ─────────────────────────────────────────────────────────────────
 
 export const wsOutboundPong = z.object({
 	type: z.literal("pong"),
@@ -29,5 +59,67 @@ export const wsOutboundError = z.object({
 	message: z.string(),
 });
 
-export const wsOutboundMessage = z.discriminatedUnion("type", [wsOutboundPong, wsOutboundError]);
+export const tickCityState = z.object({
+	cityId: z.string().uuid(),
+	ownerPlayerId: z.string().uuid().nullable(),
+	population: z.number().int().nonnegative(),
+});
+
+export const tickNationState = z.object({
+	playerId: z.string().uuid(),
+	money: z.number().int().nonnegative(),
+	oil: z.number().int().nonnegative(),
+	steel: z.number().int().nonnegative(),
+	electronics: z.number().int().nonnegative(),
+	population: z.number().int().nonnegative(),
+});
+
+export const wsOutboundTick = z.object({
+	type: z.literal("tick"),
+	gameId: z.string().uuid(),
+	tick: z.number().int().nonnegative(),
+	cityState: z.array(tickCityState),
+	nationState: z.array(tickNationState),
+});
+
+export const wsOutboundAck = z.object({
+	type: z.literal("ack"),
+	orderId: z.string().uuid(),
+});
+
+export const wsOutboundNack = z.object({
+	type: z.literal("nack"),
+	orderId: z.string().uuid(),
+	reason: z.string(),
+});
+
+export const wsOutboundOrderResolved = z.object({
+	type: z.literal("order-resolved"),
+	orderId: z.string().uuid(),
+	tick: z.number().int().nonnegative(),
+});
+
+export const wsOutboundDesync = z.object({
+	type: z.literal("desync"),
+	gameId: z.string().uuid(),
+	reason: z.string(),
+});
+
+export const wsOutboundMessage = z.discriminatedUnion("type", [
+	wsOutboundPong,
+	wsOutboundError,
+	wsOutboundTick,
+	wsOutboundAck,
+	wsOutboundNack,
+	wsOutboundOrderResolved,
+	wsOutboundDesync,
+]);
 export type WsOutboundMessage = z.infer<typeof wsOutboundMessage>;
+export type WsOutboundTick = z.infer<typeof wsOutboundTick>;
+export type TickCityState = z.infer<typeof tickCityState>;
+export type TickNationState = z.infer<typeof tickNationState>;
+
+// ── Topics (server side) ─────────────────────────────────────────────────────
+
+export const gameTopic = (gameId: string) => `game:${gameId}` as const;
+export const playerTopic = (playerId: string) => `player:${playerId}` as const;

@@ -66,7 +66,7 @@ export default function AccountPage() {
 					</div>
 					<div className="flex gap-2">
 						<Button asChild>
-							<Link href="/play/test-game">Open WS test</Link>
+							<Link href="/games">Browse games</Link>
 						</Button>
 						<Button
 							onClick={() => signOutMutation.mutate()}
