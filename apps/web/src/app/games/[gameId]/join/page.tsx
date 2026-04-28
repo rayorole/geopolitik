@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { gamesApi, queryKeys, worldApi } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -13,6 +13,7 @@ export default function JoinGamePage() {
 	const params = useParams<{ gameId: string }>();
 	const gameId = params.gameId;
 	const router = useRouter();
+	const queryClient = useQueryClient();
 	const { data: session, isPending: sessionPending } = useSession();
 	const [selected, setSelected] = useState<string | null>(null);
 
@@ -31,7 +32,10 @@ export default function JoinGamePage() {
 
 	const join = useMutation({
 		mutationFn: (countryCode: string) => gamesApi.join(gameId, { countryCode }),
-		onSuccess: () => router.push(`/play/${gameId}`),
+		onSuccess: async () => {
+			await queryClient.refetchQueries({ queryKey: queryKeys.gameSnapshot(gameId) });
+			router.push(`/play/${gameId}`);
+		},
 	});
 
 	const claimedCountryCodes = useMemo(
