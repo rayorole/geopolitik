@@ -8,7 +8,7 @@ import {
 	type HoveredCity,
 	type HoveredCountry,
 } from "@/components/game-map";
-import { PolicySheet } from "@/components/policy-sheet";
+import { PolicyPanel } from "@/components/policy-panel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { gamesApi, queryKeys, worldApi } from "@/lib/api-client";
@@ -336,22 +336,12 @@ export default function PlayPage() {
 					))}
 				</section>
 
-				{/* Action buttons */}
-				<section className="grid grid-cols-2 gap-px border-b border-border bg-border">
-					<PolicySheet
-						gameId={gameId}
-						snapshot={snapshot.data}
-						disabled={!snapshot.data?.mePlayerId}
-					/>
-					<Button
-						variant="ghost"
-						className="h-12 rounded-none bg-card font-mono text-[11px] uppercase tracking-[0.18em] hover:bg-accent"
-						disabled
-					>
-						Coalition
-						<span className="ml-1 text-[9px] text-muted-foreground">P6</span>
-					</Button>
-				</section>
+				{/* National policy sliders */}
+				<PolicyPanel
+					gameId={gameId}
+					snapshot={snapshot.data}
+					disabled={!snapshot.data?.mePlayerId}
+				/>
 
 				{/* Stats */}
 				<section className="border-b border-border px-3 py-2">
