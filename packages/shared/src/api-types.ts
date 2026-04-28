@@ -57,6 +57,17 @@ export const myOrder = z.object({
 	resolvedTick: z.number().int().nullable(),
 });
 
+export const cityBuildingInSnapshot = z.object({
+	id: z.string().uuid(),
+	cityId: z.string().uuid(),
+	type: z.string(),
+	state: z.enum(["in_progress", "complete", "cancelled"]),
+	startedAtTick: z.number().int().nonnegative(),
+	completesAtTick: z.number().int().nonnegative().nullable(),
+	builtByPlayerId: z.string().uuid(),
+});
+export type CityBuildingInSnapshot = z.infer<typeof cityBuildingInSnapshot>;
+
 export const gameSnapshot = z.object({
 	game: z.object({
 		id: z.string().uuid(),
@@ -68,6 +79,7 @@ export const gameSnapshot = z.object({
 	players: z.array(playerInGame),
 	cityState: z.array(cityInSnapshot),
 	nationState: z.array(nationInSnapshot),
+	cityBuildings: z.array(cityBuildingInSnapshot),
 	myOrders: z.array(myOrder),
 	mePlayerId: z.string().uuid().nullable(),
 });

@@ -371,6 +371,7 @@ export default function PlayPage() {
 				{/* Cities list / city detail — selection swaps modes */}
 				{selectedCityId && snapshot.data && world.data ? (
 					<CityDetail
+						gameId={gameId}
 						cityId={selectedCityId}
 						snapshot={snapshot.data}
 						world={world.data}

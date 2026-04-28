@@ -12,6 +12,7 @@ import { submitOrderBodyV3 } from "@geopolitik/shared/orders";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { auth } from "./auth";
+import { applyBuildOrder, applyCancelBuildOrder } from "./buildings";
 import { generateGameCode, isValidGameCode } from "./code";
 import { pickFactionColor } from "./colors";
 import { db } from "./db";
@@ -346,6 +347,30 @@ export function createGamesRouter() {
 					)
 			: [];
 
+		// Phase 3d: include the player's own buildings — everything they built,
+		// regardless of current owner of the host city. Foreign infra hidden
+		// per Q6g; we just don't return it.
+		const cityBuildings = me
+			? await db
+					.select({
+						id: schema.cityBuilding.id,
+						cityId: schema.cityBuilding.cityId,
+						type: schema.cityBuilding.type,
+						state: schema.cityBuilding.state,
+						startedAtTick: schema.cityBuilding.startedAtTick,
+						completesAtTick: schema.cityBuilding.completesAtTick,
+						builtByPlayerId: schema.cityBuilding.builtByPlayerId,
+					})
+					.from(schema.cityBuilding)
+					.where(
+						and(
+							eq(schema.cityBuilding.gameId, gameId),
+							eq(schema.cityBuilding.builtByPlayerId, me.id),
+							inArray(schema.cityBuilding.state, ["in_progress", "complete"]),
+						),
+					)
+			: [];
+
 		const snapshot: GameSnapshot = {
 			game: {
 				id: g.id,
@@ -362,6 +387,7 @@ export function createGamesRouter() {
 			})),
 			cityState,
 			nationState,
+			cityBuildings,
 			myOrders: myOrders.map((o) => ({
 				id: o.id,
 				kind: o.kind,
@@ -401,6 +427,49 @@ export function createGamesRouter() {
 		if (!limit.ok) return c.json({ error: "rate_limited" }, 429);
 
 		const orderId = newId();
+
+		// build / cancel_build apply at REST time under the per-game lock so
+		// the client gets a synchronous accept/reject and the city_building
+		// row is the single source of truth from the moment of acceptance.
+		// noop and set_slider continue to defer work to the tick worker.
+		if (parsed.data.kind === "build" || parsed.data.kind === "cancel_build") {
+			const txResult = await db.transaction(async (tx) => {
+				const [g] = await tx
+					.select({ tick: schema.game.tick, status: schema.game.status })
+					.from(schema.game)
+					.where(eq(schema.game.id, gameId))
+					.for("update")
+					.limit(1);
+				if (!g) return { http: 404 as const, body: { error: "game_not_found" } };
+				if (g.status !== "active") return { http: 409 as const, body: { error: "game_inactive" } };
+
+				if (parsed.data.kind === "build") {
+					const r = await applyBuildOrder(tx, gameId, me.id, g.tick, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "cancel_build") {
+					const r = await applyCancelBuildOrder(tx, gameId, me.id, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				}
+
+				await tx.insert(schema.order).values({
+					id: orderId,
+					gameId,
+					playerId: me.id,
+					kind: parsed.data.kind,
+					payload: parsed.data.payload,
+					status: "resolved",
+					resolvedTick: g.tick,
+					resolvedAt: new Date(),
+					expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+				});
+				return { http: 201 as const, body: null };
+			});
+			if (txResult.http !== 201) {
+				return c.json(txResult.body, txResult.http);
+			}
+			return c.json(submitOrderResponse.parse({ orderId, status: "queued" }), 201);
+		}
+
 		await db.insert(schema.order).values({
 			id: orderId,
 			gameId,

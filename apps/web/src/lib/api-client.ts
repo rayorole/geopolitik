@@ -11,6 +11,7 @@ import type {
 	SubmitOrderResponse,
 	WorldDataset,
 } from "@geopolitik/shared/api";
+import type { BuildingsCatalog } from "@geopolitik/shared/buildings";
 import type { SubmitOrderBodyV3 } from "@geopolitik/shared/orders";
 import { publicEnv } from "./env";
 
@@ -55,6 +56,7 @@ export const gamesApi = {
 
 export const worldApi = {
 	cities: (): Promise<WorldDataset> => api<WorldDataset>("/world/cities"),
+	buildings: (): Promise<BuildingsCatalog> => api<BuildingsCatalog>("/world/buildings"),
 };
 
 export const queryKeys = {
@@ -63,6 +65,7 @@ export const queryKeys = {
 	gameByCode: (code: string) => ["games", "by-code", code] as const,
 	gameSnapshot: (id: string) => ["games", "snapshot", id] as const,
 	worldCities: ["world", "cities"] as const,
+	worldBuildings: ["world", "buildings"] as const,
 	wsStatus: (id: string) => ["games", id, "ws", "status"] as const,
 	selectedCity: (gameId: string) => ["games", gameId, "ui", "selectedCity"] as const,
 };

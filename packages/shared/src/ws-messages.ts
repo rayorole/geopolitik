@@ -110,6 +110,14 @@ export const wsOutboundDesync = z.object({
 	reason: z.string(),
 });
 
+export const wsOutboundBuildingComplete = z.object({
+	type: z.literal("building_complete"),
+	cityId: z.string().uuid(),
+	buildingId: z.string().uuid(),
+	buildingType: z.string(),
+	tick: z.number().int().nonnegative(),
+});
+
 export const wsOutboundMessage = z.discriminatedUnion("type", [
 	wsOutboundPong,
 	wsOutboundError,
@@ -118,6 +126,7 @@ export const wsOutboundMessage = z.discriminatedUnion("type", [
 	wsOutboundNack,
 	wsOutboundOrderResolved,
 	wsOutboundDesync,
+	wsOutboundBuildingComplete,
 ]);
 export type WsOutboundMessage = z.infer<typeof wsOutboundMessage>;
 export type WsOutboundTick = z.infer<typeof wsOutboundTick>;
