@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { WorldDataset } from "@geopolitik/shared/api";
-import { Minus, Plus } from "lucide-react";
+import { ZoomIn, ZoomOut } from "lucide-react";
 import maplibregl, { type Map as MapInstance } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import Image from "next/image";
@@ -394,7 +394,7 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode, cities }:
 					aria-label="Zoom in"
 					className="border-border bg-card/95 hover:bg-accent"
 				>
-					<Plus />
+					<ZoomIn />
 				</Button>
 				<Button
 					variant="outline"
@@ -403,7 +403,7 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode, cities }:
 					aria-label="Zoom out"
 					className="border-border bg-card/95 hover:bg-accent"
 				>
-					<Minus />
+					<ZoomOut />
 				</Button>
 			</ButtonGroup>
 
