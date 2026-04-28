@@ -1,0 +1,13 @@
+@import "tailwindcss";
+@import "@geopolitik/config/tailwind/theme.css";
+
+html,
+body {
+	background: var(--color-background);
+	color: var(--color-foreground);
+	font-family: var(--font-sans);
+}
+
+* {
+	border-color: var(--color-border);
+}

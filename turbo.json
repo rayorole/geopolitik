@@ -1,0 +1,59 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"globalDependencies": ["**/.env.example", "tsconfig.base.json", "biome.json"],
+	"globalEnv": ["NODE_ENV"],
+	"tasks": {
+		"dev": {
+			"cache": false,
+			"persistent": true
+		},
+		"build": {
+			"dependsOn": ["^build"],
+			"outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+			"env": [
+				"NEXT_PUBLIC_*",
+				"BETTER_AUTH_URL",
+				"BETTER_AUTH_SECRET",
+				"DATABASE_URL",
+				"REDIS_URL",
+				"DISCORD_CLIENT_ID",
+				"DISCORD_CLIENT_SECRET"
+			]
+		},
+		"start": {
+			"cache": false,
+			"persistent": true,
+			"dependsOn": ["build"]
+		},
+		"test": {
+			"dependsOn": ["^build"],
+			"outputs": ["coverage/**"]
+		},
+		"test:e2e": {
+			"cache": false,
+			"dependsOn": ["^build"]
+		},
+		"typecheck": {
+			"dependsOn": ["^build"],
+			"outputs": []
+		},
+		"lint": {
+			"outputs": []
+		},
+		"db:generate": {
+			"cache": false
+		},
+		"db:migrate": {
+			"cache": false,
+			"env": ["DATABASE_URL"]
+		},
+		"db:studio": {
+			"cache": false,
+			"persistent": true,
+			"env": ["DATABASE_URL"]
+		},
+		"clean": {
+			"cache": false
+		}
+	}
+}

@@ -1,0 +1,56 @@
+/*
+ * GeoPolitik Tailwind v4 theme — dark-only.
+ * Imported by apps/web/src/app/globals.css.
+ *
+ * Design intent (per CLAUDE.md): modern military HUD. Dark mode primary.
+ * Faction accents land later as utility classes layered on top of these tokens.
+ */
+
+@theme {
+	/* Surfaces */
+	--color-background: oklch(0.14 0.01 240);
+	--color-foreground: oklch(0.98 0 0);
+
+	--color-card: oklch(0.18 0.01 240);
+	--color-card-foreground: oklch(0.98 0 0);
+
+	--color-popover: oklch(0.18 0.01 240);
+	--color-popover-foreground: oklch(0.98 0 0);
+
+	/* Brand / primary action */
+	--color-primary: oklch(0.78 0.18 145);
+	--color-primary-foreground: oklch(0.14 0.01 240);
+
+	/* Secondary surfaces */
+	--color-secondary: oklch(0.24 0.01 240);
+	--color-secondary-foreground: oklch(0.98 0 0);
+
+	--color-muted: oklch(0.22 0.01 240);
+	--color-muted-foreground: oklch(0.7 0.01 240);
+
+	--color-accent: oklch(0.28 0.02 240);
+	--color-accent-foreground: oklch(0.98 0 0);
+
+	/* Destructive (red alert) */
+	--color-destructive: oklch(0.65 0.22 25);
+	--color-destructive-foreground: oklch(0.98 0 0);
+
+	/* Borders, inputs, focus ring */
+	--color-border: oklch(0.28 0.01 240);
+	--color-input: oklch(0.28 0.01 240);
+	--color-ring: oklch(0.78 0.18 145);
+
+	/* Charts (HUD readouts) */
+	--color-chart-1: oklch(0.78 0.18 145);
+	--color-chart-2: oklch(0.7 0.18 220);
+	--color-chart-3: oklch(0.78 0.18 60);
+	--color-chart-4: oklch(0.7 0.22 320);
+	--color-chart-5: oklch(0.65 0.22 25);
+
+	/* Radii */
+	--radius: 0.375rem;
+
+	/* Fonts (Geist via next/font in apps/web; CSS variables set on <html>) */
+	--font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+	--font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
+}

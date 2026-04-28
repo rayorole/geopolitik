@@ -1,0 +1,68 @@
+{
+	"$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"files": {
+		"ignore": [
+			"node_modules",
+			"dist",
+			"build",
+			".next",
+			".turbo",
+			".vercel",
+			"coverage",
+			"playwright-report",
+			"test-results",
+			"packages/db/drizzle",
+			"packages/world-data",
+			"**/*.pmtiles",
+			"bun.lockb"
+		]
+	},
+	"organizeImports": {
+		"enabled": true
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab",
+		"indentWidth": 2,
+		"lineWidth": 100,
+		"lineEnding": "lf"
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"correctness": {
+				"noUnusedVariables": "warn",
+				"noUnusedImports": "warn"
+			},
+			"style": {
+				"noNonNullAssertion": "warn",
+				"useImportType": "warn",
+				"useNodejsImportProtocol": "off"
+			},
+			"suspicious": {
+				"noExplicitAny": "error",
+				"noConsole": "off"
+			}
+		}
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "double",
+			"jsxQuoteStyle": "double",
+			"semicolons": "always",
+			"trailingCommas": "all",
+			"arrowParentheses": "always"
+		}
+	},
+	"json": {
+		"formatter": {
+			"indentStyle": "tab"
+		}
+	}
+}

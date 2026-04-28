@@ -1,0 +1,13 @@
+{
+	"name": "@geopolitik/config",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./tsconfig/library": "./tsconfig/library.json",
+		"./tsconfig/next": "./tsconfig/next.json",
+		"./tsconfig/api": "./tsconfig/api.json",
+		"./tailwind/theme.css": "./tailwind/theme.css"
+	},
+	"files": ["tsconfig", "tailwind"]
+}

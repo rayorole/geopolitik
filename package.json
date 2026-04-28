@@ -1,0 +1,37 @@
+{
+	"name": "geopolitik",
+	"private": true,
+	"version": "0.0.0",
+	"description": "Async, persistent, real-world-map grand strategy browser game.",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/rayorole/geopolitik.git"
+	},
+	"author": "Ray Orole",
+	"license": "UNLICENSED",
+	"workspaces": ["apps/*", "packages/*"],
+	"packageManager": "bun@1.3.5",
+	"engines": {
+		"bun": ">=1.3.0"
+	},
+	"scripts": {
+		"dev": "turbo run dev",
+		"build": "turbo run build",
+		"start": "turbo run start",
+		"test": "turbo run test",
+		"test:e2e": "turbo run test:e2e",
+		"lint": "biome check .",
+		"format": "biome format --write .",
+		"typecheck": "turbo run typecheck",
+		"db:generate": "turbo run db:generate --filter=@geopolitik/db",
+		"db:migrate": "turbo run db:migrate --filter=@geopolitik/db",
+		"db:studio": "turbo run db:studio --filter=@geopolitik/db",
+		"worldgen": "turbo run start --filter=@geopolitik/worldgen --",
+		"clean": "turbo run clean && rm -rf node_modules"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"turbo": "2.5.0",
+		"typescript": "5.6.3"
+	}
+}
