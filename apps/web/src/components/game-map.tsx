@@ -160,9 +160,12 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode }: GameMap
 		const map = new maplibregl.Map({
 			container: containerRef.current,
 			style: styleSpec,
-			center: [10, 30],
-			zoom: 1.5,
-			minZoom: 1,
+			// Center on the geographical centroid of the populated landmass
+			// (now that Antarctica is hidden) so the world view doesn't leave
+			// a dead band of ocean at the bottom.
+			center: [15, 25],
+			zoom: 1.8,
+			minZoom: 1.3,
 			maxZoom: 10,
 			renderWorldCopies: true,
 			attributionControl: false,
