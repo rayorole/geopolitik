@@ -193,14 +193,8 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode }: GameMap
 		requestAnimationFrame(() => map.resize());
 		const ro = new ResizeObserver(() => map.resize());
 		ro.observe(containerRef.current);
-		map.addControl(
-			new maplibregl.AttributionControl({
-				customAttribution:
-					'Country boundaries © <a href="https://www.naturalearthdata.com" target="_blank" rel="noreferrer">Natural Earth</a>',
-				compact: true,
-			}),
-			"bottom-left",
-		);
+		// Natural Earth attribution lives in packages/world-data/CREDITS.md
+		// per CC-BY 4.0; the on-map label is removed for HUD cleanliness.
 		mapRef.current = map;
 
 		map.on("mousemove", "country-fill", (e) => {
