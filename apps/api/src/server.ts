@@ -1,6 +1,7 @@
 import { env } from "./env";
 import { logger } from "./logger";
 import { createApp } from "./routes";
+import { setPublisher, startTickLoop } from "./tick";
 import { handleUpgrade, websocketHandlers } from "./ws";
 
 const app = createApp();
@@ -17,7 +18,14 @@ const server = Bun.serve({
 	websocket: websocketHandlers,
 });
 
+setPublisher((topic, msg) => server.publish(topic, msg));
+startTickLoop(env.TICK_INTERVAL_MS);
+
 logger.info(
-	{ url: `http://localhost:${server.port}`, env: env.NODE_ENV },
+	{
+		url: `http://localhost:${server.port}`,
+		env: env.NODE_ENV,
+		tickIntervalMs: env.TICK_INTERVAL_MS,
+	},
 	"geopolitik-api listening",
 );

@@ -16,6 +16,8 @@ const envSchema = z.object({
 	DISCORD_CLIENT_SECRET: z.string().min(1),
 
 	LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
+
+	TICK_INTERVAL_MS: z.coerce.number().int().positive().default(30_000),
 });
 
 export const env = parseEnv(envSchema, process.env);
