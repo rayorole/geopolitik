@@ -27,12 +27,12 @@ bun install
 bun run --filter=@geopolitik/web shadcn:bulk-add
 
 # 4. Copy env files and fill in the blanks
-cp .env.example .env
-cp apps/api/.env.example apps/api/.env.local
-cp apps/web/.env.example apps/web/.env.local
+cp .env.example .env                              # used by db:migrate / db:generate / db:studio
+cp apps/api/.env.example apps/api/.env.local      # used by `bun run dev` for the API
+cp apps/web/.env.example apps/web/.env.local      # used by `bun run dev` for the web app
 cp apps/worldgen/.env.example apps/worldgen/.env.local
 
-# 5. Apply DB migrations
+# 5. Apply DB migrations (reads DATABASE_URL from the root .env)
 bun run db:migrate
 
 # 6. Run everything via Turbo

@@ -9,9 +9,9 @@
 		"./client": "./src/client.ts"
 	},
 	"scripts": {
-		"db:generate": "drizzle-kit generate",
-		"db:migrate": "bun run src/migrate.ts",
-		"db:studio": "drizzle-kit studio",
+		"db:generate": "bun --env-file=../../.env x drizzle-kit generate",
+		"db:migrate": "bun --env-file=../../.env run src/migrate.ts",
+		"db:studio": "bun --env-file=../../.env x drizzle-kit studio",
 		"typecheck": "tsc --noEmit",
 		"clean": "rm -rf dist .turbo"
 	},
