@@ -145,6 +145,7 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode }: GameMap
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<MapInstance | null>(null);
 	const hoverIdRef = useRef<number | null>(null);
+	const clickAudioRef = useRef<HTMLAudioElement | null>(null);
 	const [contextCoord, setContextCoord] = useState<{
 		lat: number;
 		lng: number;
@@ -153,6 +154,19 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode }: GameMap
 	} | null>(null);
 
 	const styleSpec = useMemo(() => STYLE, []);
+
+	// Lazy-init the click SFX once on mount so we reuse the same Audio
+	// element across clicks (cheap to rewind via currentTime reset).
+	useEffect(() => {
+		const a = new Audio("/sfx/map-click.mp3");
+		a.preload = "auto";
+		a.volume = 0.6;
+		clickAudioRef.current = a;
+		return () => {
+			a.pause();
+			clickAudioRef.current = null;
+		};
+	}, []);
 
 	useEffect(() => {
 		if (!containerRef.current) return;
@@ -211,6 +225,17 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode }: GameMap
 				hoverIdRef.current = null;
 			}
 			onHoverCountry?.(null);
+		});
+
+		map.on("click", "country-fill", () => {
+			const audio = clickAudioRef.current;
+			if (!audio) return;
+			audio.currentTime = 0;
+			void audio.play().catch(() => {
+				// Browsers block autoplay until the user has interacted with
+				// the page. A click on the map IS that interaction, but if a
+				// race condition still kills it, fail quietly.
+			});
 		});
 
 		map.on("mousemove", (e) => onCursorMove?.({ lat: e.lngLat.lat, lng: e.lngLat.lng }));
