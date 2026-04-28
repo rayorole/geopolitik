@@ -35,7 +35,7 @@ export function createApp() {
 		}),
 	);
 
-	app.on(["GET", "POST"], "/api/auth/**", (c) => auth.handler(c.req.raw));
+	app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
 	app.route("/", createGamesRouter());
 	app.route("/", createWorldRouter());
