@@ -1,17 +1,25 @@
 "use client";
 
-import { type CursorCoord, GameMap, type HoveredCountry } from "@/components/game-map";
+import { CityDetail, CityRowMini } from "@/components/city-detail";
+import {
+	type CityRender,
+	type CursorCoord,
+	GameMap,
+	type HoveredCity,
+	type HoveredCountry,
+} from "@/components/game-map";
 import { PolicySheet } from "@/components/policy-sheet";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { gamesApi, queryKeys, worldApi } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
 import { type WsStatus, closeGameSocket, getGameSocket } from "@/lib/game-socket";
+import { type SelectedCity, writeSelectedCity } from "@/lib/selected-city";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const RES_DIVISOR = 100;
 
@@ -32,6 +40,8 @@ export default function PlayPage() {
 
 	const [cursor, setCursor] = useState<CursorCoord | null>(null);
 	const [hover, setHover] = useState<HoveredCountry | null>(null);
+	const [hoverCity, setHoverCity] = useState<HoveredCity | null>(null);
+	const flyToCityRef = useRef<((cityId: string) => void) | null>(null);
 
 	const snapshot = useQuery({
 		queryKey: queryKeys.gameSnapshot(gameId),
@@ -93,8 +103,66 @@ export default function PlayPage() {
 		[snapshot.data],
 	);
 
+	// Pre-compute the per-city render rows once per snapshot/world change. Lookup
+	// owner color via a Map<playerId, color>, mark mine for stroke accent.
+	const citiesRender = useMemo<CityRender[]>(() => {
+		if (!snapshot.data || !world.data) return [];
+		const colorByPlayer = new Map(snapshot.data.players.map((p) => [p.id, p.color]));
+		const popByCity = new Map(snapshot.data.cityState.map((cs) => [cs.cityId, cs]));
+		return world.data.cities
+			.map((c) => {
+				const cs = popByCity.get(c.id);
+				if (!cs) return null;
+				const ownerColor = cs.ownerPlayerId ? (colorByPlayer.get(cs.ownerPlayerId) ?? null) : null;
+				return {
+					id: c.id,
+					lng: c.lng,
+					lat: c.lat,
+					name: c.name,
+					population: cs.population,
+					ownerColor,
+					isMine: !!cs.ownerPlayerId && cs.ownerPlayerId === snapshot.data?.mePlayerId,
+				} satisfies CityRender;
+			})
+			.filter((row): row is CityRender => row !== null);
+	}, [snapshot.data, world.data]);
+
+	const { data: selectedCityId = null } = useQuery<SelectedCity>({
+		queryKey: queryKeys.selectedCity(gameId),
+		queryFn: () => null,
+		staleTime: Number.POSITIVE_INFINITY,
+		gcTime: Number.POSITIVE_INFINITY,
+	});
+
+	const selectCity = useCallback(
+		(cityId: string | null) => {
+			writeSelectedCity(queryClient, gameId, cityId);
+		},
+		[queryClient, gameId],
+	);
+
+	const onCityClickFromMap = useCallback(
+		(cityId: string) => {
+			selectCity(cityId);
+		},
+		[selectCity],
+	);
+
+	const onCityClickFromList = useCallback(
+		(cityId: string) => {
+			selectCity(cityId);
+			flyToCityRef.current?.(cityId);
+		},
+		[selectCity],
+	);
+
+	const onMapReady = useCallback((api: { flyToCity: (cityId: string) => void }) => {
+		flyToCityRef.current = api.flyToCity;
+	}, []);
+
 	const onCursorMove = useCallback((c: CursorCoord | null) => setCursor(c), []);
 	const onHoverCountry = useCallback((c: HoveredCountry | null) => setHover(c), []);
+	const onHoverCity = useCallback((c: HoveredCity | null) => setHoverCity(c), []);
 
 	if (sessionPending) return null;
 	if (!session) {
@@ -143,8 +211,13 @@ export default function PlayPage() {
 				<GameMap
 					onCursorMove={onCursorMove}
 					onHoverCountry={onHoverCountry}
+					onHoverCity={onHoverCity}
+					onCityClick={onCityClickFromMap}
 					myCountryCode={myCountryCode}
 					cities={world.data?.cities}
+					citiesRender={citiesRender}
+					selectedCityId={selectedCityId}
+					onMapReady={onMapReady}
 				/>
 
 				{/* Top HUD — each panel anchored absolutely so cursor-readout
@@ -205,6 +278,13 @@ export default function PlayPage() {
 							{hover?.iso3 ? `${hover.name} · ${hover.iso3}` : "—"}
 						</span>
 					</div>
+					{hoverCity && (
+						<div className="mt-0.5 flex h-4 w-full items-center justify-end overflow-hidden">
+							<span className="truncate text-[10px] tracking-[0.04em] text-foreground">
+								◉ {hoverCity.name}
+							</span>
+						</div>
+					)}
 				</div>
 
 				{/* Bottom-left WS status pill */}
@@ -288,39 +368,41 @@ export default function PlayPage() {
 					</div>
 				</section>
 
-				{/* Cities list — scrollable */}
-				<section className="flex min-h-0 flex-1 flex-col">
-					<div className="flex items-baseline justify-between border-b border-border px-3 py-2">
-						<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-							Cities · {myCities.length}
-						</span>
-					</div>
-					<ul className="flex-1 overflow-y-auto">
-						{myCities.length === 0 && (
-							<li className="px-3 py-3 font-mono text-xs text-muted-foreground">
-								No owned cities.
-							</li>
-						)}
-						{myCities.map(({ state, def }) => (
-							<li
-								key={state.cityId}
-								className="grid grid-cols-[1fr_auto] items-baseline gap-2 border-b border-border px-3 py-1.5"
-							>
-								<div className="flex items-baseline gap-2">
-									<span className="text-sm text-foreground">{def.name}</span>
-									{def.isCapital && (
-										<span className="font-mono text-[9px] uppercase tracking-[0.18em] text-primary">
-											★
-										</span>
-									)}
-								</div>
-								<span className="font-mono text-xs text-muted-foreground">
-									{state.population.toLocaleString()}
-								</span>
-							</li>
-						))}
-					</ul>
-				</section>
+				{/* Cities list / city detail — selection swaps modes */}
+				{selectedCityId && snapshot.data && world.data ? (
+					<CityDetail
+						cityId={selectedCityId}
+						snapshot={snapshot.data}
+						world={world.data}
+						onBack={() => selectCity(null)}
+					/>
+				) : (
+					<section className="flex min-h-0 flex-1 flex-col">
+						<div className="flex items-baseline justify-between border-b border-border px-3 py-2">
+							<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+								Cities · {myCities.length}
+							</span>
+						</div>
+						<ul className="flex-1 overflow-y-auto">
+							{myCities.length === 0 && (
+								<li className="px-3 py-3 font-mono text-xs text-muted-foreground">
+									No owned cities.
+								</li>
+							)}
+							{myCities.map(({ state, def }) => (
+								<li key={state.cityId} className="contents">
+									<CityRowMini
+										name={def.name}
+										population={state.population}
+										isCapital={def.isCapital}
+										isSelected={selectedCityId === state.cityId}
+										onClick={() => onCityClickFromList(state.cityId)}
+									/>
+								</li>
+							))}
+						</ul>
+					</section>
+				)}
 
 				{/* Footer actions */}
 				<section className="grid grid-cols-2 gap-px border-t border-border bg-border">
