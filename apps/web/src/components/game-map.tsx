@@ -121,6 +121,12 @@ export function GameMap({ onCursorMove, onHoverCountry }: GameMapProps) {
 			renderWorldCopies: true,
 			attributionControl: false,
 		});
+		// Force a resize once layout has settled — MapLibre captures the
+		// container size at construction and a 0-size container produces a
+		// black canvas that never recovers without an explicit resize.
+		requestAnimationFrame(() => map.resize());
+		const ro = new ResizeObserver(() => map.resize());
+		ro.observe(containerRef.current);
 		map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
 		map.addControl(
 			new maplibregl.AttributionControl({
@@ -160,6 +166,7 @@ export function GameMap({ onCursorMove, onHoverCountry }: GameMapProps) {
 		map.on("mouseout", () => onCursorMove?.(null));
 
 		return () => {
+			ro.disconnect();
 			map.remove();
 			mapRef.current = null;
 		};
@@ -195,7 +202,17 @@ export function GameMap({ onCursorMove, onHoverCountry }: GameMapProps) {
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>
-				<div ref={containerRef} onContextMenu={onContextMenu} className="absolute inset-0" />
+				<div
+					onContextMenu={onContextMenu}
+					className="absolute inset-0"
+					style={{ position: "absolute", inset: 0 }}
+				>
+					<div
+						ref={containerRef}
+						style={{ width: "100%", height: "100%" }}
+						className="h-full w-full"
+					/>
+				</div>
 			</ContextMenuTrigger>
 			<ContextMenuContent className="font-mono text-xs">
 				{contextCoord && (
