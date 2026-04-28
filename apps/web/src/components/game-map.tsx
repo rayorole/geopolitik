@@ -384,7 +384,7 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode, cities }:
 
 			<ButtonGroup
 				orientation="vertical"
-				className="absolute right-3 bottom-12 z-10 backdrop-blur-sm"
+				className="absolute right-3 bottom-3 z-10 backdrop-blur-sm"
 				aria-label="Map zoom controls"
 			>
 				<Button
