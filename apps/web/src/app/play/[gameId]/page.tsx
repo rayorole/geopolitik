@@ -7,6 +7,7 @@ import { gamesApi, queryKeys, worldApi } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
 import { type WsStatus, closeGameSocket, getGameSocket } from "@/lib/game-socket";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -185,11 +186,23 @@ export default function PlayPage() {
 							{cursor ? `${fmtCoord(cursor.lng)}°` : "—"}
 						</span>
 					</div>
-					<span
-						className={`mt-1 truncate text-[11px] tracking-[0.06em] ${hover?.iso3 ? "text-primary" : "text-muted-foreground/40"}`}
-					>
-						{hover?.iso3 ? `${hover.name} · ${hover.iso3}` : "—"}
-					</span>
+					<div className="mt-1 flex h-4 w-full items-center justify-end gap-2 overflow-hidden">
+						{hover?.iso2 ? (
+							<Image
+								src={`https://flagcdn.com/w40/${hover.iso2}.png`}
+								alt=""
+								width={20}
+								height={14}
+								unoptimized
+								className="h-3.5 w-5 flex-shrink-0 border border-border object-cover"
+							/>
+						) : null}
+						<span
+							className={`truncate text-[11px] tracking-[0.06em] ${hover?.iso3 ? "text-primary" : "text-muted-foreground/40"}`}
+						>
+							{hover?.iso3 ? `${hover.name} · ${hover.iso3}` : "—"}
+						</span>
+					</div>
 				</div>
 
 				{/* Bottom-left WS status pill */}

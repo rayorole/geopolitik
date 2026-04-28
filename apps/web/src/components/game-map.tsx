@@ -129,7 +129,7 @@ const STYLE: maplibregl.StyleSpecification = {
 };
 
 export type CursorCoord = { lat: number; lng: number };
-export type HoveredCountry = { iso3: string; name: string };
+export type HoveredCountry = { iso3: string; iso2: string | null; name: string };
 
 export type GameMapProps = {
 	onCursorMove?: (coord: CursorCoord | null) => void;
@@ -214,8 +214,11 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode }: GameMap
 				map.setFeatureState({ source: "countries", id: hoverIdRef.current }, { hover: true });
 			}
 			const props = f.properties ?? {};
+			const iso2Raw =
+				(props.ISO_A2_EH as string | undefined) ?? (props.ISO_A2 as string | undefined);
 			onHoverCountry?.({
 				iso3: (props.ISO_A3 as string) ?? (props.ADM0_A3 as string) ?? "",
+				iso2: iso2Raw && iso2Raw !== "-99" ? iso2Raw.toLowerCase() : null,
 				name: (props.NAME as string) ?? (props.ADMIN as string) ?? "",
 			});
 		});
