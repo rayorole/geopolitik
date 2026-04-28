@@ -6,6 +6,7 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./ws": "./src/ws-messages.ts",
+		"./api": "./src/api-types.ts",
 		"./env": "./src/env.ts"
 	},
 	"scripts": {
