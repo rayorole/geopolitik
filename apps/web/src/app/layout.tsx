@@ -1,5 +1,6 @@
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
+import { siteSettings } from "@/lib/site-settings";
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import type { ReactNode } from "react";
@@ -25,9 +26,26 @@ const jetbrainsMono = JetBrains_Mono({
 	display: "swap",
 });
 
+const ogTitle = `${siteSettings.brand} — ${siteSettings.tagline}`;
+
 export const metadata: Metadata = {
-	title: "GeoPolitik",
-	description: "Async, persistent, real-world-map grand strategy.",
+	title: {
+		default: ogTitle,
+		template: `%s — ${siteSettings.brand}`,
+	},
+	description: siteSettings.description,
+	openGraph: {
+		title: ogTitle,
+		description: siteSettings.description,
+		type: "website",
+		url: siteSettings.domain,
+		siteName: siteSettings.brand,
+	},
+	twitter: {
+		card: "summary_large_image",
+		title: ogTitle,
+		description: siteSettings.description,
+	},
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

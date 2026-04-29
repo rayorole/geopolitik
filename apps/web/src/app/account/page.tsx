@@ -1,24 +1,15 @@
 "use client";
 
+import { AppNav } from "@/components/app-nav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { signOut, useSession } from "@/lib/auth-client";
-import { useMutation } from "@tanstack/react-query";
+import { useSession } from "@/lib/auth-client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 export default function AccountPage() {
-	const router = useRouter();
 	const { data, isPending } = useSession();
-
-	const signOutMutation = useMutation({
-		mutationFn: async () => {
-			await signOut();
-		},
-		onSuccess: () => router.replace("/"),
-	});
 
 	if (isPending) {
 		return (
@@ -47,14 +38,21 @@ export default function AccountPage() {
 	}
 
 	return (
-		<main className="flex min-h-screen items-center justify-center p-6">
-			<Card className="w-full max-w-md">
-				<CardHeader>
-					<CardTitle>Account</CardTitle>
-					<CardDescription>Signed in. Phase 0 says hi.</CardDescription>
-				</CardHeader>
-				<CardContent className="flex flex-col gap-4">
-					<div className="flex items-center gap-3">
+		<>
+			<AppNav />
+			<main className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
+				<header>
+					<h1 className="font-display text-3xl tracking-tight">Account</h1>
+					<p className="text-sm text-muted-foreground">
+						Profile and identity. Polished view lands in PR5.
+					</p>
+				</header>
+
+				<Card>
+					<CardHeader>
+						<CardTitle className="font-mono text-sm uppercase tracking-wider">Profile</CardTitle>
+					</CardHeader>
+					<CardContent className="flex items-center gap-3">
 						<Avatar>
 							{data.user.image ? <AvatarImage src={data.user.image} alt={data.user.name} /> : null}
 							<AvatarFallback>{data.user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
@@ -63,21 +61,9 @@ export default function AccountPage() {
 							<div className="font-medium">{data.user.name}</div>
 							<div className="text-sm text-muted-foreground">{data.user.email}</div>
 						</div>
-					</div>
-					<div className="flex gap-2">
-						<Button asChild>
-							<Link href="/games">Browse games</Link>
-						</Button>
-						<Button
-							onClick={() => signOutMutation.mutate()}
-							variant="secondary"
-							disabled={signOutMutation.isPending}
-						>
-							{signOutMutation.isPending ? "Signing out…" : "Sign out"}
-						</Button>
-					</div>
-				</CardContent>
-			</Card>
-		</main>
+					</CardContent>
+				</Card>
+			</main>
+		</>
 	);
 }

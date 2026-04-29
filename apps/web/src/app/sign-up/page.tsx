@@ -25,7 +25,7 @@ export default function SignUpPage() {
 			toast.error(result.error.message ?? "Sign up failed.");
 			return;
 		}
-		router.push("/account");
+		router.push("/games");
 	}
 
 	return (

@@ -1,5 +1,6 @@
 "use client";
 
+import { AppNav } from "@/components/app-nav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { gamesApi, queryKeys, worldApi } from "@/lib/api-client";
@@ -77,70 +78,73 @@ export default function JoinGamePage() {
 	if (alreadyJoined) return null;
 
 	return (
-		<main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-6 p-6">
-			<header>
-				<p className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
-					Game · <span className="text-primary">{snapshot.data?.game.code ?? "…"}</span>
-				</p>
-				<h1 className="font-display text-3xl tracking-tight">Pick a country</h1>
-				<p className="mt-1 text-sm text-muted-foreground">
-					{snapshot.data?.players.length ?? 0} other{" "}
-					{snapshot.data?.players.length === 1 ? "player has" : "players have"} already chosen.
-				</p>
-			</header>
+		<>
+			<AppNav />
+			<main className="mx-auto flex max-w-4xl flex-col gap-6 p-6">
+				<header>
+					<p className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
+						Game · <span className="text-primary">{snapshot.data?.game.code ?? "…"}</span>
+					</p>
+					<h1 className="font-display text-3xl tracking-tight">Pick a country</h1>
+					<p className="mt-1 text-sm text-muted-foreground">
+						{snapshot.data?.players.length ?? 0} other{" "}
+						{snapshot.data?.players.length === 1 ? "player has" : "players have"} already chosen.
+					</p>
+				</header>
 
-			{(snapshot.isLoading || world.isLoading) && (
-				<p className="text-sm text-muted-foreground">Loading world data…</p>
-			)}
+				{(snapshot.isLoading || world.isLoading) && (
+					<p className="text-sm text-muted-foreground">Loading world data…</p>
+				)}
 
-			{world.data && (
-				<div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-					{sortedCountries.map((c) => {
-						const taken = claimedCountryCodes.has(c.code);
-						const isSelected = selected === c.code;
-						return (
-							<button
-								type="button"
-								key={c.code}
-								disabled={taken}
-								onClick={() => setSelected(c.code)}
-								className={`flex flex-col items-start gap-1 border px-3 py-2 text-left transition-colors ${
-									taken
-										? "cursor-not-allowed border-border bg-muted/40 opacity-50"
-										: isSelected
-											? "border-primary bg-primary/10"
-											: "border-border bg-card hover:border-ring hover:bg-accent"
-								}`}
-							>
-								<code className="font-mono text-xs tracking-[0.12em] text-muted-foreground">
-									{c.code}
-								</code>
-								<span className="text-sm">{c.name}</span>
-								{taken && (
-									<span className="font-mono text-[10px] uppercase tracking-[0.14em] text-destructive">
-										Taken
-									</span>
-								)}
-							</button>
-						);
-					})}
-				</div>
-			)}
+				{world.data && (
+					<div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+						{sortedCountries.map((c) => {
+							const taken = claimedCountryCodes.has(c.code);
+							const isSelected = selected === c.code;
+							return (
+								<button
+									type="button"
+									key={c.code}
+									disabled={taken}
+									onClick={() => setSelected(c.code)}
+									className={`flex flex-col items-start gap-1 border px-3 py-2 text-left transition-colors ${
+										taken
+											? "cursor-not-allowed border-border bg-muted/40 opacity-50"
+											: isSelected
+												? "border-primary bg-primary/10"
+												: "border-border bg-card hover:border-ring hover:bg-accent"
+									}`}
+								>
+									<code className="font-mono text-xs tracking-[0.12em] text-muted-foreground">
+										{c.code}
+									</code>
+									<span className="text-sm">{c.name}</span>
+									{taken && (
+										<span className="font-mono text-[10px] uppercase tracking-[0.14em] text-destructive">
+											Taken
+										</span>
+									)}
+								</button>
+							);
+						})}
+					</div>
+				)}
 
-			<footer className="flex items-center justify-between border-t border-border pt-4">
-				<Button asChild variant="ghost">
-					<Link href="/games">← Back</Link>
-				</Button>
-				<Button
-					disabled={!selected || join.isPending}
-					onClick={() => selected && join.mutate(selected)}
-				>
-					{join.isPending ? "Joining…" : selected ? `Claim ${selected}` : "Select a country"}
-				</Button>
-			</footer>
-			{join.isError && (
-				<p className="font-mono text-xs text-destructive">{(join.error as Error).message}</p>
-			)}
-		</main>
+				<footer className="flex items-center justify-between border-t border-border pt-4">
+					<Button asChild variant="ghost">
+						<Link href="/games">← Back</Link>
+					</Button>
+					<Button
+						disabled={!selected || join.isPending}
+						onClick={() => selected && join.mutate(selected)}
+					>
+						{join.isPending ? "Joining…" : selected ? `Claim ${selected}` : "Select a country"}
+					</Button>
+				</footer>
+				{join.isError && (
+					<p className="font-mono text-xs text-destructive">{(join.error as Error).message}</p>
+				)}
+			</main>
+		</>
 	);
 }

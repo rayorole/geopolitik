@@ -1,5 +1,6 @@
 "use client";
 
+import { AppNav } from "@/components/app-nav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -54,78 +55,87 @@ export default function GamesPage() {
 	}
 
 	return (
-		<main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-6 p-6">
-			<header className="flex items-baseline justify-between">
-				<div>
-					<h1 className="font-display text-3xl tracking-tight">Games</h1>
-					<p className="text-sm text-muted-foreground">Browse joinable games or jump in by code.</p>
-				</div>
-				<Button onClick={() => create.mutate()} disabled={create.isPending}>
-					{create.isPending ? "Creating…" : "New game"}
-				</Button>
-			</header>
+		<>
+			<AppNav />
+			<main className="mx-auto flex max-w-4xl flex-col gap-6 p-6">
+				<header className="flex items-baseline justify-between">
+					<div>
+						<h1 className="font-display text-3xl tracking-tight">Games</h1>
+						<p className="text-sm text-muted-foreground">
+							Browse joinable games or jump in by code.
+						</p>
+					</div>
+					<Button onClick={() => create.mutate()} disabled={create.isPending}>
+						{create.isPending ? "Creating…" : "New game"}
+					</Button>
+				</header>
 
-			<Card>
-				<CardHeader>
-					<CardTitle className="font-mono text-sm uppercase tracking-wider">Find by code</CardTitle>
-					<CardDescription>
-						Enter the 8-character join code shared by another player.
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<form
-						className="flex gap-2"
-						onSubmit={(e) => {
-							e.preventDefault();
-							setSearchError(null);
-							findByCode.mutate(code);
-						}}
-					>
-						<Input
-							placeholder="ABCDEFGH"
-							value={code}
-							onChange={(e) => setCode(e.target.value.toUpperCase())}
-							maxLength={8}
-							className="font-mono uppercase tracking-[0.18em]"
-						/>
-						<Button type="submit" disabled={code.length !== 8 || findByCode.isPending}>
-							Find
-						</Button>
-					</form>
-					{searchError && <p className="mt-2 font-mono text-xs text-destructive">{searchError}</p>}
-				</CardContent>
-			</Card>
+				<Card>
+					<CardHeader>
+						<CardTitle className="font-mono text-sm uppercase tracking-wider">
+							Find by code
+						</CardTitle>
+						<CardDescription>
+							Enter the 8-character join code shared by another player.
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<form
+							className="flex gap-2"
+							onSubmit={(e) => {
+								e.preventDefault();
+								setSearchError(null);
+								findByCode.mutate(code);
+							}}
+						>
+							<Input
+								placeholder="ABCDEFGH"
+								value={code}
+								onChange={(e) => setCode(e.target.value.toUpperCase())}
+								maxLength={8}
+								className="font-mono uppercase tracking-[0.18em]"
+							/>
+							<Button type="submit" disabled={code.length !== 8 || findByCode.isPending}>
+								Find
+							</Button>
+						</form>
+						{searchError && (
+							<p className="mt-2 font-mono text-xs text-destructive">{searchError}</p>
+						)}
+					</CardContent>
+				</Card>
 
-			<section className="flex flex-col gap-3">
-				<h2 className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
-					Open lobbies · {browse.data?.length ?? 0}
-				</h2>
-				{browse.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
-				{browse.data && browse.data.length === 0 && (
-					<p className="text-sm text-muted-foreground">No active games. Create one above.</p>
-				)}
-				<ul className="flex flex-col gap-2">
-					{browse.data?.map((g) => (
-						<li key={g.id}>
-							<Link
-								href={`/games/${g.id}/join`}
-								className="flex items-center justify-between border border-border bg-card px-4 py-3 transition-colors hover:border-ring hover:bg-accent"
-							>
-								<div className="flex flex-col gap-1">
-									<code className="font-mono text-sm tracking-[0.18em]">{g.code}</code>
-									<span className="text-xs text-muted-foreground">
-										Tick #{g.tick.toLocaleString()} · {g.playerCount} player
-										{g.playerCount === 1 ? "" : "s"} · {g.unclaimedCountryCount} unclaimed
+				<section className="flex flex-col gap-3">
+					<h2 className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
+						Open lobbies · {browse.data?.length ?? 0}
+					</h2>
+					{browse.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+					{browse.data && browse.data.length === 0 && (
+						<p className="text-sm text-muted-foreground">No active games. Create one above.</p>
+					)}
+					<ul className="flex flex-col gap-2">
+						{browse.data?.map((g) => (
+							<li key={g.id}>
+								<Link
+									href={`/games/${g.id}/join`}
+									className="flex items-center justify-between border border-border bg-card px-4 py-3 transition-colors hover:border-ring hover:bg-accent"
+								>
+									<div className="flex flex-col gap-1">
+										<code className="font-mono text-sm tracking-[0.18em]">{g.code}</code>
+										<span className="text-xs text-muted-foreground">
+											Tick #{g.tick.toLocaleString()} · {g.playerCount} player
+											{g.playerCount === 1 ? "" : "s"} · {g.unclaimedCountryCount} unclaimed
+										</span>
+									</div>
+									<span className="font-mono text-xs uppercase tracking-wider text-primary">
+										Join →
 									</span>
-								</div>
-								<span className="font-mono text-xs uppercase tracking-wider text-primary">
-									Join →
-								</span>
-							</Link>
-						</li>
-					))}
-				</ul>
-			</section>
-		</main>
+								</Link>
+							</li>
+						))}
+					</ul>
+				</section>
+			</main>
+		</>
 	);
 }
