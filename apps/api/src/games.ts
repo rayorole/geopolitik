@@ -2,16 +2,18 @@ import { newId, schema } from "@geopolitik/db";
 import {
 	type GameSnapshot,
 	type GameSummary,
+	type MineGameSummary,
 	createGameResponse,
 	gameSnapshot,
 	gameSummary,
 	joinGameBody,
+	mineGameSummary,
 	submitOrderResponse,
 } from "@geopolitik/shared/api";
 import { submitOrderBodyV3 } from "@geopolitik/shared/orders";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { auth } from "./auth";
+import { requireAuth } from "./auth-helper";
 import { applyBuildOrder, applyCancelBuildOrder } from "./buildings";
 import { generateGameCode, isValidGameCode } from "./code";
 import { pickFactionColor } from "./colors";
@@ -19,31 +21,22 @@ import { db } from "./db";
 import { logger } from "./logger";
 import { rateLimit } from "./rate-limit";
 
-type AuthVars = { userId: string; userName: string };
-
-async function requireAuth(req: Request): Promise<AuthVars | Response> {
-	const session = await auth.api.getSession({ headers: req.headers as unknown as Headers });
-	if (!session) return new Response("Unauthorized", { status: 401 });
-	return { userId: session.user.id, userName: session.user.name };
-}
-
-function ipOf(req: Request): string {
-	return (
-		req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-		req.headers.get("x-real-ip") ??
-		"unknown"
-	);
-}
-
 export function createGamesRouter() {
 	const games = new Hono();
 
 	// ── POST /games ───────────────────────────────────────────────────────────
-	// No auth at Phase 2 (admin gating before any public exposure).
-	// Rate-limit 5/min/IP.
+	// Authed once the lobby surface goes public. Rate-limit per user (5/hr) —
+	// per-IP would punish shared egress (offices, universities, mobile NAT).
 	games.post("/games", async (c) => {
-		const ip = ipOf(c.req.raw);
-		const limit = await rateLimit({ key: `rl:create-game:${ip}`, max: 5, windowSeconds: 60 });
+		const authResult = await requireAuth(c.req.raw);
+		if (authResult instanceof Response) return authResult;
+		const { userId } = authResult;
+
+		const limit = await rateLimit({
+			key: `rl:create-game:${userId}`,
+			max: 5,
+			windowSeconds: 3600,
+		});
 		if (!limit.ok) return c.json({ error: "rate_limited" }, 429);
 
 		// Generate a unique code with retry on collision (extremely rare at 31^8).
@@ -95,6 +88,98 @@ export function createGamesRouter() {
 					createdAt: r.createdAt.toISOString(),
 				}),
 			);
+		return c.json(result);
+	});
+
+	// ── GET /games/mine ───────────────────────────────────────────────────────
+	// Active matches the authed user is a player in. Returns country, color,
+	// player count, and the highest-unrest city the user owns per game so the
+	// "Your matches" section can show "X is on fire" at a glance.
+	games.get("/games/mine", async (c) => {
+		const authResult = await requireAuth(c.req.raw);
+		if (authResult instanceof Response) return authResult;
+		const { userId } = authResult;
+
+		const playerGameRows = await db
+			.select({
+				gameId: schema.game.id,
+				code: schema.game.code,
+				status: schema.game.status,
+				tick: schema.game.tick,
+				updatedAt: schema.game.updatedAt,
+				playerId: schema.player.id,
+				countryCode: schema.player.countryCode,
+				countryName: schema.country.name,
+				color: schema.player.color,
+			})
+			.from(schema.player)
+			.innerJoin(schema.game, eq(schema.game.id, schema.player.gameId))
+			.innerJoin(schema.country, eq(schema.country.code, schema.player.countryCode))
+			.where(eq(schema.player.userId, userId))
+			.orderBy(desc(schema.game.updatedAt));
+
+		if (playerGameRows.length === 0) return c.json([] as MineGameSummary[]);
+
+		const gameIds = playerGameRows.map((r) => r.gameId);
+		const playerIds = playerGameRows.map((r) => r.playerId);
+
+		const counts = await db
+			.select({
+				gameId: schema.player.gameId,
+				n: sql<number>`COUNT(*)::int`,
+			})
+			.from(schema.player)
+			.where(inArray(schema.player.gameId, gameIds))
+			.groupBy(schema.player.gameId);
+		const countMap = new Map(counts.map((c) => [c.gameId, c.n]));
+
+		const cityRows = await db
+			.select({
+				ownerPlayerId: schema.cityState.ownerPlayerId,
+				cityId: schema.cityState.cityId,
+				cityName: schema.city.name,
+				unrest: schema.cityState.unrest,
+				inRevoltSinceTick: schema.cityState.inRevoltSinceTick,
+			})
+			.from(schema.cityState)
+			.innerJoin(schema.city, eq(schema.city.id, schema.cityState.cityId))
+			.where(
+				and(
+					inArray(schema.cityState.gameId, gameIds),
+					inArray(schema.cityState.ownerPlayerId, playerIds),
+				),
+			);
+
+		// Pick the worst-unrest city per player.
+		const topByPlayer = new Map<string, (typeof cityRows)[number]>();
+		for (const row of cityRows) {
+			if (!row.ownerPlayerId) continue;
+			const cur = topByPlayer.get(row.ownerPlayerId);
+			if (!cur || row.unrest > cur.unrest) topByPlayer.set(row.ownerPlayerId, row);
+		}
+
+		const result: MineGameSummary[] = playerGameRows.map((r) => {
+			const top = topByPlayer.get(r.playerId);
+			return mineGameSummary.parse({
+				gameId: r.gameId,
+				code: r.code,
+				status: r.status,
+				tick: r.tick,
+				lastTickAt: r.updatedAt.toISOString(),
+				country: { code: r.countryCode, name: r.countryName },
+				color: r.color,
+				playerCount: countMap.get(r.gameId) ?? 0,
+				topUnrestCity: top
+					? {
+							id: top.cityId,
+							name: top.cityName,
+							unrest: top.unrest,
+							inRevolt: top.inRevoltSinceTick !== null,
+						}
+					: null,
+			});
+		});
+
 		return c.json(result);
 	});
 
