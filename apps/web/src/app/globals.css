@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "@geopolitik/config/tailwind/theme.css";
-@import "flag-icons/css/flag-icons.min.css";
 
 html,
 body {
