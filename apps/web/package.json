@@ -17,6 +17,7 @@
 		"@geopolitik/shared": "*",
 		"@geopolitik/world-data": "*",
 		"cobe": "0.6.3",
+		"flag-icons": "7.5.0",
 		"@hookform/resolvers": "3.9.1",
 		"@radix-ui/react-avatar": "1.1.1",
 		"@radix-ui/react-context-menu": "2.2.4",

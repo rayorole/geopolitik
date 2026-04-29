@@ -1,5 +1,6 @@
 "use client";
 
+import { NationFlag } from "@/components/nation-flag";
 import { gamesApi, queryKeys } from "@/lib/api-client";
 import type { MineGameSummary } from "@geopolitik/shared/api";
 import { useQuery } from "@tanstack/react-query";
@@ -50,10 +51,10 @@ function YourMatchCard({ g }: { g: MineGameSummary }) {
 				className="group flex items-center justify-between gap-4 border border-border bg-card px-4 py-4 transition-colors hover:border-primary"
 			>
 				<div className="flex min-w-0 items-center gap-4">
-					<div
-						className="h-10 w-10 flex-shrink-0 border border-ink-0"
-						style={{ background: g.color }}
-						aria-hidden
+					<NationFlag
+						code={g.country.code}
+						title={g.country.name}
+						className="h-7 w-10 flex-shrink-0"
 					/>
 					<div className="flex min-w-0 flex-col gap-1.5">
 						<div className="flex items-baseline gap-3">
