@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { applyProductionToCity, applySliderEconomics, growCityPopulation } from "./tick-formula";
+import {
+	DEFECTION_TICKS_AT_REVOLT,
+	applyProductionToCity,
+	applyRevoltStateChange,
+	applySliderEconomics,
+	computeUnrestDelta,
+	growCityPopulation,
+} from "./tick-formula";
 
 describe("tick — pure production formula", () => {
 	it("a 1M-pop city with default multipliers contributes +100/+5/+0.2 (× 100 storage)", () => {
@@ -179,5 +186,100 @@ describe("applySliderEconomics", () => {
 		const d = applySliderEconomics(defaults, -100);
 		// Only propaganda flat costs survive; pop-scaled terms are zero.
 		expect(d.money).toBe(applySliderEconomics(defaults, 0).money);
+	});
+});
+
+describe("computeUnrestDelta", () => {
+	const defaults = { taxation: 30, welfare: 50, healthcare: 50, propaganda: 30 } as const;
+
+	it("default sliders below threshold yield a negative net (propaganda dampens)", () => {
+		const r = computeUnrestDelta(defaults, 0);
+		expect(r.net).toBeLessThan(0);
+		expect(r.attribution.taxation).toBe(0);
+		expect(r.attribution.welfare).toBe(0);
+		expect(r.attribution.propaganda).toBeLessThan(0);
+	});
+
+	it("clamps below 0 — peaceful nation can't drop into negative unrest", () => {
+		const r = computeUnrestDelta(defaults, 0);
+		expect(r.nextUnrest).toBe(0);
+	});
+
+	it("max taxation drives unrest up", () => {
+		const calm = computeUnrestDelta(defaults, 50);
+		const oppressive = computeUnrestDelta({ ...defaults, taxation: 100 }, 50);
+		expect(oppressive.net).toBeGreaterThan(calm.net);
+		expect(oppressive.attribution.taxation).toBeGreaterThan(0);
+	});
+
+	it("zero welfare drives unrest up", () => {
+		const r = computeUnrestDelta({ ...defaults, welfare: 0 }, 50);
+		expect(r.attribution.welfare).toBeGreaterThan(0);
+	});
+
+	it("max propaganda + zero everything else still pushes unrest down", () => {
+		const r = computeUnrestDelta(
+			{ taxation: 30, welfare: 50, healthcare: 50, propaganda: 100 },
+			50,
+		);
+		expect(r.net).toBeLessThan(0);
+	});
+
+	it("clamps at 100 — can't exceed the revolt threshold", () => {
+		const r = computeUnrestDelta({ ...defaults, taxation: 100, propaganda: 0 }, 99);
+		expect(r.nextUnrest).toBe(100);
+	});
+
+	it("attribution sum equals net (no hidden math)", () => {
+		const r = computeUnrestDelta({ ...defaults, taxation: 80, welfare: 20 }, 30, 5);
+		const sum =
+			r.attribution.taxation +
+			r.attribution.welfare +
+			r.attribution.propaganda +
+			r.attribution.extra;
+		expect(sum).toBe(r.net);
+	});
+});
+
+describe("applyRevoltStateChange", () => {
+	it("does nothing when below threshold and not in revolt", () => {
+		const r = applyRevoltStateChange(50, null, 1000);
+		expect(r.nextInRevoltSince).toBeNull();
+		expect(r.enteredRevolt).toBe(false);
+		expect(r.defected).toBe(false);
+	});
+
+	it("enters revolt when unrest hits 100 and we weren't already revolting", () => {
+		const r = applyRevoltStateChange(100, null, 1000);
+		expect(r.enteredRevolt).toBe(true);
+		expect(r.nextInRevoltSince).toBe(1000);
+		expect(r.defected).toBe(false);
+	});
+
+	it("stays in revolt while unrest is still 100 and the timer hasn't elapsed", () => {
+		const r = applyRevoltStateChange(100, 1000, 1500);
+		expect(r.enteredRevolt).toBe(false);
+		expect(r.exitedRevolt).toBe(false);
+		expect(r.defected).toBe(false);
+		expect(r.nextInRevoltSince).toBe(1000);
+	});
+
+	it("exits revolt when unrest drops below 100 (timer resets)", () => {
+		const r = applyRevoltStateChange(99, 1000, 1500);
+		expect(r.exitedRevolt).toBe(true);
+		expect(r.nextInRevoltSince).toBeNull();
+		expect(r.defected).toBe(false);
+	});
+
+	it("defects after exactly 1440 ticks at unrest 100", () => {
+		const r = applyRevoltStateChange(100, 1000, 1000 + DEFECTION_TICKS_AT_REVOLT);
+		expect(r.defected).toBe(true);
+		expect(r.nextInRevoltSince).toBeNull();
+	});
+
+	it("does not defect at 1439 ticks", () => {
+		const r = applyRevoltStateChange(100, 1000, 1000 + DEFECTION_TICKS_AT_REVOLT - 1);
+		expect(r.defected).toBe(false);
+		expect(r.nextInRevoltSince).toBe(1000);
 	});
 });

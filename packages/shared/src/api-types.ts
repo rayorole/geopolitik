@@ -32,6 +32,8 @@ export const cityInSnapshot = z.object({
 	cityId: z.string().uuid(),
 	ownerPlayerId: z.string().uuid().nullable(),
 	population: z.number().int().nonnegative(),
+	unrest: z.number().int().min(0).max(100),
+	inRevoltSinceTick: z.number().int().nonnegative().nullable(),
 });
 
 export const nationInSnapshot = z.object({

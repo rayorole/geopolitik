@@ -1,6 +1,7 @@
 "use client";
 
 import { CityBuildingsSection } from "@/components/city-buildings";
+import { CityUnrestSection } from "@/components/city-unrest";
 import type { GameSnapshot, PlayerInGame, WorldDataset } from "@geopolitik/shared/api";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
@@ -102,15 +103,11 @@ export function CityDetail({
 				<dd className="text-right text-foreground">{def.countryCode}</dd>
 			</dl>
 
-			{/* Owned-city sections (3e Unrest still placeholder) */}
+			{/* Owned-city sections */}
 			{isMine && (
 				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3">
+					<CityUnrestSection cityId={cityId} snapshot={snapshot} />
 					<CityBuildingsSection gameId={gameId} cityId={cityId} snapshot={snapshot} />
-					<PlaceholderCard
-						title="Unrest"
-						phaseTag="P3E"
-						hint="Per-tick unrest delta + revolt warnings land in #16."
-					/>
 				</div>
 			)}
 
@@ -172,30 +169,6 @@ function DetailHeader({
 					</span>
 				)}
 			</div>
-		</div>
-	);
-}
-
-function PlaceholderCard({
-	title,
-	phaseTag,
-	hint,
-}: {
-	title: string;
-	phaseTag: string;
-	hint: string;
-}) {
-	return (
-		<div className="border border-dashed border-border bg-card/40 px-3 py-3">
-			<div className="flex items-center justify-between">
-				<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground">
-					{title}
-				</span>
-				<span className="font-mono text-[9px] tracking-[0.18em] text-muted-foreground">
-					{phaseTag}
-				</span>
-			</div>
-			<p className="mt-1 font-mono text-[10px] leading-relaxed text-muted-foreground">{hint}</p>
 		</div>
 	);
 }

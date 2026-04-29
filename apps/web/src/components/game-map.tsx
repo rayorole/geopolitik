@@ -3,14 +3,14 @@
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import {
-	ContextMenu,
-	ContextMenuContent,
-	ContextMenuItem,
-	ContextMenuLabel,
-	ContextMenuSeparator,
-	ContextMenuShortcut,
-	ContextMenuTrigger,
-} from "@/components/ui/context-menu";
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuShortcut,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { WorldDataset } from "@geopolitik/shared/api";
 import { Copy, ZoomIn, ZoomOut } from "lucide-react";
@@ -23,10 +23,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
  * <GameMap> — Phase 1 (slim).
  * Pan + zoom across the world. Country polygons render from a static
  * Natural-Earth 110m GeoJSON served from /world-countries.geojson. Hover
- * highlights a country; right-click opens a shadcn context menu with the
- * clicked lat/lng. Cursor coordinates and onHoverCountry stream while the
- * pointer is over land; leaving a polygon or the map does not clear the last
- * HUD values (map feature-state hover still clears for correct polygon paint).
+ * highlights a country; right-click opens a shadcn dropdown anchored at
+ * the click point — controlled programmatically because MapLibre owns the
+ * canvas contextmenu event, so the bubbled-up React contextmenu never
+ * fires. The MapLibre `contextmenu` handler reads lat/lng + features and
+ * positions an invisible 1×1 trigger at the cursor; Radix anchors the
+ * menu off that. Cursor coordinates and onHoverCountry stream while the
+ * pointer is over land; leaving a polygon or the map does not clear the
+ * last HUD values.
  *
  * No tiles yet. Phase 1 (full) swaps in Protomaps .pmtiles on R2 and a
  * PixiJS overlay for unit sprites; this slim shell already supports both
@@ -276,6 +280,11 @@ export function GameMap({
 		x: number;
 		y: number;
 	} | null>(null);
+	const [mapMenu, setMapMenu] = useState<{ open: boolean; clientX: number; clientY: number }>({
+		open: false,
+		clientX: 0,
+		clientY: 0,
+	});
 
 	// Index city stats by ISO_A3 / ADM0_A3 once per cities-prop update so the
 	// popover doesn't iterate the whole list on every click.
@@ -328,18 +337,6 @@ export function GameMap({
 			});
 		},
 		[],
-	);
-
-	const onContextMenuCapture = useCallback(
-		(e: React.MouseEvent<HTMLDivElement>) => {
-			const map = mapRef.current;
-			const container = containerRef.current;
-			if (!map || !container) return;
-			const rect = container.getBoundingClientRect();
-			const pointPx: [number, number] = [e.clientX - rect.left, e.clientY - rect.top];
-			syncContextMenuCoords(pointPx, map.unproject(pointPx));
-		},
-		[syncContextMenuCoords],
 	);
 
 	const copyLatLng = useCallback(() => {
@@ -454,6 +451,8 @@ export function GameMap({
 
 		const onMapContextMenu = (e: maplibregl.MapMouseEvent) => {
 			syncContextMenuCoords([e.point.x, e.point.y], e.lngLat);
+			const { clientX, clientY } = e.originalEvent;
+			setMapMenu({ open: true, clientX, clientY });
 		};
 		map.on("contextmenu", onMapContextMenu);
 
@@ -602,42 +601,65 @@ export function GameMap({
 
 	return (
 		<>
-			<ContextMenu>
-				<ContextMenuTrigger asChild>
-					<div
-						onContextMenuCapture={onContextMenuCapture}
-						className="absolute inset-0"
-						style={{ position: "absolute", inset: 0 }}
-					>
-						<div
-							ref={containerRef}
-							style={{ width: "100%", height: "100%" }}
-							className="h-full w-full"
-						/>
-					</div>
-				</ContextMenuTrigger>
-				<ContextMenuContent className="min-w-[14rem] font-mono text-xs">
+			<div className="absolute inset-0" style={{ position: "absolute", inset: 0 }}>
+				<div
+					ref={containerRef}
+					style={{ width: "100%", height: "100%" }}
+					className="h-full w-full"
+				/>
+			</div>
+
+			<DropdownMenu
+				open={mapMenu.open}
+				onOpenChange={(open) => {
+					if (!open) setMapMenu((s) => ({ ...s, open: false }));
+				}}
+			>
+				<DropdownMenuTrigger asChild>
+					<button
+						type="button"
+						tabIndex={-1}
+						aria-hidden
+						className="pointer-events-none fixed z-10 h-px w-px border-0 p-0 opacity-0"
+						style={{ left: mapMenu.clientX, top: mapMenu.clientY }}
+					/>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent
+					className="min-w-[14rem] font-mono text-xs"
+					align="start"
+					side="bottom"
+					sideOffset={2}
+					onCloseAutoFocus={(e) => e.preventDefault()}
+				>
 					{contextCoord && (
-						<ContextMenuLabel className="text-muted-foreground">
+						<DropdownMenuLabel className="font-normal text-muted-foreground">
 							{contextCoord.name ? `${contextCoord.name} · ${contextCoord.iso3}` : "Open ocean"}
-						</ContextMenuLabel>
+						</DropdownMenuLabel>
 					)}
-					<ContextMenuSeparator />
-					<ContextMenuItem onSelect={copyLatLng} disabled={!contextCoord}>
-						<Copy className="size-4" />
+					<DropdownMenuSeparator />
+					<DropdownMenuItem
+						className="gap-2 font-mono text-xs"
+						onSelect={copyLatLng}
+						disabled={!contextCoord}
+					>
+						<Copy className="size-4 shrink-0" />
 						Copy latitude and longitude
 						{contextCoord && (
-							<ContextMenuShortcut>
+							<DropdownMenuShortcut>
 								{fmt(contextCoord.lat, 2)}, {fmt(contextCoord.lng, 2)}
-							</ContextMenuShortcut>
+							</DropdownMenuShortcut>
 						)}
-					</ContextMenuItem>
-					<ContextMenuItem onSelect={copyCountry} disabled={!contextCoord?.iso3}>
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						className="gap-2 font-mono text-xs"
+						onSelect={copyCountry}
+						disabled={!contextCoord?.iso3}
+					>
 						Copy country code
-						{contextCoord?.iso3 && <ContextMenuShortcut>{contextCoord.iso3}</ContextMenuShortcut>}
-					</ContextMenuItem>
-				</ContextMenuContent>
-			</ContextMenu>
+						{contextCoord?.iso3 && <DropdownMenuShortcut>{contextCoord.iso3}</DropdownMenuShortcut>}
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
 
 			<ButtonGroup
 				orientation="vertical"

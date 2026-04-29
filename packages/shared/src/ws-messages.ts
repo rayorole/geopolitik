@@ -63,6 +63,8 @@ export const tickCityState = z.object({
 	cityId: z.string().uuid(),
 	ownerPlayerId: z.string().uuid().nullable(),
 	population: z.number().int().nonnegative(),
+	unrest: z.number().int().min(0).max(100),
+	inRevoltSinceTick: z.number().int().nonnegative().nullable(),
 });
 
 export const tickNationState = z.object({
@@ -118,6 +120,19 @@ export const wsOutboundBuildingComplete = z.object({
 	tick: z.number().int().nonnegative(),
 });
 
+export const wsOutboundRevoltStarted = z.object({
+	type: z.literal("revolt_started"),
+	cityId: z.string().uuid(),
+	tick: z.number().int().nonnegative(),
+});
+
+export const wsOutboundDefection = z.object({
+	type: z.literal("defection"),
+	cityId: z.string().uuid(),
+	formerOwnerId: z.string().uuid(),
+	tick: z.number().int().nonnegative(),
+});
+
 export const wsOutboundMessage = z.discriminatedUnion("type", [
 	wsOutboundPong,
 	wsOutboundError,
@@ -127,6 +142,8 @@ export const wsOutboundMessage = z.discriminatedUnion("type", [
 	wsOutboundOrderResolved,
 	wsOutboundDesync,
 	wsOutboundBuildingComplete,
+	wsOutboundRevoltStarted,
+	wsOutboundDefection,
 ]);
 export type WsOutboundMessage = z.infer<typeof wsOutboundMessage>;
 export type WsOutboundTick = z.infer<typeof wsOutboundTick>;

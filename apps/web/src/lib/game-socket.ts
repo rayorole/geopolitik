@@ -82,6 +82,18 @@ export function getGameSocket(gameId: string, qc: QueryClient): WebSocket {
 			toast.success(`${(msg.buildingType as string) ?? "Building"} completed`);
 			qc.invalidateQueries({ queryKey: queryKeys.gameSnapshot(gameId) });
 		}
+		if (msg.type === "revolt_started") {
+			toast.warning("City entered revolt", {
+				description: "Production halted. Crank propaganda or back off taxation to recover.",
+			});
+			qc.invalidateQueries({ queryKey: queryKeys.gameSnapshot(gameId) });
+		}
+		if (msg.type === "defection") {
+			toast.error("City defected to neutral", {
+				description: "12 hours of sustained unrest. Re-conquer in Phase 5.",
+			});
+			qc.invalidateQueries({ queryKey: queryKeys.gameSnapshot(gameId) });
+		}
 		if (msg.type === "desync") {
 			qc.invalidateQueries({ queryKey: queryKeys.gameSnapshot(gameId) });
 		}

@@ -26,7 +26,9 @@ import {
 	type ResourceDelta,
 	type SliderState,
 	applyProductionToCity,
+	applyRevoltStateChange,
 	applySliderEconomics,
+	computeUnrestDelta,
 } from "./tick-formula";
 
 type Publish = (topic: string, msg: string) => number;
@@ -83,11 +85,16 @@ async function runTickWithRetry(gameId: string): Promise<void> {
 
 type ResolvedOrder = { id: string; playerId: string };
 
+type RevoltEvent = { cityId: string; playerId: string };
+type DefectionEvent = { cityId: string; formerOwnerId: string };
+
 export async function runTick(gameId: string): Promise<void> {
 	const startMs = Date.now();
 	let tickNumber = 0;
 	const resolvedOrders: ResolvedOrder[] = [];
 	let maturationOutcome: MaturationOutcome = { matured: [], yieldByPlayer: new Map() };
+	const revoltEvents: RevoltEvent[] = [];
+	const defectionEvents: DefectionEvent[] = [];
 
 	await db.transaction(async (tx) => {
 		const [g] = await tx
@@ -200,6 +207,8 @@ export async function runTick(gameId: string): Promise<void> {
 				cityId: schema.cityState.cityId,
 				ownerPlayerId: schema.cityState.ownerPlayerId,
 				population: schema.cityState.population,
+				unrest: schema.cityState.unrest,
+				inRevoltSinceTick: schema.cityState.inRevoltSinceTick,
 				moneyMult: schema.city.moneyMult,
 				steelMult: schema.city.steelMult,
 				electronicsMult: schema.city.electronicsMult,
@@ -214,6 +223,7 @@ export async function runTick(gameId: string): Promise<void> {
 
 		for (const r of rows) {
 			const sliders = r.ownerPlayerId ? slidersByPlayer.get(r.ownerPlayerId) : undefined;
+			const inRevolt = r.inRevoltSinceTick !== null;
 			const result = applyProductionToCity({
 				population: r.population,
 				moneyMult: r.moneyMult,
@@ -223,12 +233,68 @@ export async function runTick(gameId: string): Promise<void> {
 				healthcare: sliders?.healthcare,
 			});
 
-			await tx
-				.update(schema.cityState)
-				.set({ population: result.newPopulation, updatedAt: new Date() })
-				.where(and(eq(schema.cityState.gameId, gameId), eq(schema.cityState.cityId, r.cityId)));
+			// Compute next unrest using the owner's sliders. Neutral cities
+			// (no owner) have no slider input and decay toward 0 over time —
+			// for now, just hold the existing value.
+			let nextUnrest = r.unrest;
+			let nextInRevoltSince = r.inRevoltSinceTick;
+			let cityDefected = false;
+			if (sliders) {
+				const ud = computeUnrestDelta(sliders, r.unrest);
+				nextUnrest = ud.nextUnrest;
+				const rs = applyRevoltStateChange(nextUnrest, r.inRevoltSinceTick, tickNumber);
+				nextInRevoltSince = rs.nextInRevoltSince;
+				if (rs.enteredRevolt && r.ownerPlayerId) {
+					revoltEvents.push({ cityId: r.cityId, playerId: r.ownerPlayerId });
+				}
+				if (rs.defected && r.ownerPlayerId) {
+					defectionEvents.push({ cityId: r.cityId, formerOwnerId: r.ownerPlayerId });
+					cityDefected = true;
+				}
+			}
 
-			if (!r.ownerPlayerId) continue;
+			if (cityDefected) {
+				// Flip to neutral; clear unrest + revolt; cancel any in-progress
+				// builds (forfeit, no refund — the former owner already lost the
+				// city). Builder logic in apps/api/src/buildings.ts handles the
+				// no-refund path at maturation time, but we proactively cancel
+				// here so the queue UI clears immediately.
+				await tx
+					.update(schema.cityState)
+					.set({
+						population: result.newPopulation,
+						ownerPlayerId: null,
+						unrest: 0,
+						inRevoltSinceTick: null,
+						updatedAt: new Date(),
+					})
+					.where(and(eq(schema.cityState.gameId, gameId), eq(schema.cityState.cityId, r.cityId)));
+				await tx
+					.update(schema.cityBuilding)
+					.set({ state: "cancelled", completesAtTick: null })
+					.where(
+						and(
+							eq(schema.cityBuilding.gameId, gameId),
+							eq(schema.cityBuilding.cityId, r.cityId),
+							eq(schema.cityBuilding.state, "in_progress"),
+						),
+					);
+			} else {
+				await tx
+					.update(schema.cityState)
+					.set({
+						population: result.newPopulation,
+						unrest: nextUnrest,
+						inRevoltSinceTick: nextInRevoltSince,
+						updatedAt: new Date(),
+					})
+					.where(and(eq(schema.cityState.gameId, gameId), eq(schema.cityState.cityId, r.cityId)));
+			}
+
+			// In-revolt cities yield 0 — economy stops while citizens riot.
+			// Note: cityDefected drops ownership before the yield, so resources
+			// aren't credited to the former owner this tick either.
+			if (!r.ownerPlayerId || inRevolt || cityDefected) continue;
 			const acc = byPlayer.get(r.ownerPlayerId) ?? {
 				money: 0,
 				oil: 0,
@@ -315,7 +381,14 @@ export async function runTick(gameId: string): Promise<void> {
 	});
 
 	if (tickNumber === 0) return; // game wasn't active or didn't exist
-	await broadcastTick(gameId, tickNumber, resolvedOrders, maturationOutcome);
+	await broadcastTick(
+		gameId,
+		tickNumber,
+		resolvedOrders,
+		maturationOutcome,
+		revoltEvents,
+		defectionEvents,
+	);
 }
 
 async function broadcastTick(
@@ -323,6 +396,8 @@ async function broadcastTick(
 	tickNumber: number,
 	resolvedOrders: ResolvedOrder[],
 	maturation: MaturationOutcome,
+	revoltEvents: RevoltEvent[],
+	defectionEvents: DefectionEvent[],
 ): Promise<void> {
 	if (!publish) return;
 
@@ -331,6 +406,8 @@ async function broadcastTick(
 			cityId: schema.cityState.cityId,
 			ownerPlayerId: schema.cityState.ownerPlayerId,
 			population: schema.cityState.population,
+			unrest: schema.cityState.unrest,
+			inRevoltSinceTick: schema.cityState.inRevoltSinceTick,
 		})
 		.from(schema.cityState)
 		.where(eq(schema.cityState.gameId, gameId));
@@ -376,6 +453,25 @@ async function broadcastTick(
 				cityId: m.cityId,
 				buildingId: m.id,
 				buildingType: m.type,
+				tick: tickNumber,
+			}),
+		);
+	}
+
+	for (const e of revoltEvents) {
+		publish(
+			playerTopic(e.playerId),
+			JSON.stringify({ type: "revolt_started", cityId: e.cityId, tick: tickNumber }),
+		);
+	}
+
+	for (const e of defectionEvents) {
+		publish(
+			playerTopic(e.formerOwnerId),
+			JSON.stringify({
+				type: "defection",
+				cityId: e.cityId,
+				formerOwnerId: e.formerOwnerId,
 				tick: tickNumber,
 			}),
 		);
