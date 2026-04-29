@@ -8,11 +8,12 @@ import {
 	ContextMenuItem,
 	ContextMenuLabel,
 	ContextMenuSeparator,
+	ContextMenuShortcut,
 	ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { WorldDataset } from "@geopolitik/shared/api";
-import { ZoomIn, ZoomOut } from "lucide-react";
+import { Copy, ZoomIn, ZoomOut } from "lucide-react";
 import maplibregl, { type Map as MapInstance } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import Image from "next/image";
@@ -23,7 +24,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
  * Pan + zoom across the world. Country polygons render from a static
  * Natural-Earth 110m GeoJSON served from /world-countries.geojson. Hover
  * highlights a country; right-click opens a shadcn context menu with the
- * clicked lat/lng. Cursor coordinates stream out via onCursorMove.
+ * clicked lat/lng. Cursor coordinates stream out via onCursorMove while the
+ * pointer is over the map; leaving the map does not clear the last update.
  *
  * No tiles yet. Phase 1 (full) swaps in Protomaps .pmtiles on R2 and a
  * PixiJS overlay for unit sprites; this slim shell already supports both
@@ -195,6 +197,44 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode, cities }:
 		};
 	}, []);
 
+	const syncContextMenuCoords = useCallback(
+		(pointPx: [number, number], lngLat: { lat: number; lng: number }) => {
+			const map = mapRef.current;
+			if (!map) return;
+			const features = map.queryRenderedFeatures(pointPx, { layers: ["country-fill"] });
+			const props = features[0]?.properties ?? null;
+			setContextCoord({
+				lat: lngLat.lat,
+				lng: lngLat.lng,
+				iso3: (props?.ISO_A3 as string) ?? (props?.ADM0_A3 as string) ?? null,
+				name: (props?.NAME as string) ?? (props?.ADMIN as string) ?? null,
+			});
+		},
+		[],
+	);
+
+	const onContextMenuCapture = useCallback(
+		(e: React.MouseEvent<HTMLDivElement>) => {
+			const map = mapRef.current;
+			const container = containerRef.current;
+			if (!map || !container) return;
+			const rect = container.getBoundingClientRect();
+			const pointPx: [number, number] = [e.clientX - rect.left, e.clientY - rect.top];
+			syncContextMenuCoords(pointPx, map.unproject(pointPx));
+		},
+		[syncContextMenuCoords],
+	);
+
+	const copyLatLng = useCallback(() => {
+		if (!contextCoord) return;
+		void navigator.clipboard?.writeText(`${fmt(contextCoord.lat, 6)}, ${fmt(contextCoord.lng, 6)}`);
+	}, [contextCoord]);
+
+	const copyCountry = useCallback(() => {
+		if (!contextCoord?.iso3) return;
+		void navigator.clipboard?.writeText(contextCoord.iso3);
+	}, [contextCoord]);
+
 	useEffect(() => {
 		if (!containerRef.current) return;
 
@@ -210,6 +250,9 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode, cities }:
 			maxZoom: 10,
 			renderWorldCopies: true,
 			attributionControl: false,
+			// Default MapLibre binds right-drag (and ctrl+left) to bearing rotation;
+			// keep north-up HUD and reserve right-click for the context menu only.
+			dragRotate: false,
 			// Crisper borders on retina/high-DPI displays.
 			pixelRatio: typeof window !== "undefined" ? window.devicePixelRatio : 1,
 			fadeDuration: 100,
@@ -280,14 +323,19 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode, cities }:
 		});
 
 		map.on("mousemove", (e) => onCursorMove?.({ lat: e.lngLat.lat, lng: e.lngLat.lng }));
-		map.on("mouseout", () => onCursorMove?.(null));
+
+		const onMapContextMenu = (e: maplibregl.MapMouseEvent) => {
+			syncContextMenuCoords([e.point.x, e.point.y], e.lngLat);
+		};
+		map.on("contextmenu", onMapContextMenu);
 
 		return () => {
+			map.off("contextmenu", onMapContextMenu);
 			ro.disconnect();
 			map.remove();
 			mapRef.current = null;
 		};
-	}, [styleSpec, onCursorMove, onHoverCountry]);
+	}, [styleSpec, onCursorMove, onHoverCountry, syncContextMenuCoords]);
 
 	// Re-apply paint properties whenever the player's country changes so the
 	// owned country lights up in signal amber. Waits for the style to load
@@ -306,33 +354,6 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode, cities }:
 		}
 	}, [myCountryCode]);
 
-	const onContextMenu = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-		const map = mapRef.current;
-		const container = containerRef.current;
-		if (!map || !container) return;
-		const rect = container.getBoundingClientRect();
-		const point: [number, number] = [e.clientX - rect.left, e.clientY - rect.top];
-		const lngLat = map.unproject(point);
-		const features = map.queryRenderedFeatures(point, { layers: ["country-fill"] });
-		const props = features[0]?.properties ?? null;
-		setContextCoord({
-			lat: lngLat.lat,
-			lng: lngLat.lng,
-			iso3: (props?.ISO_A3 as string) ?? (props?.ADM0_A3 as string) ?? null,
-			name: (props?.NAME as string) ?? (props?.ADMIN as string) ?? null,
-		});
-	}, []);
-
-	const copyCoords = useCallback(() => {
-		if (!contextCoord) return;
-		void navigator.clipboard?.writeText(`${fmt(contextCoord.lat, 5)}, ${fmt(contextCoord.lng, 5)}`);
-	}, [contextCoord]);
-
-	const copyCountry = useCallback(() => {
-		if (!contextCoord?.iso3) return;
-		void navigator.clipboard?.writeText(contextCoord.iso3);
-	}, [contextCoord]);
-
 	const zoomIn = useCallback(() => mapRef.current?.zoomIn(), []);
 	const zoomOut = useCallback(() => mapRef.current?.zoomOut(), []);
 
@@ -347,7 +368,7 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode, cities }:
 			<ContextMenu>
 				<ContextMenuTrigger asChild>
 					<div
-						onContextMenu={onContextMenu}
+						onContextMenuCapture={onContextMenuCapture}
 						className="absolute inset-0"
 						style={{ position: "absolute", inset: 0 }}
 					>
@@ -358,26 +379,25 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode, cities }:
 						/>
 					</div>
 				</ContextMenuTrigger>
-				<ContextMenuContent className="font-mono text-xs">
+				<ContextMenuContent className="min-w-[14rem] font-mono text-xs">
 					{contextCoord && (
 						<ContextMenuLabel className="text-muted-foreground">
 							{contextCoord.name ? `${contextCoord.name} · ${contextCoord.iso3}` : "Open ocean"}
 						</ContextMenuLabel>
 					)}
 					<ContextMenuSeparator />
-					<ContextMenuItem onSelect={copyCoords} disabled={!contextCoord}>
-						Copy coordinates
+					<ContextMenuItem onSelect={copyLatLng} disabled={!contextCoord}>
+						<Copy className="size-4" />
+						Copy latitude and longitude
 						{contextCoord && (
-							<span className="ml-auto pl-3 text-muted-foreground">
+							<ContextMenuShortcut>
 								{fmt(contextCoord.lat, 2)}, {fmt(contextCoord.lng, 2)}
-							</span>
+							</ContextMenuShortcut>
 						)}
 					</ContextMenuItem>
 					<ContextMenuItem onSelect={copyCountry} disabled={!contextCoord?.iso3}>
 						Copy country code
-						{contextCoord?.iso3 && (
-							<span className="ml-auto pl-3 text-muted-foreground">{contextCoord.iso3}</span>
-						)}
+						{contextCoord?.iso3 && <ContextMenuShortcut>{contextCoord.iso3}</ContextMenuShortcut>}
 					</ContextMenuItem>
 				</ContextMenuContent>
 			</ContextMenu>

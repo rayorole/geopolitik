@@ -9,7 +9,8 @@
 		"./api": "./src/api-types.ts",
 		"./env": "./src/env.ts",
 		"./buildings": "./src/buildings-catalog.ts",
-		"./orders": "./src/order-payloads.ts"
+		"./orders": "./src/order-payloads.ts",
+		"./policy": "./src/nation-policy.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",

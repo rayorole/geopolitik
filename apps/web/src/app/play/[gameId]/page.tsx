@@ -1,6 +1,7 @@
 "use client";
 
 import { type CursorCoord, GameMap, type HoveredCountry } from "@/components/game-map";
+import { PolicySheet } from "@/components/policy-sheet";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { gamesApi, queryKeys, worldApi } from "@/lib/api-client";
@@ -253,14 +254,11 @@ export default function PlayPage() {
 
 				{/* Action buttons */}
 				<section className="grid grid-cols-2 gap-px border-b border-border bg-border">
-					<Button
-						variant="ghost"
-						className="h-12 rounded-none bg-card font-mono text-[11px] uppercase tracking-[0.18em] hover:bg-accent"
-						disabled
-					>
-						Research
-						<span className="ml-1 text-[9px] text-muted-foreground">P4</span>
-					</Button>
+					<PolicySheet
+						gameId={gameId}
+						snapshot={snapshot.data}
+						disabled={!snapshot.data?.mePlayerId}
+					/>
 					<Button
 						variant="ghost"
 						className="h-12 rounded-none bg-card font-mono text-[11px] uppercase tracking-[0.18em] hover:bg-accent"

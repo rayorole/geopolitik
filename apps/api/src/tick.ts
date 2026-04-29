@@ -16,10 +16,17 @@
 
 import { newId, schema } from "@geopolitik/db";
 import { type WsOutboundTick, gameTopic, playerTopic } from "@geopolitik/shared";
+import { submitOrderBodyV3 } from "@geopolitik/shared/orders";
+import { SLIDER_NAMES } from "@geopolitik/shared/policy";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "./db";
 import { logger } from "./logger";
-import { type ResourceDelta, applyProductionToCity } from "./tick-formula";
+import {
+	type ResourceDelta,
+	type SliderState,
+	applyProductionToCity,
+	applySliderEconomics,
+} from "./tick-formula";
 
 type Publish = (topic: string, msg: string) => number;
 
@@ -99,20 +106,82 @@ export async function runTick(gameId: string): Promise<void> {
 			retryCount: 0,
 		});
 
-		// Drain queued orders FIFO. Phase 2 only has `noop`; revalidation always
-		// passes. Phase 3+ adds cost/range/ownership rechecks here per CLAUDE.md.
+		// Drain queued orders FIFO. Per CLAUDE.md the tick must revalidate every
+		// order — never trust the client's belief about what's legal. Set-slider
+		// orders are coalesced: only the latest value per (player, slider) wins.
 		const queued = await tx
 			.select()
 			.from(schema.order)
 			.where(and(eq(schema.order.gameId, gameId), eq(schema.order.status, "queued")));
 		queued.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
+		const sliderUpdates = new Map<string, Partial<SliderState>>();
+
 		for (const o of queued) {
+			if (o.kind === "set_slider") {
+				const parsed = submitOrderBodyV3.safeParse({ kind: o.kind, payload: o.payload });
+				if (parsed.success && parsed.data.kind === "set_slider") {
+					const { slider, value } = parsed.data.payload;
+					const existing = sliderUpdates.get(o.playerId) ?? {};
+					existing[slider] = value;
+					sliderUpdates.set(o.playerId, existing);
+					await tx
+						.update(schema.order)
+						.set({ status: "resolved", resolvedTick: tickNumber, resolvedAt: new Date() })
+						.where(eq(schema.order.id, o.id));
+				} else {
+					await tx
+						.update(schema.order)
+						.set({ status: "cancelled", resolvedTick: tickNumber, resolvedAt: new Date() })
+						.where(eq(schema.order.id, o.id));
+				}
+				resolvedOrders.push({ id: o.id, playerId: o.playerId });
+				continue;
+			}
+
+			// noop and other kinds: resolve as-is (build/cancel_build land in 3d).
 			await tx
 				.update(schema.order)
 				.set({ status: "resolved", resolvedTick: tickNumber, resolvedAt: new Date() })
 				.where(eq(schema.order.id, o.id));
 			resolvedOrders.push({ id: o.id, playerId: o.playerId });
+		}
+
+		// Apply slider updates BEFORE production so this tick reflects them.
+		for (const [playerId, patch] of sliderUpdates) {
+			const set: Record<string, number | Date> = { updatedAt: new Date() };
+			for (const name of SLIDER_NAMES) {
+				if (patch[name] !== undefined) set[name] = patch[name] as number;
+			}
+			await tx
+				.update(schema.nationState)
+				.set(set)
+				.where(
+					and(eq(schema.nationState.gameId, gameId), eq(schema.nationState.playerId, playerId)),
+				);
+		}
+
+		// Load every nation's current slider state for this game. Used to drive
+		// healthcare-scaled pop growth on each owned city and slider-economics
+		// on each nation.
+		const nations = await tx
+			.select({
+				playerId: schema.nationState.playerId,
+				taxation: schema.nationState.taxation,
+				welfare: schema.nationState.welfare,
+				healthcare: schema.nationState.healthcare,
+				propaganda: schema.nationState.propaganda,
+			})
+			.from(schema.nationState)
+			.where(eq(schema.nationState.gameId, gameId));
+		const slidersByPlayer = new Map<string, SliderState>();
+		for (const n of nations) {
+			slidersByPlayer.set(n.playerId, {
+				taxation: n.taxation,
+				welfare: n.welfare,
+				healthcare: n.healthcare,
+				propaganda: n.propaganda,
+			});
 		}
 
 		// Pull every city + state row in one join, accumulate by player, write
@@ -136,12 +205,14 @@ export async function runTick(gameId: string): Promise<void> {
 		const byPlayer = new Map<string, Acc>();
 
 		for (const r of rows) {
+			const sliders = r.ownerPlayerId ? slidersByPlayer.get(r.ownerPlayerId) : undefined;
 			const result = applyProductionToCity({
 				population: r.population,
 				moneyMult: r.moneyMult,
 				steelMult: r.steelMult,
 				electronicsMult: r.electronicsMult,
 				oilMult: r.oilMult,
+				healthcare: sliders?.healthcare,
 			});
 
 			await tx
@@ -163,6 +234,22 @@ export async function runTick(gameId: string): Promise<void> {
 			acc.electronics += result.resourceDelta.electronics;
 			acc.population += result.newPopulation;
 			byPlayer.set(r.ownerPlayerId, acc);
+		}
+
+		// Slider economics fold into the same per-player accumulator. Money can
+		// go negative — nation_state.money is bigint with no non-negative check.
+		for (const [playerId, sliders] of slidersByPlayer) {
+			const acc = byPlayer.get(playerId) ?? {
+				money: 0,
+				oil: 0,
+				steel: 0,
+				electronics: 0,
+				population: 0,
+			};
+			const sliderDelta = applySliderEconomics(sliders, acc.population);
+			acc.money += sliderDelta.money;
+			acc.electronics += sliderDelta.electronics;
+			byPlayer.set(playerId, acc);
 		}
 
 		for (const [playerId, acc] of byPlayer) {
@@ -226,6 +313,11 @@ async function broadcastTick(
 			steel: schema.nationState.steel,
 			electronics: schema.nationState.electronics,
 			population: schema.nationState.population,
+			rp: schema.nationState.rp,
+			taxation: schema.nationState.taxation,
+			welfare: schema.nationState.welfare,
+			healthcare: schema.nationState.healthcare,
+			propaganda: schema.nationState.propaganda,
 		})
 		.from(schema.nationState)
 		.where(eq(schema.nationState.gameId, gameId));
