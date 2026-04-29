@@ -13,9 +13,11 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 ---
 
 ## Phase 0 — Foundations
+
 **Goal:** Empty repo → a developer can clone, `docker compose up`, `bun run dev`, log in with Discord, and round-trip a typed WS message.
 
 **In scope**
+
 - Turborepo + Bun + Biome + TS strict + path aliases
 - `apps/web` (Next 15, Tailwind v4, shadcn baseline, dark theme)
 - `apps/api` (Hono + native Bun WS + Better Auth + Discord OAuth + email/password)
@@ -29,13 +31,16 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 (Observability — Sentry, PostHog — deferred. Wired in later phases when there are real signals to capture; full dashboards land in Phase 11.)
 
 **Out of scope**
+
 - Any game logic, map, ticks, payments
 
 **Done criteria**
+
 - Clean machine clone → docker compose → bun install → bun run dev → log in with Discord → send WS ping → typed pong, all under 10 minutes.
 - Green CI on a PR.
 
 **Grilling topics**
+
 - Discord OAuth scopes (profile only, or also email / guilds)?
 - Better Auth: session lifetime, cookie domain, refresh strategy?
 - Branch protection / required CI checks?
@@ -46,9 +51,11 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 ---
 
 ## Phase 1 — World & Map
+
 **Goal:** Generate a playable world from OSM data and render it interactively in the browser.
 
 **In scope**
+
 - `apps/worldgen` Bun CLI: ingest Geofabrik OSM extracts → PostGIS precompute → SQL+JSON output to `packages/world-data`
 - City filter (population threshold per country, target 10–30 cities each, ~140 countries)
 - Province rollup via `admin_level=4` ST_Contains
@@ -60,15 +67,18 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 - Fog of war scaffold (per-player visibility table; no active reveal yet)
 
 **Out of scope**
+
 - Any tick simulation, units, buildings, orders
 - Active fog reveal mechanics (Phase 7)
 
 **Done criteria**
+
 - `bun run worldgen --preset=earth-small` produces ≤500 cities across ~30 countries.
 - World renders in browser at 60fps with all cities drawn.
 - Clicking a city shows owner, population, region.
 
 **Grilling topics**
+
 - Which preset worlds at MVP — earth-small only, or also a regional preset (Europe, NATO-vs-SCO, Pacific)?
 - Population thresholds — global rule, or a per-country tuning JSON?
 - City visual: simple dot, NATO counter, custom Gemini sprite?
@@ -80,9 +90,11 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 ---
 
 ## Phase 2 — Tick Engine & Economy
+
 **Goal:** Worlds advance every 30 seconds. Players see resource numbers tick. WS deltas drive the UI. No combat yet.
 
 **In scope**
+
 - Tick worker process in `apps/api` (single Bun worker; Redis-backed schedule)
 - Per-game Postgres lock; transactional tick; idempotent on retry
 - Order queue table + REST endpoint to enqueue
@@ -94,15 +106,18 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 - Sentry transactions wrapping each tick
 
 **Out of scope**
+
 - Buildings affecting production (Phase 3)
 - Combat resolution (Phase 5)
 
 **Done criteria**
+
 - Player joins a game and sees city resource numbers grow every 30s without polling.
 - Disconnect/reconnect during a tick → no desync; snapshot endpoint recovers state.
 - Tick processing < 2s for a 500-city game (Sentry budget enforced).
 
 **Grilling topics**
+
 - Resource list — exact resources at MVP. (CoN's exact set is a legal risk; pick a different combination.)
 - Production formula: city size × terrain × infrastructure, or simpler?
 - Dev tick cadence — keep 30s or run faster (e.g., 5s) for testability?
@@ -113,39 +128,45 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 ---
 
 ## Phase 3 — National Management
+
 **Goal:** Players manage their nation: build in cities, set sliders. Bad management causes unrest and city defection (pillar #3).
 
-**In scope**
-- Building catalog data (`packages/shared/data/buildings.json`) with cost/effect schema
-- Building placement on map (one-tap on owned city, queued with build time)
-- Per-city build queue UI
-- National sliders: welfare, healthcare, propaganda, taxation (and any others decided in grilling)
-- Unrest model: city-level unrest score driven by sliders + events
-- City defection rules (high unrest + neighboring foreign influence → flip)
-- Research-lab building entry in the catalog (RP-producing — feeds Phase 4; no tree wired up yet)
-- UI: nation overview, city detail panel
+Sliced into 5 PRs (vertical, each end-to-end): **3a foundation** (#12), **3b sliders** (#13), **3c city map + detail panel** (#14), **3d buildings** (#15), **3e unrest + defection** (#16).
+
+**In scope (locked from grilling)**
+
+- Building catalog (`packages/shared/data/buildings.json`) — **8 entries**, JSON-driven so balance numbers are PR-tunable. Yields are **flat per-nation per-tick** (location-agnostic). Categories: economy, military, research.
+  - Economy: `steel_industry`, `oil_refinery`, `chip_factory` (240 ticks / 2h build time).
+  - Research: `research_lab` (720 ticks / 6h, produces RP — feeds Phase 4; no tree wired up yet).
+  - Military prep (Phase 5 recruitment gates, **inert in Phase 3**): `recruitment_office` (360t/3h), `army_base` (480t/4h), `air_force_base` (720t/6h), `port` (480t/4h).
+- Building placement: tap on owned city → city detail panel → inline builder. **One concurrent build slot per city; no per-city building cap; no duplicate building types per city** (unique constraint).
+- Cancellation: anytime, **50% resource refund**, build progress lost.
+- Build queue display in city detail panel (current in-progress + completed).
+- National sliders: **taxation, welfare, healthcare, propaganda** — range 0–100, applied via order queue (`set_slider`), tick reads latest value per slider before production. Constants in `packages/shared/data/nation-policy.json`.
+- Unrest model: per-city integer 0–100. Linear, capped. Per-tick delta = sliders + events (Phase 8 hook) + foreign influence (Phase 7 hook). **Public score with per-slider attribution; hidden constants.**
+- Two-stage defection: at unrest=100 city enters **revolt** (production halts); after **1440 consecutive ticks (12h)** at 100 it **defects to neutral** (re-conquerable in Phase 5). No flip-to-foreign yet — adjacency precompute is deferred and Phase 7 espionage retrofits influence-driven targets.
+- UI: City sprites rendered on the map (MapLibre `CircleLayer`, no PixiJS). Click city (map or sidebar) → focuses + opens city detail panel which **replaces** the cities-list section in the right sidebar. Foreign cities show read-only basic info. National sliders live in a **Policy** sheet opened from the sidebar.
 
 **Out of scope**
-- Buildings producing military units (Phase 5)
-- Espionage influencing unrest (Phase 7)
-- Research tree itself, slot system, unlock effects (Phase 4)
+
+- Buildings producing military units (Phase 5).
+- Espionage / foreign-influence pressure on unrest (Phase 7).
+- Research tree itself, slot system, unlock effects (Phase 4).
+- City adjacency / flip-to-foreign defection target (deferred — neutral for now).
 
 **Done criteria**
-- Player builds a building → production changes next tick.
-- Cranking taxation to max raises unrest visibly within ~5 ticks; sustained max defects a city.
 
-**Grilling topics**
-- Building catalog: how many at MVP? Categories? Per-city limit?
-- Slider list — exact set, range (0–100, 0–10), update frequency (per-tick or instant)?
-- Unrest formula — public design or hidden? Capped, exponential, threshold-based?
-- Defection: instant flip, gradual influence, or revolt event?
+- Player builds a building → completes after its build time → next tick the nation's resource pool gains the building's flat yield.
+- Cranking taxation to max raises city unrest visibly each tick; sustained at 100 unrest enters revolt; sustained for 1440 more ticks defects the city to neutral.
 
 ---
 
 ## Phase 4 — Research & Tech Progression
+
 **Goal:** War Thunder–style branching research across seven service-arm trees. Players choose what to specialize in. Bundled nodes give the player a recruitment-time choice between variants of the same family. Pillar #2 (block variants are meaningfully distinct units, not flat tier upgrades) is enforced mechanically here, plus the unlock chain for pillar #1 (deployable satellite scopes).
 
 **In scope**
+
 - Seven parallel research trees:
   - **Ground troops** (infantry, AT teams, light foot units)
   - **Mechanized** (APCs, IFVs, tanks, MBTs)
@@ -163,19 +184,22 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 - Tech unlock effects: gate which units a player can recruit in Phase 5
 
 **Out of scope**
+
 - Research-driven AI behavior (Phase 8)
 - Espionage stealing tech (Phase 7)
 - Premium-currency slot expansion (Phase 9)
 - Tree balance pass (continuous; first pass at end of Phase 5 alpha)
 
 **Done criteria**
+
 - Player slots two research projects in two different trees; both progress simultaneously per tick.
 - Completing a node unlocks recruitment of that node's unit family in Phase 5.
 - Bundled-node selection: at recruit time, picking Block 50 vs Block 70 of the same unit family produces mechanically distinct units (different cost, different combat profile).
 
 **Grilling topics**
+
 - Tree depth: how many tiers per tree (3, 4, 5)? More depth = more meaningful in-match progression; less depth = quicker time-to-meaningful-units in a 4-week match.
-- Bundled vs sibling nodes: which families bundle (cheap auth, low choice) vs which split into siblings (more research, deeper play)? Pillar #2 wants variants to *feel like decisions*; bundling is the cheaper authoring path.
+- Bundled vs sibling nodes: which families bundle (cheap auth, low choice) vs which split into siblings (more research, deeper play)? Pillar #2 wants variants to _feel like decisions_; bundling is the cheaper authoring path.
 - Research-slot expansion: capped at 2 forever, or earnable to 3+ via national policy / building / premium currency?
 - Cross-tree dependencies: does Air tier-3 require any Mechanized tier-2 prerequisite, or are trees fully independent?
 - RP cost curve: linear, exponential, or capped per tier?
@@ -190,9 +214,11 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 ---
 
 ## Phase 5 — Military & Combat (private alpha goal)
+
 **Goal:** First unit. First move. First multi-tick battle. Private alpha with 5 friends. Pillars #2, #4, #8.
 
 **In scope**
+
 - Unit catalog with **tech block variants** (e.g., F-16 Block 50/52/70 distinct stats), gated by the Phase 4 research tree
 - Unit recruitment from cities (cost, time, slot limit)
 - Move orders: pathfinding on city graph, **slowest-unit-in-stack convoy speed**
@@ -203,15 +229,18 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 - Private alpha onboarding (invite-link game creation)
 
 **Out of scope**
+
 - AI nation strategy (Phase 8)
 - Espionage during combat (Phase 7)
 
 **Done criteria**
+
 - 5 friends in a private game. Each has units, moves them, engages.
 - A battle plays out across multiple ticks with both players watching health change live.
 - Slowest-unit convoy works: mixing a tank with a slow truck slows the stack.
 
 **Grilling topics**
+
 - Unit catalog: how many MVP unit types per branch (land/air/sea)?
 - Block variants per unit — 1, 2, 3, more? (Bundled in one Phase 4 node, or split into siblings — see Phase 4 grilling.)
 - Combat math: deterministic with modifiers, or stochastic? Visible to player or hidden roll?
@@ -223,9 +252,11 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 ---
 
 ## Phase 6 — Diplomacy & Trade
+
 **Goal:** Alliances, treaties, inter-player trade. Treaties have teeth (pillar #7).
 
 **In scope**
+
 - Alliance formation, max 6 members
 - Alliance chat (or stub here, finished in Phase 10)
 - Treaty types: non-aggression, defensive pact, trade pact, peace
@@ -235,14 +266,17 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 - Treaty enforcement: breaking a defensive pact triggers automatic mechanical cost (reputation, diplomatic penalty)
 
 **Out of scope**
+
 - Trade route interdiction (Phase 7)
 - Espionage-driven diplomacy (Phase 7)
 
 **Done criteria**
+
 - Two players sign a defensive pact. A third attacks one; the partner is auto-flagged into the war (or chooses the penalty).
 - A trade deal flows resources tick-by-tick until expiration.
 
 **Grilling topics**
+
 - How rigidly does a defensive pact bind — auto-join war, or option to break with a reputation hit?
 - Trade pricing: free-form negotiation, anchored to a market index, both?
 - Alliance leadership — single leader, council, voting?
@@ -253,9 +287,11 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 ---
 
 ## Phase 7 — Espionage & Active Fog of War
+
 **Goal:** Spies, satellite scopes, information warfare. Pillars #1 and #7 (enforcement).
 
 **In scope**
+
 - Spy unit type, recruitment, infiltration mechanics
 - Espionage actions: steal tech, sow unrest, sabotage building, expose enemy units
 - Counter-intelligence (passive defense + active counter-spy actions)
@@ -264,14 +300,17 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 - Information leak mechanics (compromised intel surfaces in feeds)
 
 **Out of scope**
+
 - AI nations using espionage (Phase 8)
 
 **Done criteria**
+
 - Spy infiltrates an enemy capital, steals a tech.
 - Satellite scope deployed → fog lifts over a region for the duration.
 - A trade route is interdicted → recipient stops receiving resources within 1 tick.
 
 **Grilling topics**
+
 - Spy slots: baseline count, premium-currency expansion?
 - Visible vs hidden espionage — does the victim know they were hit?
 - Satellite scope: cost, range, duration, cooldown?
@@ -282,9 +321,11 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 ---
 
 ## Phase 8 — AI Nations & Dynamic Events
+
 **Goal:** Empty game slots filled with believable AI. Matches stay interesting in week 3+ via dynamic events.
 
 **In scope**
+
 - AI nation behavior: production, recruitment, basic tactical movement, diplomatic responses
 - AI difficulty tiers
 - Random event system (data-driven JSON catalog): coup attempts, natural disasters, economic shocks, refugee crises
@@ -293,14 +334,17 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 - Match lifecycle: start, ongoing, end, post-mortem screen
 
 **Out of scope**
+
 - Tournament / season metagame (Phase 13)
 
 **Done criteria**
+
 - AI plays a complete 1-week match against a human, using diplomacy and combat without obvious idiocy.
 - Stagnant match (no territorial change in 24 ticks) triggers an event that creates new dynamics.
 - A match ends cleanly with a victor and a post-mortem.
 
 **Grilling topics**
+
 - AI scope: full nation strategy, or military only? Does AI accept treaties?
 - Event catalog size at MVP — 10, 50, 200 events?
 - Match length cap — soft (player vote), hard (calendar limit), or victory-only?
@@ -311,9 +355,11 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 ---
 
 ## Phase 9 — Monetization
+
 **Goal:** Stripe integration, premium currency, subscription, battle pass — without breaking F2P balance and without tripping the Belgian Gaming Commission.
 
 **In scope**
+
 - Stripe Checkout + webhooks in `apps/api`
 - Premium currency model in Postgres (transactional, audit-logged)
 - Spend sinks: instant build / research completion, reinforcement packs, extra build queues, extra spy slots, extra research slots
@@ -324,14 +370,17 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 - Stripe Tax for EU VAT
 
 **Out of scope (forbidden)**
+
 - Lootboxes, gambling-adjacent mechanics, under-18 spend without parental flags
 
 **Done criteria**
+
 - A user can buy gold, spend it on instant build, get refunded — all audited in DB.
 - Subscriber gets reduced research times verified end-to-end.
 - VAT applied via Stripe Tax for an EU customer.
 
 **Grilling topics**
+
 - Premium currency conversion rate (€1 = how much gold)?
 - Bundle structure (small/medium/large/whale)?
 - Subscription perks list — finalized before integration
@@ -343,9 +392,11 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 ---
 
 ## Phase 10 — Onboarding, Retention & Social
+
 **Goal:** New players survive the first session. Existing players have reasons to log back in.
 
 **In scope**
+
 - Tutorial flow (interactive, in-game, skippable)
 - Notification system: email + Discord webhook ping for events of interest (under attack, treaty proposal, research complete)
 - Leaderboards (per match, all-time)
@@ -355,14 +406,17 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 - Friend list
 
 **Out of scope**
+
 - Public matchmaking (Phase 12)
 
 **Done criteria**
+
 - New player completes tutorial in <15 minutes.
 - Notifications fire for a defined event set; per-channel opt-out.
 - Alliance can hold a multi-day async discussion in the forum.
 
 **Grilling topics**
+
 - Tutorial style: scripted scenario, sandbox with hints, or reactive coaching?
 - Notification channels at MVP — email + Discord, or also push, or in-game only?
 - Notification volume — opinionated default, or full per-event toggle?
@@ -372,9 +426,11 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 ---
 
 ## Phase 11 — Anti-Cheat Hardening & Closed Beta
+
 **Goal:** Run a 50-player closed beta with no exploits making the news.
 
 **In scope**
+
 - Adversarial test pass: replay tick logs against modified clients
 - WS message fuzzer in CI
 - Rate-limit calibration under real load
@@ -384,10 +440,12 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 - Sentry + PostHog dashboards built out
 
 **Done criteria**
+
 - Closed beta runs ≥2 weeks with 50 invited players, no critical exploits, server costs <€100 for the period.
 - Crash-free session rate ≥99.5%.
 
 **Grilling topics**
+
 - Cheating tolerance: first warning, instant ban, manual review?
 - Bug bounty: paid or recognition-only?
 - Beta feedback loop: Discord server, in-game form, both?
@@ -397,9 +455,11 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 ---
 
 ## Phase 12 — Open Beta & Launch
+
 **Goal:** Public, scalable, multiple concurrent games. Ship it.
 
 **In scope**
+
 - Public matchmaking lobby
 - Multiple concurrent games (sharded tick workers, game router)
 - World presets (small / medium / large, regional, themed)
@@ -410,10 +470,12 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 - Status page (custom or Better Stack)
 
 **Done criteria**
+
 - 200+ concurrent players across 3+ games, p95 tick processing within SLO.
 - Landing page converts visitor → signup → first tick at ≥X% (target set in grilling).
 
 **Grilling topics**
+
 - Cross-game play: can a player be in multiple matches at once?
 - World shard size — 100, 150, 200 players?
 - Pricing display — local currency via Stripe estimate, or USD/EUR primary?
@@ -423,9 +485,11 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 ---
 
 ## Phase 13 — Live-Ops & Content Cadence
+
 **Goal:** GeoPolitik becomes a service. New content every 4–8 weeks. Retention curves stay healthy.
 
 **In scope (continuous)**
+
 - Seasonal balance patches
 - New unit types, new tech, new buildings
 - Themed events (alt-history seasons, regional flare-ups)
@@ -434,10 +498,12 @@ Phases are sequential by default. Adjacent phases (notably 6↔7 and 8↔9) can 
 - Quarterly post-mortems on cheat trends, balance complaints, churn drivers
 
 **Done criteria (rolling)**
+
 - Patch cadence ≥1 major release / 6 weeks.
 - Day-30 retention ≥X% (target set at Phase 12 closeout).
 
 **Grilling topics (recurring)**
+
 - Per-season: theme, mechanic twist, balance changes?
 - Per-quarter: which retention metric is the worst, and how do we attack it?
 - Player-authored content — moderation strategy?

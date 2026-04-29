@@ -1,6 +1,6 @@
 {
-  "id": "3977a7ca-4f3f-4109-b221-b78de3aa1015",
-  "prevId": "f2fc8280-b07e-45e2-96c7-fdecaee3038e",
+  "id": "7605b57a-043c-4ce2-b3c8-0f44e4c8c933",
+  "prevId": "3977a7ca-4f3f-4109-b221-b78de3aa1015",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -478,6 +478,19 @@
           "primaryKey": false,
           "notNull": true
         },
+        "unrest": {
+          "name": "unrest",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "in_revolt_since_tick": {
+          "name": "in_revolt_since_tick",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp with time zone",
@@ -661,6 +674,41 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
+        },
+        "rp": {
+          "name": "rp",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "taxation": {
+          "name": "taxation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 30
+        },
+        "welfare": {
+          "name": "welfare",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 50
+        },
+        "healthcare": {
+          "name": "healthcare",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 50
+        },
+        "propaganda": {
+          "name": "propaganda",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 30
         },
         "updated_at": {
           "name": "updated_at",
@@ -1009,6 +1057,145 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.city_building": {
+      "name": "city_building",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "game_id": {
+          "name": "game_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "city_id": {
+          "name": "city_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "city_building_state",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'in_progress'"
+        },
+        "started_at_tick": {
+          "name": "started_at_tick",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "completes_at_tick": {
+          "name": "completes_at_tick",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "built_by_player_id": {
+          "name": "built_by_player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "city_building_active_unique": {
+          "name": "city_building_active_unique",
+          "columns": [
+            {
+              "expression": "game_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "city_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"city_building\".\"state\" IN ('in_progress', 'complete')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "city_building_game_id_game_id_fk": {
+          "name": "city_building_game_id_game_id_fk",
+          "tableFrom": "city_building",
+          "tableTo": "game",
+          "columnsFrom": [
+            "game_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "city_building_city_id_city_id_fk": {
+          "name": "city_building_city_id_city_id_fk",
+          "tableFrom": "city_building",
+          "tableTo": "city",
+          "columnsFrom": [
+            "city_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "city_building_built_by_player_id_player_id_fk": {
+          "name": "city_building_built_by_player_id_player_id_fk",
+          "tableFrom": "city_building",
+          "tableTo": "player",
+          "columnsFrom": [
+            "built_by_player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -1025,7 +1212,10 @@
       "name": "order_kind",
       "schema": "public",
       "values": [
-        "noop"
+        "noop",
+        "build",
+        "cancel_build",
+        "set_slider"
       ]
     },
     "public.order_status": {
@@ -1037,6 +1227,15 @@
         "resolved",
         "cancelled",
         "expired"
+      ]
+    },
+    "public.city_building_state": {
+      "name": "city_building_state",
+      "schema": "public",
+      "values": [
+        "in_progress",
+        "complete",
+        "cancelled"
       ]
     }
   },

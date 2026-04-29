@@ -7,7 +7,9 @@
 		".": "./src/index.ts",
 		"./ws": "./src/ws-messages.ts",
 		"./api": "./src/api-types.ts",
-		"./env": "./src/env.ts"
+		"./env": "./src/env.ts",
+		"./buildings": "./src/buildings-catalog.ts",
+		"./orders": "./src/order-payloads.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",

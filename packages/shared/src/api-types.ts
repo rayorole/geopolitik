@@ -45,7 +45,7 @@ export const nationInSnapshot = z.object({
 
 export const myOrder = z.object({
 	id: z.string().uuid(),
-	kind: z.enum(["noop"]),
+	kind: z.enum(["noop", "build", "cancel_build", "set_slider"]),
 	payload: z.unknown(),
 	status: z.enum(["queued", "processing", "resolved", "cancelled", "expired"]),
 	createdAt: z.string(),
