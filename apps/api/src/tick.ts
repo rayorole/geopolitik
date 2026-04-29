@@ -19,6 +19,7 @@ import { type WsOutboundTick, gameTopic, playerTopic } from "@geopolitik/shared"
 import { submitOrderBodyV3 } from "@geopolitik/shared/orders";
 import { SLIDER_NAMES } from "@geopolitik/shared/policy";
 import { and, eq, sql } from "drizzle-orm";
+import { type MaturationOutcome, matureBuildingsAndComputeYields } from "./buildings";
 import { db } from "./db";
 import { logger } from "./logger";
 import {
@@ -86,6 +87,7 @@ export async function runTick(gameId: string): Promise<void> {
 	const startMs = Date.now();
 	let tickNumber = 0;
 	const resolvedOrders: ResolvedOrder[] = [];
+	let maturationOutcome: MaturationOutcome = { matured: [], yieldByPlayer: new Map() };
 
 	await db.transaction(async (tx) => {
 		const [g] = await tx
@@ -160,6 +162,12 @@ export async function runTick(gameId: string): Promise<void> {
 					and(eq(schema.nationState.gameId, gameId), eq(schema.nationState.playerId, playerId)),
 				);
 		}
+
+		// Mature any in_progress buildings whose completes_at_tick has elapsed
+		// AND whose host city is still owned by the builder. Defected cities
+		// forfeit pending builds. Yields aggregated across complete buildings
+		// run THIS tick (a building completing on tick N produces on tick N).
+		maturationOutcome = await matureBuildingsAndComputeYields(tx, gameId, tickNumber);
 
 		// Load every nation's current slider state for this game. Used to drive
 		// healthcare-scaled pop growth on each owned city and slider-economics
@@ -252,7 +260,27 @@ export async function runTick(gameId: string): Promise<void> {
 			byPlayer.set(playerId, acc);
 		}
 
+		// Building yields fold in next. RP accumulates separately on nation_state.rp;
+		// the existing accumulator only tracks the four base resources.
+		const rpByPlayer = new Map<string, number>();
+		for (const [playerId, y] of maturationOutcome.yieldByPlayer) {
+			const acc = byPlayer.get(playerId) ?? {
+				money: 0,
+				oil: 0,
+				steel: 0,
+				electronics: 0,
+				population: 0,
+			};
+			acc.money += y.money;
+			acc.oil += y.oil;
+			acc.steel += y.steel;
+			acc.electronics += y.electronics;
+			byPlayer.set(playerId, acc);
+			if (y.rp > 0) rpByPlayer.set(playerId, (rpByPlayer.get(playerId) ?? 0) + y.rp);
+		}
+
 		for (const [playerId, acc] of byPlayer) {
+			const rpDelta = rpByPlayer.get(playerId) ?? 0;
 			await tx
 				.update(schema.nationState)
 				.set({
@@ -260,6 +288,7 @@ export async function runTick(gameId: string): Promise<void> {
 					oil: sql`${schema.nationState.oil} + ${acc.oil}`,
 					steel: sql`${schema.nationState.steel} + ${acc.steel}`,
 					electronics: sql`${schema.nationState.electronics} + ${acc.electronics}`,
+					rp: sql`${schema.nationState.rp} + ${rpDelta}`,
 					population: acc.population,
 					updatedAt: new Date(),
 				})
@@ -286,13 +315,14 @@ export async function runTick(gameId: string): Promise<void> {
 	});
 
 	if (tickNumber === 0) return; // game wasn't active or didn't exist
-	await broadcastTick(gameId, tickNumber, resolvedOrders);
+	await broadcastTick(gameId, tickNumber, resolvedOrders, maturationOutcome);
 }
 
 async function broadcastTick(
 	gameId: string,
 	tickNumber: number,
 	resolvedOrders: ResolvedOrder[],
+	maturation: MaturationOutcome,
 ): Promise<void> {
 	if (!publish) return;
 
@@ -335,6 +365,19 @@ async function broadcastTick(
 		publish(
 			playerTopic(o.playerId),
 			JSON.stringify({ type: "order-resolved", orderId: o.id, tick: tickNumber }),
+		);
+	}
+
+	for (const m of maturation.matured) {
+		publish(
+			playerTopic(m.playerId),
+			JSON.stringify({
+				type: "building_complete",
+				cityId: m.cityId,
+				buildingId: m.id,
+				buildingType: m.type,
+				tick: tickNumber,
+			}),
 		);
 	}
 }

@@ -9,6 +9,7 @@
 
 import type { GameSnapshot } from "@geopolitik/shared/api";
 import type { QueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { queryKeys } from "./api-client";
 import { publicEnv } from "./env";
 
@@ -65,11 +66,20 @@ export function getGameSocket(gameId: string, qc: QueryClient): WebSocket {
 			qc.setQueryData<GameSnapshot>(queryKeys.gameSnapshot(gameId), (prev) =>
 				applyTick(prev, msg as unknown as WsTickPayload),
 			);
+			// Tick payload only carries city + nation state; building state advances
+			// in lockstep on the server but isn't (yet) inlined into the tick. Refetch
+			// the snapshot so cityBuildings reflects matured rows. Cheap because the
+			// snapshot is small in Phase 3.
+			qc.invalidateQueries({ queryKey: queryKeys.gameSnapshot(gameId) });
 		}
 		// ack / nack / order-resolved trigger a snapshot refetch — at Phase 2
 		// orders are noop and don't change state, so a refetch is harmless and
 		// keeps the order list in sync without bespoke merge logic.
 		if (msg.type === "ack" || msg.type === "nack" || msg.type === "order-resolved") {
+			qc.invalidateQueries({ queryKey: queryKeys.gameSnapshot(gameId) });
+		}
+		if (msg.type === "building_complete") {
+			toast.success(`${(msg.buildingType as string) ?? "Building"} completed`);
 			qc.invalidateQueries({ queryKey: queryKeys.gameSnapshot(gameId) });
 		}
 		if (msg.type === "desync") {

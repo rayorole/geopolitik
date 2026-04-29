@@ -197,7 +197,10 @@ export type CityRender = {
 	name: string;
 	population: number;
 	ownerColor: string | null;
+	ownerName: string | null;
 	isMine: boolean;
+	isCapital: boolean;
+	countryCode: string;
 };
 
 export type GameMapProps = {
@@ -259,6 +262,8 @@ export function GameMap({
 	const hoverIdRef = useRef<number | null>(null);
 	const hoverCityIdRef = useRef<string | null>(null);
 	const clickAudioRef = useRef<HTMLAudioElement | null>(null);
+	const myCountryCodeRef = useRef<string | null | undefined>(myCountryCode);
+	myCountryCodeRef.current = myCountryCode;
 	const [contextCoord, setContextCoord] = useState<{
 		lat: number;
 		lng: number;
@@ -266,6 +271,11 @@ export function GameMap({
 		name: string | null;
 	} | null>(null);
 	const [popover, setPopover] = useState<CountryPopoverState | null>(null);
+	const [cityPopover, setCityPopover] = useState<{
+		city: CityRender;
+		x: number;
+		y: number;
+	} | null>(null);
 
 	// Index city stats by ISO_A3 / ADM0_A3 once per cities-prop update so the
 	// popover doesn't iterate the whole list on every click.
@@ -280,6 +290,14 @@ export function GameMap({
 		}
 		return map;
 	}, [cities]);
+
+	// Lookup index for the city popover: O(1) by id from the click handler.
+	const cityById = useMemo(() => {
+		const map = new Map<string, CityRender>();
+		if (!citiesRender) return map;
+		for (const c of citiesRender) map.set(c.id, c);
+		return map;
+	}, [citiesRender]);
 
 	const styleSpec = useMemo(() => STYLE, []);
 
@@ -393,6 +411,20 @@ export function GameMap({
 		});
 
 		map.on("click", "country-fill", (e) => {
+			// City sprite click wins over the country underneath. The city
+			// handler ran first and tagged the original event; bail here.
+			if ((e.originalEvent as MouseEvent & { _cityHandled?: boolean })._cityHandled) {
+				return;
+			}
+			const f = e.features?.[0];
+			const props = f?.properties ?? {};
+			const iso3 = (props.ISO_A3 as string) ?? (props.ADM0_A3 as string) ?? "";
+			// Suppress the country popover on the player's own country —
+			// they pick cities through the sidebar / sprites, not the country.
+			if (iso3 && myCountryCodeRef.current && iso3 === myCountryCodeRef.current) {
+				setPopover(null);
+				return;
+			}
 			const audio = clickAudioRef.current;
 			if (audio) {
 				audio.currentTime = 0;
@@ -402,9 +434,6 @@ export function GameMap({
 					// but fail quietly on edge-case races.
 				});
 			}
-			const f = e.features?.[0];
-			const props = f?.properties ?? {};
-			const iso3 = (props.ISO_A3 as string) ?? (props.ADM0_A3 as string) ?? "";
 			if (!iso3) {
 				setPopover(null);
 				return;
@@ -418,6 +447,7 @@ export function GameMap({
 				x: e.point.x,
 				y: e.point.y,
 			});
+			setCityPopover(null);
 		});
 
 		map.on("mousemove", (e) => onCursorMove?.({ lat: e.lngLat.lat, lng: e.lngLat.lng }));
@@ -469,22 +499,30 @@ export function GameMap({
 	// callback identities change so closures see fresh refs.
 	useEffect(() => {
 		const map = mapRef.current;
-		if (!map || !onCityClick) return;
+		if (!map) return;
 		const onClick = (
 			e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] },
 		) => {
 			const f = e.features?.[0];
 			const id = (f?.properties?.cityId as string | undefined) ?? null;
 			if (id) {
-				onCityClick(id);
-				e.preventDefault?.();
+				onCityClick?.(id);
+				const city = cityById.get(id);
+				if (city) {
+					setCityPopover({ city, x: e.point.x, y: e.point.y });
+					setPopover(null);
+				}
+				// MapLibre fires layer-specific click handlers in the order they
+				// were registered, not by render order. Mark the event so the
+				// country-fill handler below can detect + bail.
+				(e.originalEvent as MouseEvent & { _cityHandled?: boolean })._cityHandled = true;
 			}
 		};
 		map.on("click", "city-circle", onClick);
 		return () => {
 			map.off("click", "city-circle", onClick);
 		};
-	}, [onCityClick]);
+	}, [onCityClick, cityById]);
 
 	useEffect(() => {
 		const map = mapRef.current;
@@ -682,6 +720,72 @@ export function GameMap({
 								</span>
 								<span className="truncate text-foreground">{popoverStats?.capital ?? "—"}</span>
 							</div>
+						</div>
+					</PopoverContent>
+				</Popover>
+			)}
+
+			{cityPopover && (
+				<Popover open onOpenChange={(o) => !o && setCityPopover(null)}>
+					<PopoverTrigger asChild>
+						<div
+							aria-hidden
+							style={{
+								position: "absolute",
+								left: cityPopover.x,
+								top: cityPopover.y,
+								width: 1,
+								height: 1,
+								pointerEvents: "none",
+							}}
+						/>
+					</PopoverTrigger>
+					<PopoverContent
+						side="top"
+						sideOffset={12}
+						align="center"
+						className="w-64 border border-border bg-card/95 p-3 backdrop-blur-sm"
+					>
+						<div className="flex items-baseline gap-2">
+							<span className="truncate font-display font-medium text-foreground text-sm">
+								{cityPopover.city.name}
+							</span>
+							{cityPopover.city.isCapital && (
+								<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
+									★ Capital
+								</span>
+							)}
+						</div>
+						<div className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+							{cityPopover.city.countryCode}
+						</div>
+						<div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-3 font-mono text-[11px]">
+							<div className="flex flex-col">
+								<span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+									Owner
+								</span>
+								<span className="flex items-baseline gap-1.5 truncate text-foreground">
+									{cityPopover.city.ownerColor && (
+										<span
+											aria-hidden
+											className="inline-block h-2 w-2"
+											style={{ backgroundColor: cityPopover.city.ownerColor }}
+										/>
+									)}
+									<span className="truncate">{cityPopover.city.ownerName ?? "Neutral"}</span>
+								</span>
+							</div>
+							<div className="flex flex-col">
+								<span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+									Population
+								</span>
+								<span className="text-foreground tabular-nums">
+									{cityPopover.city.population.toLocaleString()}
+								</span>
+							</div>
+						</div>
+						<div className="mt-2 font-mono text-[9px] tracking-[0.04em] text-muted-foreground">
+							Detail panel open in sidebar →
 						</div>
 					</PopoverContent>
 				</Popover>

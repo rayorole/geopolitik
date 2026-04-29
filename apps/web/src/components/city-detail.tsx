@@ -1,5 +1,6 @@
 "use client";
 
+import { CityBuildingsSection } from "@/components/city-buildings";
 import type { GameSnapshot, PlayerInGame, WorldDataset } from "@geopolitik/shared/api";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
@@ -30,11 +31,13 @@ function iso3ToIso2(iso3: string, countries: WorldDataset["countries"]): string 
 }
 
 export function CityDetail({
+	gameId,
 	cityId,
 	snapshot,
 	world,
 	onBack,
 }: {
+	gameId: string;
 	cityId: string;
 	snapshot: GameSnapshot;
 	world: WorldDataset;
@@ -99,14 +102,10 @@ export function CityDetail({
 				<dd className="text-right text-foreground">{def.countryCode}</dd>
 			</dl>
 
-			{/* Owned-city sections (placeholders; 3d/3e fill them) */}
+			{/* Owned-city sections (3e Unrest still placeholder) */}
 			{isMine && (
-				<div className="flex flex-col gap-3 px-3 py-3">
-					<PlaceholderCard
-						title="Buildings"
-						phaseTag="P3D"
-						hint="Building catalog + queue UI lands in #15."
-					/>
+				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3">
+					<CityBuildingsSection gameId={gameId} cityId={cityId} snapshot={snapshot} />
 					<PlaceholderCard
 						title="Unrest"
 						phaseTag="P3E"
