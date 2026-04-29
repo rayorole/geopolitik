@@ -24,8 +24,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
  * Pan + zoom across the world. Country polygons render from a static
  * Natural-Earth 110m GeoJSON served from /world-countries.geojson. Hover
  * highlights a country; right-click opens a shadcn context menu with the
- * clicked lat/lng. Cursor coordinates stream out via onCursorMove while the
- * pointer is over the map; leaving the map does not clear the last update.
+ * clicked lat/lng. Cursor coordinates and onHoverCountry stream while the
+ * pointer is over land; leaving a polygon or the map does not clear the last
+ * HUD values (map feature-state hover still clears for correct polygon paint).
  *
  * No tiles yet. Phase 1 (full) swaps in Protomaps .pmtiles on R2 and a
  * PixiJS overlay for unit sprites; this slim shell already supports both
@@ -45,6 +46,9 @@ const COLOR = {
 	signal500a18: "rgba(214, 139, 62, 0.22)", // hover fill
 	signal500a40: "rgba(214, 139, 62, 0.45)", // owned-country fill
 } as const;
+
+const CITY_NEUTRAL_COLOR = "#4a5666";
+const CITY_SELECTED_RING = "#ffe082";
 
 const NEVER_MATCH = "__NONE__";
 
@@ -83,6 +87,11 @@ const STYLE: maplibregl.StyleSpecification = {
 			type: "geojson",
 			data: "/world-countries.geojson",
 			generateId: true,
+		},
+		cities: {
+			type: "geojson",
+			data: { type: "FeatureCollection", features: [] },
+			promoteId: "cityId",
 		},
 	},
 	layers: [
@@ -130,17 +139,77 @@ const STYLE: maplibregl.StyleSpecification = {
 				],
 			},
 		},
+		{
+			id: "city-circle",
+			type: "circle",
+			source: "cities",
+			paint: {
+				// Radius interpolates with zoom AND with the city's pop bracket via
+				// a step expression on properties.population. Cheap on the GPU; no
+				// per-feature radius math up front.
+				"circle-radius": [
+					"interpolate",
+					["linear"],
+					["zoom"],
+					1.5,
+					["case", ["boolean", ["feature-state", "hover"], false], 4.5, 2],
+					4,
+					["case", ["boolean", ["feature-state", "hover"], false], 7, 4],
+					7,
+					["case", ["boolean", ["feature-state", "hover"], false], 10, 7],
+					10,
+					["case", ["boolean", ["feature-state", "hover"], false], 13, 10],
+				],
+				"circle-color": ["get", "ownerColor"],
+				"circle-stroke-width": [
+					"case",
+					["boolean", ["feature-state", "selected"], false],
+					2.5,
+					["==", ["get", "isMine"], 1],
+					1.4,
+					0.6,
+				],
+				"circle-stroke-color": [
+					"case",
+					["boolean", ["feature-state", "selected"], false],
+					CITY_SELECTED_RING,
+					["==", ["get", "isMine"], 1],
+					COLOR.signal500,
+					"#0a0e14",
+				],
+			},
+		},
 	],
 };
 
 export type CursorCoord = { lat: number; lng: number };
 export type HoveredCountry = { iso3: string; iso2: string | null; name: string };
+export type HoveredCity = { id: string; name: string };
+
+/*
+ * One row per playable city. Built in PlayPage from snapshot.cityState ⨯
+ * world.cities ⨯ players. Passed here pre-computed so GameMap stays dumb.
+ */
+export type CityRender = {
+	id: string;
+	lng: number;
+	lat: number;
+	name: string;
+	population: number;
+	ownerColor: string | null;
+	isMine: boolean;
+};
 
 export type GameMapProps = {
 	onCursorMove?: (coord: CursorCoord | null) => void;
 	onHoverCountry?: (country: HoveredCountry | null) => void;
+	onHoverCity?: (city: HoveredCity | null) => void;
+	onCityClick?: (cityId: string) => void;
 	myCountryCode?: string | null;
 	cities?: WorldDataset["cities"];
+	citiesRender?: CityRender[];
+	selectedCityId?: string | null;
+	onMapReady?: (api: { flyToCity: (cityId: string) => void }) => void;
 };
 
 type CountryPopoverState = {
@@ -155,10 +224,40 @@ function fmt(n: number, dp = 3): string {
 	return n.toLocaleString(undefined, { minimumFractionDigits: dp, maximumFractionDigits: dp });
 }
 
-export function GameMap({ onCursorMove, onHoverCountry, myCountryCode, cities }: GameMapProps) {
+function citiesToFeatureCollection(rows: CityRender[] | undefined): GeoJSON.FeatureCollection {
+	if (!rows) return { type: "FeatureCollection", features: [] };
+	return {
+		type: "FeatureCollection",
+		features: rows.map((c) => ({
+			type: "Feature",
+			id: c.id,
+			geometry: { type: "Point", coordinates: [c.lng, c.lat] },
+			properties: {
+				cityId: c.id,
+				name: c.name,
+				population: c.population,
+				ownerColor: c.ownerColor ?? CITY_NEUTRAL_COLOR,
+				isMine: c.isMine ? 1 : 0,
+			},
+		})),
+	};
+}
+
+export function GameMap({
+	onCursorMove,
+	onHoverCountry,
+	onHoverCity,
+	onCityClick,
+	myCountryCode,
+	cities,
+	citiesRender,
+	selectedCityId,
+	onMapReady,
+}: GameMapProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<MapInstance | null>(null);
 	const hoverIdRef = useRef<number | null>(null);
+	const hoverCityIdRef = useRef<string | null>(null);
 	const clickAudioRef = useRef<HTMLAudioElement | null>(null);
 	const [contextCoord, setContextCoord] = useState<{
 		lat: number;
@@ -291,7 +390,6 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode, cities }:
 				map.setFeatureState({ source: "countries", id: hoverIdRef.current }, { hover: false });
 				hoverIdRef.current = null;
 			}
-			onHoverCountry?.(null);
 		});
 
 		map.on("click", "country-fill", (e) => {
@@ -353,6 +451,107 @@ export function GameMap({ onCursorMove, onHoverCountry, myCountryCode, cities }:
 			map.once("load", apply);
 		}
 	}, [myCountryCode]);
+
+	// Push city geojson into the source whenever ownership / cities change.
+	useEffect(() => {
+		const map = mapRef.current;
+		if (!map) return;
+		const fc = citiesToFeatureCollection(citiesRender);
+		const apply = () => {
+			const src = map.getSource("cities") as maplibregl.GeoJSONSource | undefined;
+			src?.setData(fc);
+		};
+		if (map.isStyleLoaded()) apply();
+		else map.once("load", apply);
+	}, [citiesRender]);
+
+	// Wire one-time click/hover handlers for the city layer. Re-bind when the
+	// callback identities change so closures see fresh refs.
+	useEffect(() => {
+		const map = mapRef.current;
+		if (!map || !onCityClick) return;
+		const onClick = (
+			e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] },
+		) => {
+			const f = e.features?.[0];
+			const id = (f?.properties?.cityId as string | undefined) ?? null;
+			if (id) {
+				onCityClick(id);
+				e.preventDefault?.();
+			}
+		};
+		map.on("click", "city-circle", onClick);
+		return () => {
+			map.off("click", "city-circle", onClick);
+		};
+	}, [onCityClick]);
+
+	useEffect(() => {
+		const map = mapRef.current;
+		if (!map) return;
+		const onMove = (
+			e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] },
+		) => {
+			const f = e.features?.[0];
+			const id = (f?.properties?.cityId as string | undefined) ?? null;
+			if (hoverCityIdRef.current && hoverCityIdRef.current !== id) {
+				map.setFeatureState({ source: "cities", id: hoverCityIdRef.current }, { hover: false });
+			}
+			if (id && id !== hoverCityIdRef.current) {
+				map.setFeatureState({ source: "cities", id }, { hover: true });
+			}
+			hoverCityIdRef.current = id;
+			map.getCanvas().style.cursor = id ? "pointer" : "";
+			onHoverCity?.(id ? { id, name: (f?.properties?.name as string) ?? "" } : null);
+		};
+		const onLeave = () => {
+			if (hoverCityIdRef.current) {
+				map.setFeatureState({ source: "cities", id: hoverCityIdRef.current }, { hover: false });
+				hoverCityIdRef.current = null;
+			}
+			map.getCanvas().style.cursor = "";
+			onHoverCity?.(null);
+		};
+		map.on("mousemove", "city-circle", onMove);
+		map.on("mouseleave", "city-circle", onLeave);
+		return () => {
+			map.off("mousemove", "city-circle", onMove);
+			map.off("mouseleave", "city-circle", onLeave);
+		};
+	}, [onHoverCity]);
+
+	// Selected-city ring via feature-state. Track the previously-selected id
+	// in a ref so we can clear it without snapshotting external state.
+	const prevSelectedRef = useRef<string | null>(null);
+	useEffect(() => {
+		const map = mapRef.current;
+		if (!map) return;
+		const apply = () => {
+			if (prevSelectedRef.current && prevSelectedRef.current !== selectedCityId) {
+				map.setFeatureState({ source: "cities", id: prevSelectedRef.current }, { selected: false });
+			}
+			if (selectedCityId) {
+				map.setFeatureState({ source: "cities", id: selectedCityId }, { selected: true });
+			}
+			prevSelectedRef.current = selectedCityId ?? null;
+		};
+		if (map.isStyleLoaded()) apply();
+		else map.once("load", apply);
+	}, [selectedCityId]);
+
+	// Expose flyToCity so PlayPage can pan the map when the user clicks a
+	// city in the sidebar list. Looks up coords from the latest citiesRender.
+	useEffect(() => {
+		const map = mapRef.current;
+		if (!map || !onMapReady) return;
+		onMapReady({
+			flyToCity: (cityId: string) => {
+				const c = citiesRender?.find((row) => row.id === cityId);
+				if (!c) return;
+				map.flyTo({ center: [c.lng, c.lat], zoom: Math.max(map.getZoom(), 4.5), duration: 600 });
+			},
+		});
+	}, [citiesRender, onMapReady]);
 
 	const zoomIn = useCallback(() => mapRef.current?.zoomIn(), []);
 	const zoomOut = useCallback(() => mapRef.current?.zoomOut(), []);

@@ -64,4 +64,5 @@ export const queryKeys = {
 	gameSnapshot: (id: string) => ["games", "snapshot", id] as const,
 	worldCities: ["world", "cities"] as const,
 	wsStatus: (id: string) => ["games", id, "ws", "status"] as const,
+	selectedCity: (gameId: string) => ["games", gameId, "ui", "selectedCity"] as const,
 };
