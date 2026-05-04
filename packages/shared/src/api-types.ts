@@ -145,3 +145,50 @@ export const submitOrderResponse = z.object({
 });
 
 export type SubmitOrderResponse = z.infer<typeof submitOrderResponse>;
+
+// ── Your active matches ──────────────────────────────────────────────────────
+
+export const mineGameSummary = z.object({
+	gameId: z.string().uuid(),
+	code: z.string().length(8),
+	status: z.enum(["active", "quarantined", "ended"]),
+	tick: z.number().int().nonnegative(),
+	lastTickAt: z.string(),
+	country: z.object({
+		code: z.string().length(3),
+		name: z.string(),
+	}),
+	color: z.string(),
+	playerCount: z.number().int().nonnegative(),
+	topUnrestCity: z
+		.object({
+			id: z.string().uuid(),
+			name: z.string(),
+			unrest: z.number().int().min(0).max(100),
+			inRevolt: z.boolean(),
+		})
+		.nullable(),
+});
+
+export type MineGameSummary = z.infer<typeof mineGameSummary>;
+
+// ── Account profile ──────────────────────────────────────────────────────────
+
+export const updateProfileBody = z.object({
+	name: z
+		.string()
+		.trim()
+		.min(1, "Name must not be empty")
+		.max(32, "Name must be 32 characters or fewer"),
+});
+
+export type UpdateProfileBody = z.infer<typeof updateProfileBody>;
+
+export const updateProfileResponse = z.object({
+	user: z.object({
+		id: z.string().uuid(),
+		name: z.string(),
+	}),
+});
+
+export type UpdateProfileResponse = z.infer<typeof updateProfileResponse>;
