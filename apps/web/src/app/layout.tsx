@@ -4,6 +4,7 @@ import { siteSettings } from "@/lib/site-settings";
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import type { ReactNode } from "react";
+import "flag-icons/css/flag-icons.min.css";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
