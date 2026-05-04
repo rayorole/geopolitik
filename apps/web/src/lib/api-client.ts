@@ -8,7 +8,10 @@ import type {
 	GameSnapshot,
 	GameSummary,
 	JoinGameBody,
+	MineGameSummary,
 	SubmitOrderResponse,
+	UpdateProfileBody,
+	UpdateProfileResponse,
 	WorldDataset,
 } from "@geopolitik/shared/api";
 import type { BuildingsCatalog } from "@geopolitik/shared/buildings";
@@ -35,6 +38,8 @@ export const gamesApi = {
 
 	browse: (): Promise<GameSummary[]> => api<GameSummary[]>("/games"),
 
+	mine: (): Promise<MineGameSummary[]> => api<MineGameSummary[]>("/games/mine"),
+
 	byCode: (code: string): Promise<GameSummary> =>
 		api<GameSummary>(`/games/by-code/${encodeURIComponent(code.toUpperCase())}`),
 
@@ -59,8 +64,17 @@ export const worldApi = {
 	buildings: (): Promise<BuildingsCatalog> => api<BuildingsCatalog>("/world/buildings"),
 };
 
+export const accountApi = {
+	updateProfile: (body: UpdateProfileBody): Promise<UpdateProfileResponse> =>
+		api<UpdateProfileResponse>("/account/profile", {
+			method: "PATCH",
+			body: JSON.stringify(body),
+		}),
+};
+
 export const queryKeys = {
 	gamesBrowse: ["games", "browse"] as const,
+	gamesMine: ["games", "mine"] as const,
 	gameSummary: (id: string) => ["games", "summary", id] as const,
 	gameByCode: (code: string) => ["games", "by-code", code] as const,
 	gameSnapshot: (id: string) => ["games", "snapshot", id] as const,

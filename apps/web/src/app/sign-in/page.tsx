@@ -25,13 +25,13 @@ export default function SignInPage() {
 			toast.error(result.error.message ?? "Sign in failed.");
 			return;
 		}
-		router.push("/account");
+		router.push("/games");
 	}
 
 	async function onDiscord() {
 		await signIn.social({
 			provider: "discord",
-			callbackURL: `${window.location.origin}/account`,
+			callbackURL: `${window.location.origin}/games`,
 			errorCallbackURL: `${window.location.origin}/sign-in`,
 		});
 	}

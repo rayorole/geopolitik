@@ -1,24 +1,17 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DangerZoneSection } from "@/components/account/danger-zone-section";
+import { IdentitySection } from "@/components/account/identity-section";
+import { ProfileSection } from "@/components/account/profile-section";
+import { AppNav } from "@/components/app-nav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { signOut, useSession } from "@/lib/auth-client";
-import { useMutation } from "@tanstack/react-query";
+import { useSession } from "@/lib/auth-client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 export default function AccountPage() {
-	const router = useRouter();
 	const { data, isPending } = useSession();
-
-	const signOutMutation = useMutation({
-		mutationFn: async () => {
-			await signOut();
-		},
-		onSuccess: () => router.replace("/"),
-	});
 
 	if (isPending) {
 		return (
@@ -46,38 +39,24 @@ export default function AccountPage() {
 		);
 	}
 
+	const user = data.user as typeof data.user & { createdAt?: string | Date };
+
 	return (
-		<main className="flex min-h-screen items-center justify-center p-6">
-			<Card className="w-full max-w-md">
-				<CardHeader>
-					<CardTitle>Account</CardTitle>
-					<CardDescription>Signed in. Phase 0 says hi.</CardDescription>
-				</CardHeader>
-				<CardContent className="flex flex-col gap-4">
-					<div className="flex items-center gap-3">
-						<Avatar>
-							{data.user.image ? <AvatarImage src={data.user.image} alt={data.user.name} /> : null}
-							<AvatarFallback>{data.user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-						</Avatar>
-						<div>
-							<div className="font-medium">{data.user.name}</div>
-							<div className="text-sm text-muted-foreground">{data.user.email}</div>
-						</div>
-					</div>
-					<div className="flex gap-2">
-						<Button asChild>
-							<Link href="/games">Browse games</Link>
-						</Button>
-						<Button
-							onClick={() => signOutMutation.mutate()}
-							variant="secondary"
-							disabled={signOutMutation.isPending}
-						>
-							{signOutMutation.isPending ? "Signing out…" : "Sign out"}
-						</Button>
-					</div>
-				</CardContent>
-			</Card>
-		</main>
+		<>
+			<AppNav />
+			<main className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
+				<header>
+					<p className="font-mono text-[11px] text-primary uppercase tracking-[0.18em]">Identity</p>
+					<h1 className="mt-1 font-display text-3xl tracking-tight">Account</h1>
+					<p className="mt-1 text-muted-foreground text-sm">
+						Manage your display name, review your sign-in details, or request deletion.
+					</p>
+				</header>
+
+				<ProfileSection user={user} />
+				<IdentitySection user={user} />
+				<DangerZoneSection />
+			</main>
+		</>
 	);
 }
