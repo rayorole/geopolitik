@@ -1,7 +1,9 @@
 "use client";
 
+import { DangerZoneSection } from "@/components/account/danger-zone-section";
+import { IdentitySection } from "@/components/account/identity-section";
+import { ProfileSection } from "@/components/account/profile-section";
 import { AppNav } from "@/components/app-nav";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,32 +39,23 @@ export default function AccountPage() {
 		);
 	}
 
+	const user = data.user as typeof data.user & { createdAt?: string | Date };
+
 	return (
 		<>
 			<AppNav />
 			<main className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
 				<header>
-					<h1 className="font-display text-3xl tracking-tight">Account</h1>
-					<p className="text-sm text-muted-foreground">
-						Profile and identity. Polished view lands in PR5.
+					<p className="font-mono text-[11px] text-primary uppercase tracking-[0.18em]">Identity</p>
+					<h1 className="mt-1 font-display text-3xl tracking-tight">Account</h1>
+					<p className="mt-1 text-muted-foreground text-sm">
+						Manage your display name, review your sign-in details, or request deletion.
 					</p>
 				</header>
 
-				<Card>
-					<CardHeader>
-						<CardTitle className="font-mono text-sm uppercase tracking-wider">Profile</CardTitle>
-					</CardHeader>
-					<CardContent className="flex items-center gap-3">
-						<Avatar>
-							{data.user.image ? <AvatarImage src={data.user.image} alt={data.user.name} /> : null}
-							<AvatarFallback>{data.user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-						</Avatar>
-						<div>
-							<div className="font-medium">{data.user.name}</div>
-							<div className="text-sm text-muted-foreground">{data.user.email}</div>
-						</div>
-					</CardContent>
-				</Card>
+				<ProfileSection user={user} />
+				<IdentitySection user={user} />
+				<DangerZoneSection />
 			</main>
 		</>
 	);

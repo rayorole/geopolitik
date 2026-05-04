@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { createAccountRouter } from "./account";
 import { auth } from "./auth";
 import { env } from "./env";
 import { createGamesRouter } from "./games";
@@ -39,6 +40,7 @@ export function createApp() {
 
 	app.route("/", createGamesRouter());
 	app.route("/", createWorldRouter());
+	app.route("/", createAccountRouter());
 
 	return app;
 }
