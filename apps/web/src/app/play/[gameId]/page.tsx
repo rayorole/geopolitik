@@ -18,7 +18,6 @@ import { type WsStatus, closeGameSocket, getGameSocket } from "@/lib/game-socket
 import { type SelectedCity, writeSelectedCity } from "@/lib/selected-city";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ZoomIn, ZoomOut } from "lucide-react";
-import { motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -27,11 +26,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 const RES_DIVISOR = 100;
 
 // Right-panel morph between the nation overview and a wider city detail.
-// Width animates inline with the layout so the map's flex-1 area shrinks/grows
-// in step — the cursor + tick HUD anchored to the map edges stays clear of the
-// panel, and MapLibre's ResizeObserver keeps the canvas in sync.
+// The HUD layer's `right` and the panel's `width` animate inline with the
+// layout so the map's flex-1 area shrinks/grows in step — the cursor + tick
+// HUD anchored to the map edges stays clear of the panel, and MapLibre's
+// ResizeObserver keeps the canvas in sync.
 const PANEL_WIDTH = { overview: 320, detail: 480 } as const;
-const PANEL_TRANSITION = { duration: 0.32, ease: [0.32, 0.72, 0, 1] as const };
+const PANEL_TRANSITION_CSS = "0.32s cubic-bezier(0.32, 0.72, 0, 1)";
 
 function fmtRes(n: number): string {
 	return (n / RES_DIVISOR).toLocaleString(undefined, { maximumFractionDigits: 1 });
@@ -246,11 +246,12 @@ export default function PlayPage() {
 			{/* HUD layer — covers the visible map area, ending where the right
 				 panel begins. Animating `right` keeps the cursor card and centered
 				 widgets aligned with the live map width. */}
-			<motion.div
+			<div
 				className="pointer-events-none absolute inset-y-0 left-0"
-				initial={false}
-				animate={{ right: selectedCityId ? PANEL_WIDTH.detail : PANEL_WIDTH.overview }}
-				transition={PANEL_TRANSITION}
+				style={{
+					right: selectedCityId ? PANEL_WIDTH.detail : PANEL_WIDTH.overview,
+					transition: `right ${PANEL_TRANSITION_CSS}`,
+				}}
 			>
 				<div className="pointer-events-auto absolute top-3 left-3 flex items-center gap-2 border border-border bg-card/95 px-3 py-2 backdrop-blur-sm">
 					<Button asChild variant="ghost" size="sm" className="h-7 px-2">
@@ -360,14 +361,15 @@ export default function PlayPage() {
 						</span>
 					</div>
 				</div>
-			</motion.div>
+			</div>
 
 			{/* ─── Right panel — morphs between nation overview and city detail ── */}
-			<motion.aside
+			<aside
 				className="absolute top-0 right-0 flex h-full flex-col overflow-hidden border-l border-border bg-card"
-				initial={false}
-				animate={{ width: selectedCityId ? PANEL_WIDTH.detail : PANEL_WIDTH.overview }}
-				transition={PANEL_TRANSITION}
+				style={{
+					width: selectedCityId ? PANEL_WIDTH.detail : PANEL_WIDTH.overview,
+					transition: `width ${PANEL_TRANSITION_CSS}`,
+				}}
 			>
 				{selectedCityId && snapshot.data && world.data ? (
 					<div className="flex min-h-0 flex-1 flex-col">
@@ -480,7 +482,7 @@ export default function PlayPage() {
 						</section>
 					</div>
 				)}
-			</motion.aside>
+			</aside>
 		</div>
 	);
 }
