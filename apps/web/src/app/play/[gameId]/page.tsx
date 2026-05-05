@@ -10,18 +10,28 @@ import {
 } from "@/components/game-map";
 import { PolicyPanel } from "@/components/policy-panel";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { gamesApi, queryKeys, worldApi } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
 import { type WsStatus, closeGameSocket, getGameSocket } from "@/lib/game-socket";
 import { type SelectedCity, writeSelectedCity } from "@/lib/selected-city";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ZoomIn, ZoomOut } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const RES_DIVISOR = 100;
+
+// Right-panel morph between the nation overview and a wider city detail.
+// The HUD layer's `right` and the panel's `width` animate inline with the
+// layout so the map's flex-1 area shrinks/grows in step — the cursor + tick
+// HUD anchored to the map edges stays clear of the panel, and MapLibre's
+// ResizeObserver keeps the canvas in sync.
+const PANEL_WIDTH = { overview: 320, detail: 480 } as const;
+const PANEL_TRANSITION_CSS = "0.32s cubic-bezier(0.32, 0.72, 0, 1)";
 
 function fmtRes(n: number): string {
 	return (n / RES_DIVISOR).toLocaleString(undefined, { maximumFractionDigits: 1 });
@@ -42,6 +52,8 @@ export default function PlayPage() {
 	const [hover, setHover] = useState<HoveredCountry | null>(null);
 	const [hoverCity, setHoverCity] = useState<HoveredCity | null>(null);
 	const flyToCityRef = useRef<((cityId: string) => void) | null>(null);
+	const zoomInRef = useRef<(() => void) | null>(null);
+	const zoomOutRef = useRef<(() => void) | null>(null);
 
 	const snapshot = useQuery({
 		queryKey: queryKeys.gameSnapshot(gameId),
@@ -103,32 +115,29 @@ export default function PlayPage() {
 		[snapshot.data],
 	);
 
-	// Pre-compute the per-city render rows once per snapshot/world change. Lookup
-	// owner color + display name via Map<playerId, ...>, mark mine for stroke
-	// accent and pass capital + country through for the city popover.
+	// Every world city renders — cities without a city_state row (no player has
+	// joined that country) fall back to basePopulation and show as neutral. The
+	// map layer hides neutrals at world zoom so the overview stays readable.
 	const citiesRender = useMemo<CityRender[]>(() => {
 		if (!snapshot.data || !world.data) return [];
 		const playerById = new Map(snapshot.data.players.map((p) => [p.id, p]));
 		const popByCity = new Map(snapshot.data.cityState.map((cs) => [cs.cityId, cs]));
-		return world.data.cities
-			.map((c) => {
-				const cs = popByCity.get(c.id);
-				if (!cs) return null;
-				const owner = cs.ownerPlayerId ? playerById.get(cs.ownerPlayerId) : undefined;
-				return {
-					id: c.id,
-					lng: c.lng,
-					lat: c.lat,
-					name: c.name,
-					population: cs.population,
-					ownerColor: owner?.color ?? null,
-					ownerName: owner?.displayName ?? null,
-					isMine: !!cs.ownerPlayerId && cs.ownerPlayerId === snapshot.data?.mePlayerId,
-					isCapital: c.isCapital,
-					countryCode: c.countryCode,
-				} satisfies CityRender;
-			})
-			.filter((row): row is CityRender => row !== null);
+		return world.data.cities.map((c) => {
+			const cs = popByCity.get(c.id);
+			const owner = cs?.ownerPlayerId ? playerById.get(cs.ownerPlayerId) : undefined;
+			return {
+				id: c.id,
+				lng: c.lng,
+				lat: c.lat,
+				name: c.name,
+				population: cs?.population ?? c.basePopulation,
+				ownerColor: owner?.color ?? null,
+				ownerName: owner?.displayName ?? null,
+				isMine: !!cs?.ownerPlayerId && cs.ownerPlayerId === snapshot.data?.mePlayerId,
+				isCapital: c.isCapital,
+				countryCode: c.countryCode,
+			} satisfies CityRender;
+		});
 	}, [snapshot.data, world.data]);
 
 	const { data: selectedCityId = null } = useQuery<SelectedCity>({
@@ -160,9 +169,14 @@ export default function PlayPage() {
 		[selectCity],
 	);
 
-	const onMapReady = useCallback((api: { flyToCity: (cityId: string) => void }) => {
-		flyToCityRef.current = api.flyToCity;
-	}, []);
+	const onMapReady = useCallback(
+		(api: { flyToCity: (cityId: string) => void; zoomIn: () => void; zoomOut: () => void }) => {
+			flyToCityRef.current = api.flyToCity;
+			zoomInRef.current = api.zoomIn;
+			zoomOutRef.current = api.zoomOut;
+		},
+		[],
+	);
 
 	const onCursorMove = useCallback((c: CursorCoord | null) => setCursor(c), []);
 	const onHoverCountry = useCallback((c: HoveredCountry | null) => setHover(c), []);
@@ -209,9 +223,13 @@ export default function PlayPage() {
 	}
 
 	return (
-		<div className="flex h-screen overflow-hidden bg-background text-foreground">
-			{/* ─── Map area ─────────────────────────────────────────────────────── */}
-			<div className="relative flex-1">
+		<div className="relative h-screen overflow-hidden bg-background text-foreground">
+			{/* ─── Map area — pinned to viewport so MapLibre's canvas never resizes
+				 during the panel morph (resizing the canvas mid-animation showed
+				 black frames across the whole screen). The right panel overlays
+				 the map and the HUD layer shifts via right-offset animation, so
+				 nothing is ever covered or shoved out of place. ─────────────── */}
+			<div className="absolute inset-0">
 				<GameMap
 					onCursorMove={onCursorMove}
 					onHoverCountry={onHoverCountry}
@@ -223,9 +241,18 @@ export default function PlayPage() {
 					selectedCityId={selectedCityId}
 					onMapReady={onMapReady}
 				/>
+			</div>
 
-				{/* Top HUD — each panel anchored absolutely so cursor-readout
-					 width changes don't shove the tick counter around. */}
+			{/* HUD layer — covers the visible map area, ending where the right
+				 panel begins. Animating `right` keeps the cursor card and centered
+				 widgets aligned with the live map width. */}
+			<div
+				className="pointer-events-none absolute inset-y-0 left-0"
+				style={{
+					right: selectedCityId ? PANEL_WIDTH.detail : PANEL_WIDTH.overview,
+					transition: `right ${PANEL_TRANSITION_CSS}`,
+				}}
+			>
 				<div className="pointer-events-auto absolute top-3 left-3 flex items-center gap-2 border border-border bg-card/95 px-3 py-2 backdrop-blur-sm">
 					<Button asChild variant="ghost" size="sm" className="h-7 px-2">
 						<Link href="/games">← Menu</Link>
@@ -291,8 +318,35 @@ export default function PlayPage() {
 					)}
 				</div>
 
-				{/* Bottom-left WS status pill */}
-				<div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2">
+				{/* Bottom-right zoom controls — sit inside the HUD layer so the
+					 animated `right` offset keeps them clear of the panel. */}
+				<ButtonGroup
+					orientation="vertical"
+					className="pointer-events-auto absolute right-3 bottom-3 backdrop-blur-sm"
+					aria-label="Map zoom controls"
+				>
+					<Button
+						variant="outline"
+						size="icon"
+						onClick={() => zoomInRef.current?.()}
+						aria-label="Zoom in"
+						className="border-border bg-card/95 hover:bg-accent"
+					>
+						<ZoomIn />
+					</Button>
+					<Button
+						variant="outline"
+						size="icon"
+						onClick={() => zoomOutRef.current?.()}
+						aria-label="Zoom out"
+						className="border-border bg-card/95 hover:bg-accent"
+					>
+						<ZoomOut />
+					</Button>
+				</ButtonGroup>
+
+				{/* Bottom-center WS status pill */}
+				<div className="absolute bottom-3 left-1/2 -translate-x-1/2">
 					<div className="pointer-events-auto flex items-center gap-2 border border-border bg-card/95 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] backdrop-blur-sm">
 						<span
 							className={
@@ -309,115 +363,125 @@ export default function PlayPage() {
 				</div>
 			</div>
 
-			{/* ─── Right sidebar ────────────────────────────────────────────────── */}
-			<aside className="flex w-80 flex-col border-l border-border bg-card">
-				{/* Resource bar */}
-				<section className="grid grid-cols-2 border-b border-border">
-					{(
-						[
-							["MONEY", myNation?.money ?? 0, false],
-							["OIL", myNation?.oil ?? 0, false],
-							["STEEL", myNation?.steel ?? 0, false],
-							["ELECTRONICS", myNation?.electronics ?? 0, false],
-							["POPULATION", myNation?.population ?? 0, true],
-						] as const
-					).map(([label, val, isPop]) => (
-						<div
-							key={label}
-							className="flex flex-col gap-1 border-b border-r border-border px-3 py-2 last:border-r-0 even:border-r-0"
-						>
-							<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-								{label}
-							</span>
-							<span className="font-mono text-base leading-none text-foreground">
-								{isPop ? Number(val).toLocaleString() : fmtRes(Number(val))}
-							</span>
-						</div>
-					))}
-				</section>
-
-				{/* National policy sliders */}
-				<PolicyPanel
-					gameId={gameId}
-					snapshot={snapshot.data}
-					disabled={!snapshot.data?.mePlayerId}
-				/>
-
-				{/* Stats */}
-				<section className="border-b border-border px-3 py-2">
-					<div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-						Nation
-					</div>
-					<div className="mt-1 flex items-baseline justify-between font-mono text-xs">
-						<span className="text-muted-foreground">Cities owned</span>
-						<span className="text-foreground">{myCities.length}</span>
-					</div>
-					<div className="flex items-baseline justify-between font-mono text-xs">
-						<span className="text-muted-foreground">Players in game</span>
-						<span className="text-foreground">{snapshot.data?.players.length ?? 0}</span>
-					</div>
-					<div className="flex items-baseline justify-between font-mono text-xs">
-						<span className="text-muted-foreground">Pending orders</span>
-						<span className="text-foreground">{snapshot.data?.myOrders.length ?? 0}</span>
-					</div>
-				</section>
-
-				{/* Cities list / city detail — selection swaps modes */}
+			{/* ─── Right panel — morphs between nation overview and city detail ── */}
+			<aside
+				className="absolute top-0 right-0 flex h-full flex-col overflow-hidden border-l border-border bg-card"
+				style={{
+					width: selectedCityId ? PANEL_WIDTH.detail : PANEL_WIDTH.overview,
+					transition: `width ${PANEL_TRANSITION_CSS}`,
+				}}
+			>
 				{selectedCityId && snapshot.data && world.data ? (
-					<CityDetail
-						gameId={gameId}
-						cityId={selectedCityId}
-						snapshot={snapshot.data}
-						world={world.data}
-						onBack={() => selectCity(null)}
-					/>
+					<div className="flex min-h-0 flex-1 flex-col">
+						<CityDetail
+							gameId={gameId}
+							cityId={selectedCityId}
+							snapshot={snapshot.data}
+							world={world.data}
+							onBack={() => selectCity(null)}
+						/>
+					</div>
 				) : (
-					<section className="flex min-h-0 flex-1 flex-col">
-						<div className="flex items-baseline justify-between border-b border-border px-3 py-2">
-							<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-								Cities · {myCities.length}
-							</span>
-						</div>
-						<ul className="flex-1 overflow-y-auto">
-							{myCities.length === 0 && (
-								<li className="px-3 py-3 font-mono text-xs text-muted-foreground">
-									No owned cities.
-								</li>
-							)}
-							{myCities.map(({ state, def }) => (
-								<li key={state.cityId}>
-									<CityRowMini
-										name={def.name}
-										population={state.population}
-										isCapital={def.isCapital}
-										isSelected={selectedCityId === state.cityId}
-										onClick={() => onCityClickFromList(state.cityId)}
-									/>
-								</li>
+					<div className="flex min-h-0 flex-1 flex-col">
+						{/* Resource bar */}
+						<section className="grid grid-cols-2 border-b border-border">
+							{(
+								[
+									["MONEY", myNation?.money ?? 0, false],
+									["OIL", myNation?.oil ?? 0, false],
+									["STEEL", myNation?.steel ?? 0, false],
+									["ELECTRONICS", myNation?.electronics ?? 0, false],
+									["POPULATION", myNation?.population ?? 0, true],
+								] as const
+							).map(([label, val, isPop]) => (
+								<div
+									key={label}
+									className="flex flex-col gap-1 border-b border-r border-border px-3 py-2 last:border-r-0 even:border-r-0"
+								>
+									<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+										{label}
+									</span>
+									<span className="font-mono text-base leading-none text-foreground">
+										{isPop ? Number(val).toLocaleString() : fmtRes(Number(val))}
+									</span>
+								</div>
 							))}
-						</ul>
-					</section>
-				)}
+						</section>
 
-				{/* Footer actions */}
-				<section className="grid grid-cols-2 gap-px border-t border-border bg-border">
-					<Button
-						variant="ghost"
-						className="h-10 rounded-none bg-card font-mono text-[11px] uppercase tracking-[0.18em] hover:bg-accent"
-						onClick={() => submitNoop.mutate()}
-						disabled={submitNoop.isPending}
-					>
-						{submitNoop.isPending ? "Sending…" : "Test order"}
-					</Button>
-					<Button
-						variant="ghost"
-						className="h-10 rounded-none bg-card font-mono text-[11px] uppercase tracking-[0.18em] text-destructive hover:bg-destructive/10"
-						onClick={() => leave.mutate()}
-						disabled={leave.isPending}
-					>
-						{leave.isPending ? "Leaving…" : "Leave game"}
-					</Button>
-				</section>
+						{/* National policy sliders */}
+						<PolicyPanel
+							gameId={gameId}
+							snapshot={snapshot.data}
+							disabled={!snapshot.data?.mePlayerId}
+						/>
+
+						{/* Stats */}
+						<section className="border-b border-border px-3 py-2">
+							<div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+								Nation
+							</div>
+							<div className="mt-1 flex items-baseline justify-between font-mono text-xs">
+								<span className="text-muted-foreground">Cities owned</span>
+								<span className="text-foreground">{myCities.length}</span>
+							</div>
+							<div className="flex items-baseline justify-between font-mono text-xs">
+								<span className="text-muted-foreground">Players in game</span>
+								<span className="text-foreground">{snapshot.data?.players.length ?? 0}</span>
+							</div>
+							<div className="flex items-baseline justify-between font-mono text-xs">
+								<span className="text-muted-foreground">Pending orders</span>
+								<span className="text-foreground">{snapshot.data?.myOrders.length ?? 0}</span>
+							</div>
+						</section>
+
+						{/* Cities list */}
+						<section className="flex min-h-0 flex-1 flex-col">
+							<div className="flex items-baseline justify-between border-b border-border px-3 py-2">
+								<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+									Cities · {myCities.length}
+								</span>
+							</div>
+							<ul className="flex-1 overflow-y-auto">
+								{myCities.length === 0 && (
+									<li className="px-3 py-3 font-mono text-xs text-muted-foreground">
+										No owned cities.
+									</li>
+								)}
+								{myCities.map(({ state, def }) => (
+									<li key={state.cityId}>
+										<CityRowMini
+											name={def.name}
+											population={state.population}
+											isCapital={def.isCapital}
+											isSelected={selectedCityId === state.cityId}
+											onClick={() => onCityClickFromList(state.cityId)}
+										/>
+									</li>
+								))}
+							</ul>
+						</section>
+
+						{/* Footer actions */}
+						<section className="grid grid-cols-2 gap-px border-t border-border bg-border">
+							<Button
+								variant="ghost"
+								className="h-10 rounded-none bg-card font-mono text-[11px] uppercase tracking-[0.18em] hover:bg-accent"
+								onClick={() => submitNoop.mutate()}
+								disabled={submitNoop.isPending}
+							>
+								{submitNoop.isPending ? "Sending…" : "Test order"}
+							</Button>
+							<Button
+								variant="ghost"
+								className="h-10 rounded-none bg-card font-mono text-[11px] uppercase tracking-[0.18em] text-destructive hover:bg-destructive/10"
+								onClick={() => leave.mutate()}
+								disabled={leave.isPending}
+							>
+								{leave.isPending ? "Leaving…" : "Leave game"}
+							</Button>
+						</section>
+					</div>
+				)}
 			</aside>
 		</div>
 	);

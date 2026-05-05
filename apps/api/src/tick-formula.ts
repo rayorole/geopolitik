@@ -11,10 +11,10 @@ const UNREST_MAX = 100;
 const UNREST_REVOLT_THRESHOLD = 100;
 export const DEFECTION_TICKS_AT_REVOLT = 1440; // 12 real-world hours at 30s ticks
 
-const RES_SCALE = 100; // resources stored as integer × 100
-const POP_GROWTH_NUMER = 5;
-const POP_GROWTH_DENOM = 10_000; // 0.05% per tick at healthcare = ref (50)
-const HEALTHCARE_GROWTH_REF = NATION_POLICY.economic.healthcareGrowthRefSlider;
+// Internal storage convention: bigints in nation_state hold display-value × RES_SCALE.
+// Display formulas (cityProduction, slider economics) get multiplied by this at the
+// boundary. RP is the only resource that doesn't carry a display scale.
+export const RES_SCALE = 100;
 
 export type CityProductionInput = {
 	population: number;
@@ -40,14 +40,18 @@ export type SliderState = {
 };
 
 /*
- * Phase 3b expanded: pop growth scales with healthcare/REF. With healthcare
- * at the reference (50) the rate matches the original 0.05%/tick; halving
- * healthcare halves growth, doubling doubles it.
+ * Pop growth scales with healthcare/REF. With healthcare at the reference
+ * (default 50) the rate matches policy.populationGrowth.ratePerTickNumerator /
+ * ratePerTickDenominator; halving healthcare halves growth, doubling doubles it.
  */
-export function growCityPopulation(pop: number, healthcare = HEALTHCARE_GROWTH_REF): number {
+export function growCityPopulation(
+	pop: number,
+	healthcare = NATION_POLICY.populationGrowth.healthcareRefSlider,
+): number {
 	if (pop <= 0) return 0;
-	const numer = POP_GROWTH_NUMER * Math.max(0, healthcare);
-	const denom = POP_GROWTH_DENOM * HEALTHCARE_GROWTH_REF;
+	const g = NATION_POLICY.populationGrowth;
+	const numer = g.ratePerTickNumerator * Math.max(0, healthcare);
+	const denom = g.ratePerTickDenominator * g.healthcareRefSlider;
 	return pop + Math.floor((pop * numer) / denom);
 }
 
@@ -56,14 +60,39 @@ export function applyProductionToCity(c: CityProductionInput): {
 	resourceDelta: ResourceDelta;
 } {
 	const popM = c.population / 1_000_000;
+	const p = NATION_POLICY.cityProduction;
 	return {
 		newPopulation: growCityPopulation(c.population, c.healthcare),
 		resourceDelta: {
-			money: Math.floor(popM * 100 * c.moneyMult * RES_SCALE),
-			oil: Math.floor(popM * 5 * c.oilMult * RES_SCALE),
-			steel: Math.floor(popM * 5 * c.steelMult * RES_SCALE),
-			electronics: Math.floor(popM * 0.2 * c.electronicsMult * RES_SCALE),
+			money: Math.floor(popM * p.moneyPerPopMillion * c.moneyMult * RES_SCALE),
+			oil: Math.floor(popM * p.oilPerPopMillion * c.oilMult * RES_SCALE),
+			steel: Math.floor(popM * p.steelPerPopMillion * c.steelMult * RES_SCALE),
+			electronics: Math.floor(popM * p.electronicsPerPopMillion * c.electronicsMult * RES_SCALE),
 		},
+	};
+}
+
+/*
+ * Starting resources at /games/:id/join, in stored units. The JSON values are
+ * in display units; this helper applies RES_SCALE so the caller can write
+ * the result straight into nation_state without re-scaling. RP is raw.
+ */
+export type StartingResources = {
+	money: number;
+	oil: number;
+	steel: number;
+	electronics: number;
+	rp: number;
+};
+
+export function getStartingResources(): StartingResources {
+	const s = NATION_POLICY.startingResources;
+	return {
+		money: s.money * RES_SCALE,
+		oil: s.oil * RES_SCALE,
+		steel: s.steel * RES_SCALE,
+		electronics: s.electronics * RES_SCALE,
+		rp: s.rp,
 	};
 }
 

@@ -20,6 +20,7 @@ import { pickFactionColor } from "./colors";
 import { db } from "./db";
 import { logger } from "./logger";
 import { rateLimit } from "./rate-limit";
+import { getStartingResources } from "./tick-formula";
 
 export function createGamesRouter() {
 	const games = new Hono();
@@ -274,13 +275,15 @@ export function createGamesRouter() {
 				countryCode,
 				color,
 			});
+			const starting = getStartingResources();
 			await tx.insert(schema.nationState).values({
 				gameId,
 				playerId,
-				money: 0,
-				oil: 0,
-				steel: 0,
-				electronics: 0,
+				money: starting.money,
+				oil: starting.oil,
+				steel: starting.steel,
+				electronics: starting.electronics,
+				rp: starting.rp,
 				population: 0,
 			});
 

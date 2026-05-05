@@ -26,3 +26,14 @@ body {
 	--signal-glow: 0 0 0 1px oklch(72% 0.17 75 / 0.45), 0 0 18px -4px oklch(72% 0.17 75 / 0.55);
 	--map-fog-opacity: 0.62;
 }
+
+/* MapLibre defaults to grab/grabbing on the canvas; we want the OS default
+   so the map reads as a plain surface, not a pannable photo. The pointer
+   cursor on city-circle hover is set imperatively in game-map.tsx and wins
+   via inline-style specificity. */
+.maplibregl-canvas-container,
+.maplibregl-canvas-container.maplibregl-interactive,
+.maplibregl-canvas-container.maplibregl-interactive.maplibregl-track-pointer,
+.maplibregl-canvas-container.maplibregl-interactive:active {
+	cursor: default;
+}

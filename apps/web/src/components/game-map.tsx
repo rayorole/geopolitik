@@ -1,7 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { ButtonGroup } from "@/components/ui/button-group";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -13,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { WorldDataset } from "@geopolitik/shared/api";
-import { Copy, ZoomIn, ZoomOut } from "lucide-react";
+import { Copy } from "lucide-react";
 import maplibregl, { type Map as MapInstance } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import Image from "next/image";
@@ -165,6 +163,20 @@ const STYLE: maplibregl.StyleSpecification = {
 					["case", ["boolean", ["feature-state", "hover"], false], 13, 10],
 				],
 				"circle-color": ["get", "ownerColor"],
+				// Neutral cities fade in between zoom 2.8 and 3.2 — invisible at
+				// world view, visible once you zoom in a little. Owned cities
+				// stay at full opacity at every zoom.
+				// MapLibre requires ["zoom"] at the top of an interpolate; the
+				// per-feature owned/neutral case lives inside each stop instead.
+				"circle-opacity": [
+					"interpolate",
+					["linear"],
+					["zoom"],
+					2.8,
+					["case", ["==", ["get", "hasOwner"], 1], 1, 0],
+					3.2,
+					1,
+				],
 				"circle-stroke-width": [
 					"case",
 					["boolean", ["feature-state", "selected"], false],
@@ -180,6 +192,15 @@ const STYLE: maplibregl.StyleSpecification = {
 					["==", ["get", "isMine"], 1],
 					COLOR.signal500,
 					"#0a0e14",
+				],
+				"circle-stroke-opacity": [
+					"interpolate",
+					["linear"],
+					["zoom"],
+					2.8,
+					["case", ["==", ["get", "hasOwner"], 1], 1, 0],
+					3.2,
+					1,
 				],
 			},
 		},
@@ -216,7 +237,11 @@ export type GameMapProps = {
 	cities?: WorldDataset["cities"];
 	citiesRender?: CityRender[];
 	selectedCityId?: string | null;
-	onMapReady?: (api: { flyToCity: (cityId: string) => void }) => void;
+	onMapReady?: (api: {
+		flyToCity: (cityId: string) => void;
+		zoomIn: () => void;
+		zoomOut: () => void;
+	}) => void;
 };
 
 type CountryPopoverState = {
@@ -245,6 +270,7 @@ function citiesToFeatureCollection(rows: CityRender[] | undefined): GeoJSON.Feat
 				population: c.population,
 				ownerColor: c.ownerColor ?? CITY_NEUTRAL_COLOR,
 				isMine: c.isMine ? 1 : 0,
+				hasOwner: c.ownerColor ? 1 : 0,
 			},
 		})),
 	};
@@ -576,8 +602,9 @@ export function GameMap({
 		else map.once("load", apply);
 	}, [selectedCityId]);
 
-	// Expose flyToCity so PlayPage can pan the map when the user clicks a
-	// city in the sidebar list. Looks up coords from the latest citiesRender.
+	// Expose flyToCity + zoom so PlayPage can pan the map when the user clicks
+	// a city in the sidebar list, and so the zoom buttons can live in the page's
+	// panel-aware HUD layer (rather than under the right panel).
 	useEffect(() => {
 		const map = mapRef.current;
 		if (!map || !onMapReady) return;
@@ -587,11 +614,10 @@ export function GameMap({
 				if (!c) return;
 				map.flyTo({ center: [c.lng, c.lat], zoom: Math.max(map.getZoom(), 4.5), duration: 600 });
 			},
+			zoomIn: () => map.zoomIn(),
+			zoomOut: () => map.zoomOut(),
 		});
 	}, [citiesRender, onMapReady]);
-
-	const zoomIn = useCallback(() => mapRef.current?.zoomIn(), []);
-	const zoomOut = useCallback(() => mapRef.current?.zoomOut(), []);
 
 	const popoverStats = popover
 		? (cityStatsByCountry.get(popover.iso3) ??
@@ -660,31 +686,6 @@ export function GameMap({
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
-
-			<ButtonGroup
-				orientation="vertical"
-				className="absolute right-3 bottom-3 z-10 backdrop-blur-sm"
-				aria-label="Map zoom controls"
-			>
-				<Button
-					variant="outline"
-					size="icon"
-					onClick={zoomIn}
-					aria-label="Zoom in"
-					className="border-border bg-card/95 hover:bg-accent"
-				>
-					<ZoomIn />
-				</Button>
-				<Button
-					variant="outline"
-					size="icon"
-					onClick={zoomOut}
-					aria-label="Zoom out"
-					className="border-border bg-card/95 hover:bg-accent"
-				>
-					<ZoomOut />
-				</Button>
-			</ButtonGroup>
 
 			{popover && (
 				<Popover open onOpenChange={(o) => !o && setPopover(null)}>

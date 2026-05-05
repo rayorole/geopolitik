@@ -86,6 +86,16 @@ export function AppNav() {
 					>
 						{signOutMutation.isPending ? "Signing out…" : "Sign out"}
 					</DropdownMenuItem>
+					<DropdownMenuSeparator />
+					<div className="flex items-center justify-center gap-3 px-2 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+						<Link href="/tos" className="hover:text-foreground">
+							TOS
+						</Link>
+						<span aria-hidden="true">·</span>
+						<Link href="/privacy" className="hover:text-foreground">
+							Privacy
+						</Link>
+					</div>
 				</DropdownMenuContent>
 			</DropdownMenu>
 		</header>

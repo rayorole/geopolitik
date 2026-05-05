@@ -1,5 +1,23 @@
 {
-	"version": 1,
+	"version": 2,
+	"startingResources": {
+		"money": 500000,
+		"oil": 350000,
+		"steel": 50000,
+		"electronics": 20000,
+		"rp": 0
+	},
+	"cityProduction": {
+		"moneyPerPopMillion": 1500,
+		"oilPerPopMillion": 5,
+		"steelPerPopMillion": 5,
+		"electronicsPerPopMillion": 0.2
+	},
+	"populationGrowth": {
+		"ratePerTickNumerator": 5,
+		"ratePerTickDenominator": 10000,
+		"healthcareRefSlider": 50
+	},
 	"sliders": {
 		"taxation": { "default": 30, "min": 0, "max": 100 },
 		"welfare": { "default": 50, "min": 0, "max": 100 },
@@ -11,8 +29,7 @@
 		"welfareMoneyPerPopMillionPerNotch": 30,
 		"healthcareMoneyPerPopMillionPerNotch": 25,
 		"propagandaMoneyPerNotch": 20,
-		"propagandaElectronicsPerNotch": 5,
-		"healthcareGrowthRefSlider": 50
+		"propagandaElectronicsPerNotch": 5
 	},
 	"unrest": {
 		"taxationPerNotchAboveDefault": 4,

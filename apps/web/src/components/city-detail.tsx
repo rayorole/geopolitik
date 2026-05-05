@@ -48,7 +48,7 @@ export function CityDetail({
 	const state = snapshot.cityState.find((cs) => cs.cityId === cityId);
 	const country = world.countries.find((c) => def && c.code === def.countryCode);
 
-	if (!def || !state) {
+	if (!def) {
 		return (
 			<section className="flex min-h-0 flex-1 flex-col">
 				<DetailHeader title="City unavailable" onBack={onBack} />
@@ -60,9 +60,12 @@ export function CityDetail({
 		);
 	}
 
-	const ownerPlayer: PlayerInGame | undefined = state.ownerPlayerId
+	// Neutral cities (country no player has joined yet) have no city_state row;
+	// fall back to the world default so the panel still renders read-only info.
+	const ownerPlayer: PlayerInGame | undefined = state?.ownerPlayerId
 		? snapshot.players.find((p) => p.id === state.ownerPlayerId)
 		: undefined;
+	const population = state?.population ?? def.basePopulation;
 	const isMine = !!ownerPlayer && ownerPlayer.id === snapshot.mePlayerId;
 	const isForeign = !!ownerPlayer && !isMine;
 	const isNeutral = !ownerPlayer;
@@ -81,9 +84,7 @@ export function CityDetail({
 			{/* Always-visible facts */}
 			<dl className="grid grid-cols-2 gap-x-4 gap-y-1 border-b border-border px-3 py-3 font-mono text-xs">
 				<dt className="text-muted-foreground">Population</dt>
-				<dd className="text-right tabular-nums text-foreground">
-					{state.population.toLocaleString()}
-				</dd>
+				<dd className="text-right tabular-nums text-foreground">{population.toLocaleString()}</dd>
 				<dt className="text-muted-foreground">Owner</dt>
 				<dd className="text-right text-foreground">
 					{ownerPlayer ? (

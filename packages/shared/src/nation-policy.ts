@@ -3,13 +3,20 @@ import policyJson from "../data/nation-policy.json" with { type: "json" };
 import type { SliderName } from "./order-payloads";
 
 /*
- * National-policy constants — Phase 3b/3e.
+ * National-policy constants.
  *
- * One JSON file feeds both the slider economics (3b) and the unrest deltas
- * that read from the same slider state (3e). Numbers are first-pass and
- * tunable without code edits. All money/electronics units are at the same
- * ×100 scale used elsewhere; "per notch" means per integer step on the 0–100
- * slider.
+ * Single source of truth for every tunable economic number — starting
+ * balances, per-city production rates, slider economics, population growth,
+ * and unrest deltas. Tick math in apps/api reads from this file and never
+ * carries its own constants. Edit the JSON to rebalance; no code changes.
+ *
+ * Unit convention:
+ *   - `startingResources` and `cityProduction` are in DISPLAY units
+ *     (the number a player sees on the HUD). Tick code multiplies by the
+ *     internal RES_SCALE (×100) at the boundary.
+ *   - `economic` (slider-driven) is also in display-per-notch terms; the
+ *     same RES_SCALE multiplication happens inside applySliderEconomics.
+ *   - RP carries no display scale (raw integer everywhere).
  *
  * Same module-load pattern as buildings-catalog: a malformed JSON file fails
  * the boot, not a request.
@@ -25,7 +32,31 @@ const sliderRange = z
 
 export const nationPolicy = z
 	.object({
-		version: z.literal(1),
+		version: z.literal(2),
+		startingResources: z
+			.object({
+				money: z.number().int().nonnegative(),
+				oil: z.number().int().nonnegative(),
+				steel: z.number().int().nonnegative(),
+				electronics: z.number().int().nonnegative(),
+				rp: z.number().int().nonnegative(),
+			})
+			.strict(),
+		cityProduction: z
+			.object({
+				moneyPerPopMillion: z.number().nonnegative(),
+				oilPerPopMillion: z.number().nonnegative(),
+				steelPerPopMillion: z.number().nonnegative(),
+				electronicsPerPopMillion: z.number().nonnegative(),
+			})
+			.strict(),
+		populationGrowth: z
+			.object({
+				ratePerTickNumerator: z.number().int().nonnegative(),
+				ratePerTickDenominator: z.number().int().positive(),
+				healthcareRefSlider: z.number().int().min(1).max(100),
+			})
+			.strict(),
 		sliders: z
 			.object({
 				taxation: sliderRange,
@@ -41,7 +72,6 @@ export const nationPolicy = z
 				healthcareMoneyPerPopMillionPerNotch: z.number().int().nonnegative(),
 				propagandaMoneyPerNotch: z.number().int().nonnegative(),
 				propagandaElectronicsPerNotch: z.number().int().nonnegative(),
-				healthcareGrowthRefSlider: z.number().int().min(1).max(100),
 			})
 			.strict(),
 		unrest: z
