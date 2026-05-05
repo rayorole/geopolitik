@@ -69,13 +69,38 @@ async function tickAllActiveGames(): Promise<void> {
 }
 
 async function runTickWithRetry(gameId: string): Promise<void> {
+	let lastErr: unknown;
 	for (let attempt = 1; attempt <= 2; attempt++) {
 		try {
 			await runTick(gameId);
 			return;
 		} catch (err) {
+			lastErr = err;
 			logger.error({ err, gameId, attempt }, "tick.error");
 		}
+	}
+	// Surface the error in tick_log too — runTick rolls back its in-tx insert on
+	// failure, so without this row the DB shows no trace of what broke. This is
+	// outside the failed transaction so it always lands.
+	const errMsg =
+		lastErr instanceof Error ? `${lastErr.message}\n${lastErr.stack ?? ""}` : String(lastErr);
+	const [g] = await db
+		.select({ tick: schema.game.tick })
+		.from(schema.game)
+		.where(eq(schema.game.id, gameId))
+		.limit(1);
+	if (g) {
+		await db
+			.insert(schema.tickLog)
+			.values({
+				id: newId(),
+				gameId,
+				tickNumber: g.tick + 1,
+				retryCount: 2,
+				errorMsg: errMsg.slice(0, 4000),
+				completedAt: new Date(),
+			})
+			.onConflictDoNothing();
 	}
 	await db.update(schema.game).set({ status: "quarantined" }).where(eq(schema.game.id, gameId));
 	logger.error({ gameId }, "tick.quarantined");

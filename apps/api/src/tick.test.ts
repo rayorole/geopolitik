@@ -1,15 +1,18 @@
+import { NATION_POLICY } from "@geopolitik/shared/policy";
 import { describe, expect, it } from "vitest";
 import {
 	DEFECTION_TICKS_AT_REVOLT,
+	RES_SCALE,
 	applyProductionToCity,
 	applyRevoltStateChange,
 	applySliderEconomics,
 	computeUnrestDelta,
+	getStartingResources,
 	growCityPopulation,
 } from "./tick-formula";
 
 describe("tick — pure production formula", () => {
-	it("a 1M-pop city with default multipliers contributes +100/+5/+0.2 (× 100 storage)", () => {
+	it("a 1M-pop city with default multipliers contributes the policy money/steel/electronics rates", () => {
 		const result = applyProductionToCity({
 			population: 1_000_000,
 			moneyMult: 1,
@@ -17,11 +20,13 @@ describe("tick — pure production formula", () => {
 			electronicsMult: 1,
 			oilMult: 0,
 		});
-		// Display deltas: 100 money, 5 steel, 0.2 electronics, 0 oil
-		// Stored × 100: 10_000, 500, 20, 0
-		expect(result.resourceDelta.money).toBe(10_000);
-		expect(result.resourceDelta.steel).toBe(500);
-		expect(result.resourceDelta.electronics).toBe(20);
+		// Display deltas mirror policy.cityProduction; stored = display × RES_SCALE.
+		const p = NATION_POLICY.cityProduction;
+		expect(result.resourceDelta.money).toBe(p.moneyPerPopMillion * RES_SCALE);
+		expect(result.resourceDelta.steel).toBe(p.steelPerPopMillion * RES_SCALE);
+		expect(result.resourceDelta.electronics).toBe(
+			Math.floor(p.electronicsPerPopMillion * RES_SCALE),
+		);
 		expect(result.resourceDelta.oil).toBe(0);
 	});
 
@@ -54,12 +59,13 @@ describe("tick — pure production formula", () => {
 			electronicsMult: 3.0,
 			oilMult: 0,
 		});
-		// money: 2 × 100 × 1.5 × 100 = 30_000
-		expect(r.resourceDelta.money).toBe(30_000);
-		// steel: 2 × 5 × 2.0 × 100 = 2_000
-		expect(r.resourceDelta.steel).toBe(2_000);
-		// electronics: 2 × 0.2 × 3.0 × 100 = 120
-		expect(r.resourceDelta.electronics).toBe(120);
+		const p = NATION_POLICY.cityProduction;
+		// 2 popM × base × mult × RES_SCALE
+		expect(r.resourceDelta.money).toBe(Math.floor(2 * p.moneyPerPopMillion * 1.5 * RES_SCALE));
+		expect(r.resourceDelta.steel).toBe(Math.floor(2 * p.steelPerPopMillion * 2.0 * RES_SCALE));
+		expect(r.resourceDelta.electronics).toBe(
+			Math.floor(2 * p.electronicsPerPopMillion * 3.0 * RES_SCALE),
+		);
 		expect(r.resourceDelta.oil).toBe(0);
 	});
 
@@ -238,6 +244,24 @@ describe("computeUnrestDelta", () => {
 			r.attribution.propaganda +
 			r.attribution.extra;
 		expect(sum).toBe(r.net);
+	});
+});
+
+describe("getStartingResources", () => {
+	it("returns nation-policy.json starting resources scaled to storage units", () => {
+		const r = getStartingResources();
+		const s = NATION_POLICY.startingResources;
+		expect(r.money).toBe(s.money * RES_SCALE);
+		expect(r.oil).toBe(s.oil * RES_SCALE);
+		expect(r.steel).toBe(s.steel * RES_SCALE);
+		expect(r.electronics).toBe(s.electronics * RES_SCALE);
+		// RP is the only resource without a display scale.
+		expect(r.rp).toBe(s.rp);
+	});
+
+	it("displays 500K money on the HUD (i.e. 50M stored under ×100 scale)", () => {
+		expect(NATION_POLICY.startingResources.money).toBe(500_000);
+		expect(getStartingResources().money).toBe(50_000_000);
 	});
 });
 
