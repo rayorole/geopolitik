@@ -26,6 +26,42 @@
 			"cost": { "money": 50000, "oil": 5000, "steel": 20000, "electronics": 5000 },
 			"researchTimeTicks": 60,
 			"introYear": 1995
+		},
+		{
+			"id": "us_inf_iotv",
+			"tree": "ground",
+			"tier": 2,
+			"displayName": "IOTV / Land Warrior Infantry",
+			"shortName": "US Inf (IOTV)",
+			"prereqs": ["us_inf_t1"],
+			"unlocks": { "unitTypes": ["unit_us_inf_iotv"] },
+			"cost": { "money": 125000, "oil": 12500, "steel": 50000, "electronics": 12500 },
+			"researchTimeTicks": 120,
+			"introYear": 2007
+		},
+		{
+			"id": "us_inf_nett_warrior",
+			"tree": "ground",
+			"tier": 3,
+			"displayName": "Nett Warrior Networked Infantry",
+			"shortName": "Nett Warrior",
+			"prereqs": ["us_inf_iotv"],
+			"unlocks": { "unitTypes": ["unit_us_inf_nett_warrior"] },
+			"cost": { "money": 250000, "oil": 25000, "steel": 100000, "electronics": 25000 },
+			"researchTimeTicks": 240,
+			"introYear": 2012
+		},
+		{
+			"id": "us_inf_ivas",
+			"tree": "ground",
+			"tier": 4,
+			"displayName": "IVAS HoloLens Infantry",
+			"shortName": "IVAS",
+			"prereqs": ["us_inf_nett_warrior"],
+			"unlocks": { "unitTypes": ["unit_us_inf_ivas"] },
+			"cost": { "money": 400000, "oil": 40000, "steel": 160000, "electronics": 40000 },
+			"researchTimeTicks": 480,
+			"introYear": 2027
 		}
 	]
 }

@@ -26,6 +26,42 @@
 			"cost": { "money": 100000, "oil": 25000, "steel": 25000, "electronics": 50000 },
 			"researchTimeTicks": 60,
 			"introYear": 1996
+		},
+		{
+			"id": "ka_50",
+			"tree": "helicopters",
+			"tier": 2,
+			"displayName": "Ka-50 Black Shark",
+			"shortName": "Ka-50",
+			"prereqs": ["mi_28"],
+			"unlocks": { "unitTypes": ["unit_ka_50"] },
+			"cost": { "money": 250000, "oil": 62500, "steel": 62500, "electronics": 125000 },
+			"researchTimeTicks": 120,
+			"introYear": 1995
+		},
+		{
+			"id": "ka_52",
+			"tree": "helicopters",
+			"tier": 3,
+			"displayName": "Ka-52 Alligator",
+			"shortName": "Ka-52",
+			"prereqs": ["ka_50"],
+			"unlocks": { "unitTypes": ["unit_ka_52"] },
+			"cost": { "money": 500000, "oil": 125000, "steel": 125000, "electronics": 250000 },
+			"researchTimeTicks": 240,
+			"introYear": 2011
+		},
+		{
+			"id": "mi_28nm",
+			"tree": "helicopters",
+			"tier": 4,
+			"displayName": "Mi-28NM Night Hunter",
+			"shortName": "Mi-28NM",
+			"prereqs": ["ka_52"],
+			"unlocks": { "unitTypes": ["unit_mi_28nm"] },
+			"cost": { "money": 800000, "oil": 200000, "steel": 200000, "electronics": 400000 },
+			"researchTimeTicks": 480,
+			"introYear": 2019
 		}
 	]
 }

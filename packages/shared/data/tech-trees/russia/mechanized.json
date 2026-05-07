@@ -26,6 +26,54 @@
 			"cost": { "money": 80000, "oil": 15000, "steel": 60000, "electronics": 8000 },
 			"researchTimeTicks": 60,
 			"introYear": 1992
+		},
+		{
+			"id": "t_90m",
+			"tree": "mechanized",
+			"tier": 2,
+			"displayName": "T-90M Proryv",
+			"shortName": "T-90M",
+			"prereqs": ["t_90"],
+			"unlocks": { "unitTypes": ["unit_t_90m"] },
+			"cost": { "money": 200000, "oil": 37500, "steel": 150000, "electronics": 20000 },
+			"researchTimeTicks": 120,
+			"introYear": 2017
+		},
+		{
+			"id": "t_72b3m",
+			"tree": "mechanized",
+			"tier": 2,
+			"displayName": "T-72B3M Modernized",
+			"shortName": "T-72B3M",
+			"prereqs": ["t_90"],
+			"unlocks": { "unitTypes": ["unit_t_72b3m"] },
+			"cost": { "money": 175000, "oil": 35000, "steel": 140000, "electronics": 18000 },
+			"researchTimeTicks": 120,
+			"introYear": 2014
+		},
+		{
+			"id": "t_90ms",
+			"tree": "mechanized",
+			"tier": 3,
+			"displayName": "T-90MS Tagil",
+			"shortName": "T-90MS",
+			"prereqs": ["t_90m"],
+			"unlocks": { "unitTypes": ["unit_t_90ms"] },
+			"cost": { "money": 400000, "oil": 75000, "steel": 300000, "electronics": 40000 },
+			"researchTimeTicks": 240,
+			"introYear": 2011
+		},
+		{
+			"id": "t_14_armata",
+			"tree": "mechanized",
+			"tier": 4,
+			"displayName": "T-14 Armata",
+			"shortName": "T-14",
+			"prereqs": ["t_90ms"],
+			"unlocks": { "unitTypes": ["unit_t_14_armata"] },
+			"cost": { "money": 640000, "oil": 120000, "steel": 480000, "electronics": 80000 },
+			"researchTimeTicks": 480,
+			"introYear": 2015
 		}
 	]
 }

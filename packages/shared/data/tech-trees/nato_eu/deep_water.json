@@ -26,6 +26,42 @@
 			"cost": { "money": 250000, "oil": 80000, "steel": 120000, "electronics": 80000 },
 			"researchTimeTicks": 60,
 			"introYear": 2017
+		},
+		{
+			"id": "horizon_class",
+			"tree": "deep_water",
+			"tier": 2,
+			"displayName": "Horizon-class Destroyer",
+			"shortName": "Horizon",
+			"prereqs": ["queen_elizabeth_class"],
+			"unlocks": { "unitTypes": ["unit_horizon_class"] },
+			"cost": { "money": 625000, "oil": 200000, "steel": 300000, "electronics": 200000 },
+			"researchTimeTicks": 120,
+			"introYear": 2007
+		},
+		{
+			"id": "type_45_daring",
+			"tree": "deep_water",
+			"tier": 3,
+			"displayName": "Type 45 Daring-class Destroyer",
+			"shortName": "Type 45",
+			"prereqs": ["horizon_class"],
+			"unlocks": { "unitTypes": ["unit_type_45_daring"] },
+			"cost": { "money": 1250000, "oil": 400000, "steel": 600000, "electronics": 400000 },
+			"researchTimeTicks": 240,
+			"introYear": 2009
+		},
+		{
+			"id": "porte_avion_ng",
+			"tree": "deep_water",
+			"tier": 4,
+			"displayName": "Porte-Avions de Nouvelle Génération (PA-NG)",
+			"shortName": "PA-NG",
+			"prereqs": ["type_45_daring"],
+			"unlocks": { "unitTypes": ["unit_porte_avion_ng"] },
+			"cost": { "money": 2000000, "oil": 640000, "steel": 960000, "electronics": 640000 },
+			"researchTimeTicks": 480,
+			"introYear": 2038
 		}
 	]
 }

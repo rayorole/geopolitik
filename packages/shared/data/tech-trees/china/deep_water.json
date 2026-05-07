@@ -26,6 +26,42 @@
 			"cost": { "money": 250000, "oil": 80000, "steel": 120000, "electronics": 80000 },
 			"researchTimeTicks": 60,
 			"introYear": 2012
+		},
+		{
+			"id": "type_052d",
+			"tree": "deep_water",
+			"tier": 2,
+			"displayName": "Type 052D Destroyer",
+			"shortName": "052D",
+			"prereqs": ["liaoning"],
+			"unlocks": { "unitTypes": ["unit_type_052d"] },
+			"cost": { "money": 625000, "oil": 200000, "steel": 300000, "electronics": 200000 },
+			"researchTimeTicks": 120,
+			"introYear": 2014
+		},
+		{
+			"id": "type_055",
+			"tree": "deep_water",
+			"tier": 3,
+			"displayName": "Type 055 Destroyer (Renhai-class)",
+			"shortName": "055",
+			"prereqs": ["type_052d"],
+			"unlocks": { "unitTypes": ["unit_type_055"] },
+			"cost": { "money": 1250000, "oil": 400000, "steel": 600000, "electronics": 400000 },
+			"researchTimeTicks": 240,
+			"introYear": 2020
+		},
+		{
+			"id": "fujian_class",
+			"tree": "deep_water",
+			"tier": 4,
+			"displayName": "Type 003 Fujian Carrier",
+			"shortName": "Fujian",
+			"prereqs": ["type_055"],
+			"unlocks": { "unitTypes": ["unit_fujian_class"] },
+			"cost": { "money": 2000000, "oil": 640000, "steel": 960000, "electronics": 640000 },
+			"researchTimeTicks": 480,
+			"introYear": 2025
 		}
 	]
 }

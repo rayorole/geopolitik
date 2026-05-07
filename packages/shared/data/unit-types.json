@@ -16,6 +16,27 @@
 			"categoryHint": "infantry"
 		},
 		{
+			"id": "unit_nato_eu_inf_t2",
+			"displayName": "European Light Strike Infantry",
+			"shortName": "EU Inf (Strike)",
+			"faction": "nato_eu",
+			"categoryHint": "infantry"
+		},
+		{
+			"id": "unit_nato_eu_inf_t3",
+			"displayName": "European Networked Infantry",
+			"shortName": "EU Inf (Net)",
+			"faction": "nato_eu",
+			"categoryHint": "infantry"
+		},
+		{
+			"id": "unit_nato_eu_inf_t4",
+			"displayName": "European Future Soldier Programme",
+			"shortName": "EU FSP",
+			"faction": "nato_eu",
+			"categoryHint": "infantry"
+		},
+		{
 			"id": "unit_leopard_1",
 			"displayName": "Leopard 1",
 			"shortName": "Leo 1",
@@ -26,6 +47,34 @@
 			"id": "unit_leopard_2a4",
 			"displayName": "Leopard 2A4",
 			"shortName": "Leo 2A4",
+			"faction": "nato_eu",
+			"categoryHint": "mbt"
+		},
+		{
+			"id": "unit_leopard_2a6",
+			"displayName": "Leopard 2A6",
+			"shortName": "Leo 2A6",
+			"faction": "nato_eu",
+			"categoryHint": "mbt"
+		},
+		{
+			"id": "unit_leclerc_xlr",
+			"displayName": "Leclerc XLR",
+			"shortName": "Leclerc",
+			"faction": "nato_eu",
+			"categoryHint": "mbt"
+		},
+		{
+			"id": "unit_leopard_2a7",
+			"displayName": "Leopard 2A7+",
+			"shortName": "Leo 2A7+",
+			"faction": "nato_eu",
+			"categoryHint": "mbt"
+		},
+		{
+			"id": "unit_leopard_2a8",
+			"displayName": "Leopard 2A8",
+			"shortName": "Leo 2A8",
 			"faction": "nato_eu",
 			"categoryHint": "mbt"
 		},
@@ -44,6 +93,27 @@
 			"categoryHint": "helicopter_attack"
 		},
 		{
+			"id": "unit_tiger_had",
+			"displayName": "Eurocopter Tiger HAD",
+			"shortName": "Tiger HAD",
+			"faction": "nato_eu",
+			"categoryHint": "helicopter_attack"
+		},
+		{
+			"id": "unit_nh90_caiman",
+			"displayName": "NH90 Caiman",
+			"shortName": "NH90",
+			"faction": "nato_eu",
+			"categoryHint": "helicopter_transport"
+		},
+		{
+			"id": "unit_tiger_mk3",
+			"displayName": "Tiger Mk3 Standard",
+			"shortName": "Tiger Mk3",
+			"faction": "nato_eu",
+			"categoryHint": "helicopter_attack"
+		},
+		{
 			"id": "unit_mirage_f1",
 			"displayName": "Dassault Mirage F1",
 			"shortName": "Mirage F1",
@@ -54,6 +124,55 @@
 			"id": "unit_mirage_2000",
 			"displayName": "Dassault Mirage 2000",
 			"shortName": "Mirage 2000",
+			"faction": "nato_eu",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_rafale_f1",
+			"displayName": "Dassault Rafale F1",
+			"shortName": "Rafale F1",
+			"faction": "nato_eu",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_eurofighter_t1",
+			"displayName": "Eurofighter Typhoon Tranche 1",
+			"shortName": "EF T1",
+			"faction": "nato_eu",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_rafale_f3r",
+			"displayName": "Dassault Rafale F3R",
+			"shortName": "Rafale F3R",
+			"faction": "nato_eu",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_eurofighter_t3",
+			"displayName": "Eurofighter Typhoon Tranche 3",
+			"shortName": "EF T3",
+			"faction": "nato_eu",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_rafale_f4",
+			"displayName": "Dassault Rafale F4",
+			"shortName": "Rafale F4",
+			"faction": "nato_eu",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_fcas",
+			"displayName": "Future Combat Air System (FCAS) Concept",
+			"shortName": "FCAS",
+			"faction": "nato_eu",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_tempest",
+			"displayName": "Tempest (GCAP) Concept",
+			"shortName": "Tempest",
 			"faction": "nato_eu",
 			"categoryHint": "multirole"
 		},
@@ -72,16 +191,58 @@
 			"categoryHint": "frigate"
 		},
 		{
+			"id": "unit_fremm_class",
+			"displayName": "FREMM Multirole Frigate",
+			"shortName": "FREMM",
+			"faction": "nato_eu",
+			"categoryHint": "frigate"
+		},
+		{
+			"id": "unit_type_26_frigate",
+			"displayName": "Type 26 City-class Frigate",
+			"shortName": "Type 26",
+			"faction": "nato_eu",
+			"categoryHint": "frigate"
+		},
+		{
+			"id": "unit_type_31_frigate",
+			"displayName": "Type 31 Inspiration-class Frigate",
+			"shortName": "Type 31",
+			"faction": "nato_eu",
+			"categoryHint": "frigate"
+		},
+		{
 			"id": "unit_charles_de_gaulle",
-			"displayName": "Charles de Gaulle",
+			"displayName": "Charles de Gaulle (R91)",
 			"shortName": "CdG",
 			"faction": "nato_eu",
 			"categoryHint": "carrier"
 		},
 		{
 			"id": "unit_queen_elizabeth_class",
-			"displayName": "Queen Elizabeth-class",
+			"displayName": "Queen Elizabeth-class Carrier",
 			"shortName": "QE-class",
+			"faction": "nato_eu",
+			"categoryHint": "carrier"
+		},
+		{
+			"id": "unit_horizon_class",
+			"displayName": "Horizon-class Destroyer",
+			"shortName": "Horizon",
+			"faction": "nato_eu",
+			"categoryHint": "destroyer"
+		},
+		{
+			"id": "unit_type_45_daring",
+			"displayName": "Type 45 Daring-class Destroyer",
+			"shortName": "Type 45",
+			"faction": "nato_eu",
+			"categoryHint": "destroyer"
+		},
+		{
+			"id": "unit_porte_avion_ng",
+			"displayName": "Porte-Avions de Nouvelle Génération (PA-NG)",
+			"shortName": "PA-NG",
 			"faction": "nato_eu",
 			"categoryHint": "carrier"
 		},
@@ -99,6 +260,27 @@
 			"faction": "nato_eu",
 			"categoryHint": "satellite_recon"
 		},
+		{
+			"id": "unit_musis_csg",
+			"displayName": "MUSIS / CSO Imaging Constellation",
+			"shortName": "CSO",
+			"faction": "nato_eu",
+			"categoryHint": "satellite_recon"
+		},
+		{
+			"id": "unit_syracuse_iv",
+			"displayName": "Syracuse IV Comms Satellite",
+			"shortName": "Syracuse IV",
+			"faction": "nato_eu",
+			"categoryHint": "satellite_comms"
+		},
+		{
+			"id": "unit_iris_squared",
+			"displayName": "IRIS² Sovereign Constellation",
+			"shortName": "IRIS²",
+			"faction": "nato_eu",
+			"categoryHint": "satellite_comms"
+		},
 
 		{
 			"id": "unit_us_inf_t0",
@@ -111,6 +293,27 @@
 			"id": "unit_us_inf_t1",
 			"displayName": "M4 Carbine Modular Infantry",
 			"shortName": "US Inf (Mod)",
+			"faction": "us",
+			"categoryHint": "infantry"
+		},
+		{
+			"id": "unit_us_inf_iotv",
+			"displayName": "IOTV / Land Warrior Infantry",
+			"shortName": "US Inf (IOTV)",
+			"faction": "us",
+			"categoryHint": "infantry"
+		},
+		{
+			"id": "unit_us_inf_nett_warrior",
+			"displayName": "Nett Warrior Networked Infantry",
+			"shortName": "Nett Warrior",
+			"faction": "us",
+			"categoryHint": "infantry"
+		},
+		{
+			"id": "unit_us_inf_ivas",
+			"displayName": "IVAS HoloLens Infantry",
+			"shortName": "IVAS",
 			"faction": "us",
 			"categoryHint": "infantry"
 		},
@@ -129,6 +332,27 @@
 			"categoryHint": "mbt"
 		},
 		{
+			"id": "unit_m1a2",
+			"displayName": "M1A2 Abrams",
+			"shortName": "M1A2",
+			"faction": "us",
+			"categoryHint": "mbt"
+		},
+		{
+			"id": "unit_m1a2_sepv3",
+			"displayName": "M1A2 SEPv3 Abrams",
+			"shortName": "M1A2 SEPv3",
+			"faction": "us",
+			"categoryHint": "mbt"
+		},
+		{
+			"id": "unit_m1e3",
+			"displayName": "M1E3 Abrams (AbramsX class)",
+			"shortName": "M1E3",
+			"faction": "us",
+			"categoryHint": "mbt"
+		},
+		{
 			"id": "unit_ah_1_cobra",
 			"displayName": "AH-1 Cobra",
 			"shortName": "AH-1",
@@ -143,6 +367,27 @@
 			"categoryHint": "helicopter_attack"
 		},
 		{
+			"id": "unit_ah_64d",
+			"displayName": "AH-64D Apache Longbow",
+			"shortName": "AH-64D",
+			"faction": "us",
+			"categoryHint": "helicopter_attack"
+		},
+		{
+			"id": "unit_ah_64e",
+			"displayName": "AH-64E Apache Guardian",
+			"shortName": "AH-64E",
+			"faction": "us",
+			"categoryHint": "helicopter_attack"
+		},
+		{
+			"id": "unit_flraa_v_280",
+			"displayName": "FLRAA V-280 Valor",
+			"shortName": "V-280",
+			"faction": "us",
+			"categoryHint": "helicopter_transport"
+		},
+		{
 			"id": "unit_f_5e",
 			"displayName": "F-5E Tiger II",
 			"shortName": "F-5E",
@@ -153,6 +398,55 @@
 			"id": "unit_f_16_block_30",
 			"displayName": "F-16C Block 30 Fighting Falcon",
 			"shortName": "F-16 Blk 30",
+			"faction": "us",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_f_16_block_50",
+			"displayName": "F-16C Block 50 Fighting Falcon",
+			"shortName": "F-16 Blk 50",
+			"faction": "us",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_f_16_block_52",
+			"displayName": "F-16C Block 52 Fighting Falcon",
+			"shortName": "F-16 Blk 52",
+			"faction": "us",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_f_15ex",
+			"displayName": "F-15EX Eagle II",
+			"shortName": "F-15EX",
+			"faction": "us",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_f_16_block_70",
+			"displayName": "F-16V Block 70/72 Viper",
+			"shortName": "F-16 Blk 70",
+			"faction": "us",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_f_22_raptor",
+			"displayName": "F-22 Raptor",
+			"shortName": "F-22",
+			"faction": "us",
+			"categoryHint": "fighter"
+		},
+		{
+			"id": "unit_f_35a_lightning",
+			"displayName": "F-35A Lightning II",
+			"shortName": "F-35A",
+			"faction": "us",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_ngad",
+			"displayName": "NGAD F/A-XX Concept",
+			"shortName": "NGAD",
 			"faction": "us",
 			"categoryHint": "multirole"
 		},
@@ -171,6 +465,27 @@
 			"categoryHint": "destroyer"
 		},
 		{
+			"id": "unit_lcs_independence",
+			"displayName": "LCS Independence-class",
+			"shortName": "LCS Indy",
+			"faction": "us",
+			"categoryHint": "frigate"
+		},
+		{
+			"id": "unit_constellation_class",
+			"displayName": "Constellation-class Frigate",
+			"shortName": "FFG-62",
+			"faction": "us",
+			"categoryHint": "frigate"
+		},
+		{
+			"id": "unit_ddgx_program",
+			"displayName": "DDG(X) Next-Gen Surface Combatant",
+			"shortName": "DDG(X)",
+			"faction": "us",
+			"categoryHint": "destroyer"
+		},
+		{
 			"id": "unit_kitty_hawk",
 			"displayName": "Kitty Hawk-class Carrier",
 			"shortName": "CV-63",
@@ -185,6 +500,27 @@
 			"categoryHint": "carrier"
 		},
 		{
+			"id": "unit_los_angeles_sub",
+			"displayName": "Los Angeles-class Submarine",
+			"shortName": "LA-class",
+			"faction": "us",
+			"categoryHint": "submarine"
+		},
+		{
+			"id": "unit_virginia_sub",
+			"displayName": "Virginia-class Attack Submarine",
+			"shortName": "Virginia",
+			"faction": "us",
+			"categoryHint": "submarine"
+		},
+		{
+			"id": "unit_ford_class",
+			"displayName": "Gerald R. Ford-class Supercarrier",
+			"shortName": "CVN-78",
+			"faction": "us",
+			"categoryHint": "carrier"
+		},
+		{
 			"id": "unit_kh_11",
 			"displayName": "KH-11 Kennen",
 			"shortName": "KH-11",
@@ -195,6 +531,27 @@
 			"id": "unit_kh_11_evolved",
 			"displayName": "KH-11 Evolved Enhanced",
 			"shortName": "KH-11 EE",
+			"faction": "us",
+			"categoryHint": "satellite_recon"
+		},
+		{
+			"id": "unit_lacrosse_onyx",
+			"displayName": "Lacrosse / Onyx SAR Constellation",
+			"shortName": "Onyx",
+			"faction": "us",
+			"categoryHint": "satellite_recon"
+		},
+		{
+			"id": "unit_muos_constellation",
+			"displayName": "MUOS Communications Constellation",
+			"shortName": "MUOS",
+			"faction": "us",
+			"categoryHint": "satellite_comms"
+		},
+		{
+			"id": "unit_tracking_layer",
+			"displayName": "SDA Tracking Layer Constellation",
+			"shortName": "SDA Tracking",
 			"faction": "us",
 			"categoryHint": "satellite_recon"
 		},
@@ -214,6 +571,27 @@
 			"categoryHint": "infantry"
 		},
 		{
+			"id": "unit_russian_inf_ratnik",
+			"displayName": "Ratnik Combat Equipment Infantry",
+			"shortName": "Ratnik",
+			"faction": "russia",
+			"categoryHint": "infantry"
+		},
+		{
+			"id": "unit_russian_inf_sotnik",
+			"displayName": "Sotnik Networked Infantry",
+			"shortName": "Sotnik",
+			"faction": "russia",
+			"categoryHint": "infantry"
+		},
+		{
+			"id": "unit_russian_inf_legionnaire",
+			"displayName": "Legionnaire Future Soldier Concept",
+			"shortName": "Legionnaire",
+			"faction": "russia",
+			"categoryHint": "infantry"
+		},
+		{
 			"id": "unit_t_72a",
 			"displayName": "T-72A",
 			"shortName": "T-72A",
@@ -224,6 +602,34 @@
 			"id": "unit_t_90",
 			"displayName": "T-90 Vladimir",
 			"shortName": "T-90",
+			"faction": "russia",
+			"categoryHint": "mbt"
+		},
+		{
+			"id": "unit_t_90m",
+			"displayName": "T-90M Proryv",
+			"shortName": "T-90M",
+			"faction": "russia",
+			"categoryHint": "mbt"
+		},
+		{
+			"id": "unit_t_72b3m",
+			"displayName": "T-72B3M Modernized",
+			"shortName": "T-72B3M",
+			"faction": "russia",
+			"categoryHint": "mbt"
+		},
+		{
+			"id": "unit_t_90ms",
+			"displayName": "T-90MS Tagil",
+			"shortName": "T-90MS",
+			"faction": "russia",
+			"categoryHint": "mbt"
+		},
+		{
+			"id": "unit_t_14_armata",
+			"displayName": "T-14 Armata",
+			"shortName": "T-14",
 			"faction": "russia",
 			"categoryHint": "mbt"
 		},
@@ -242,6 +648,27 @@
 			"categoryHint": "helicopter_attack"
 		},
 		{
+			"id": "unit_ka_50",
+			"displayName": "Ka-50 Black Shark",
+			"shortName": "Ka-50",
+			"faction": "russia",
+			"categoryHint": "helicopter_attack"
+		},
+		{
+			"id": "unit_ka_52",
+			"displayName": "Ka-52 Alligator",
+			"shortName": "Ka-52",
+			"faction": "russia",
+			"categoryHint": "helicopter_attack"
+		},
+		{
+			"id": "unit_mi_28nm",
+			"displayName": "Mi-28NM Night Hunter",
+			"shortName": "Mi-28NM",
+			"faction": "russia",
+			"categoryHint": "helicopter_attack"
+		},
+		{
 			"id": "unit_mig_21",
 			"displayName": "MiG-21 Fishbed",
 			"shortName": "MiG-21",
@@ -256,6 +683,48 @@
 			"categoryHint": "fighter"
 		},
 		{
+			"id": "unit_su_30mk",
+			"displayName": "Su-30MK Flanker-C",
+			"shortName": "Su-30MK",
+			"faction": "russia",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_mig_35",
+			"displayName": "MiG-35 Fulcrum-F",
+			"shortName": "MiG-35",
+			"faction": "russia",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_su_35",
+			"displayName": "Su-35S Flanker-E",
+			"shortName": "Su-35",
+			"faction": "russia",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_su_34",
+			"displayName": "Su-34 Fullback Strike Aircraft",
+			"shortName": "Su-34",
+			"faction": "russia",
+			"categoryHint": "bomber"
+		},
+		{
+			"id": "unit_su_57",
+			"displayName": "Su-57 Felon",
+			"shortName": "Su-57",
+			"faction": "russia",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_su_75_checkmate",
+			"displayName": "Su-75 Checkmate Concept",
+			"shortName": "Su-75",
+			"faction": "russia",
+			"categoryHint": "multirole"
+		},
+		{
 			"id": "unit_krivak_class",
 			"displayName": "Krivak-class Frigate",
 			"shortName": "Krivak",
@@ -266,6 +735,27 @@
 			"id": "unit_gorshkov_class",
 			"displayName": "Admiral Gorshkov-class Frigate",
 			"shortName": "Gorshkov",
+			"faction": "russia",
+			"categoryHint": "frigate"
+		},
+		{
+			"id": "unit_steregushchiy_class",
+			"displayName": "Steregushchiy-class Corvette",
+			"shortName": "Steregushchiy",
+			"faction": "russia",
+			"categoryHint": "corvette"
+		},
+		{
+			"id": "unit_gremyashchy_class",
+			"displayName": "Gremyashchy-class Corvette",
+			"shortName": "Gremyashchy",
+			"faction": "russia",
+			"categoryHint": "corvette"
+		},
+		{
+			"id": "unit_super_gorshkov",
+			"displayName": "Project 22350M Super Gorshkov",
+			"shortName": "22350M",
 			"faction": "russia",
 			"categoryHint": "frigate"
 		},
@@ -284,6 +774,27 @@
 			"categoryHint": "cruiser"
 		},
 		{
+			"id": "unit_akula_sub",
+			"displayName": "Akula-class Submarine",
+			"shortName": "Akula",
+			"faction": "russia",
+			"categoryHint": "submarine"
+		},
+		{
+			"id": "unit_yasen_sub",
+			"displayName": "Yasen-class Submarine",
+			"shortName": "Yasen",
+			"faction": "russia",
+			"categoryHint": "submarine"
+		},
+		{
+			"id": "unit_shtorm_class",
+			"displayName": "Project 23000E Shtorm Carrier Concept",
+			"shortName": "Shtorm",
+			"faction": "russia",
+			"categoryHint": "carrier"
+		},
+		{
 			"id": "unit_zenit",
 			"displayName": "Zenit Recon Satellite",
 			"shortName": "Zenit",
@@ -297,6 +808,27 @@
 			"faction": "russia",
 			"categoryHint": "satellite_recon"
 		},
+		{
+			"id": "unit_persona",
+			"displayName": "Persona High-Resolution Recon Satellite",
+			"shortName": "Persona",
+			"faction": "russia",
+			"categoryHint": "satellite_recon"
+		},
+		{
+			"id": "unit_meridian_m",
+			"displayName": "Meridian-M Communications Satellite",
+			"shortName": "Meridian-M",
+			"faction": "russia",
+			"categoryHint": "satellite_comms"
+		},
+		{
+			"id": "unit_sphere_constellation",
+			"displayName": "Sphere (Sfera) Constellation",
+			"shortName": "Sphere",
+			"faction": "russia",
+			"categoryHint": "satellite_comms"
+		},
 
 		{
 			"id": "unit_chinese_inf_t0",
@@ -309,6 +841,27 @@
 			"id": "unit_chinese_inf_t1",
 			"displayName": "PLA Modernized Infantry",
 			"shortName": "PLA Inf (Mod)",
+			"faction": "china",
+			"categoryHint": "infantry"
+		},
+		{
+			"id": "unit_chinese_inf_qbz_191",
+			"displayName": "QBZ-191 Modular Rifle Infantry",
+			"shortName": "QBZ-191",
+			"faction": "china",
+			"categoryHint": "infantry"
+		},
+		{
+			"id": "unit_chinese_inf_digital",
+			"displayName": "PLA Digitized Combat Infantry",
+			"shortName": "Digital PLA",
+			"faction": "china",
+			"categoryHint": "infantry"
+		},
+		{
+			"id": "unit_chinese_inf_exoskeleton",
+			"displayName": "PLA Exoskeleton Infantry Concept",
+			"shortName": "Exo PLA",
 			"faction": "china",
 			"categoryHint": "infantry"
 		},
@@ -327,6 +880,34 @@
 			"categoryHint": "mbt"
 		},
 		{
+			"id": "unit_type_99",
+			"displayName": "Type 99",
+			"shortName": "Type 99",
+			"faction": "china",
+			"categoryHint": "mbt"
+		},
+		{
+			"id": "unit_type_15",
+			"displayName": "Type 15 Light Tank",
+			"shortName": "Type 15",
+			"faction": "china",
+			"categoryHint": "mbt"
+		},
+		{
+			"id": "unit_type_99a",
+			"displayName": "Type 99A",
+			"shortName": "Type 99A",
+			"faction": "china",
+			"categoryHint": "mbt"
+		},
+		{
+			"id": "unit_type_100",
+			"displayName": "Type 100 (4th-gen MBT Concept)",
+			"shortName": "Type 100",
+			"faction": "china",
+			"categoryHint": "mbt"
+		},
+		{
 			"id": "unit_z_9",
 			"displayName": "Z-9 Haitun",
 			"shortName": "Z-9",
@@ -337,6 +918,27 @@
 			"id": "unit_z_10",
 			"displayName": "Z-10",
 			"shortName": "Z-10",
+			"faction": "china",
+			"categoryHint": "helicopter_attack"
+		},
+		{
+			"id": "unit_z_19",
+			"displayName": "Z-19 Black Whirlwind",
+			"shortName": "Z-19",
+			"faction": "china",
+			"categoryHint": "helicopter_attack"
+		},
+		{
+			"id": "unit_z_20",
+			"displayName": "Z-20 Medium Utility Helicopter",
+			"shortName": "Z-20",
+			"faction": "china",
+			"categoryHint": "helicopter_transport"
+		},
+		{
+			"id": "unit_z_21",
+			"displayName": "Z-21 Heavy Attack Helicopter",
+			"shortName": "Z-21",
 			"faction": "china",
 			"categoryHint": "helicopter_attack"
 		},
@@ -355,6 +957,48 @@
 			"categoryHint": "fighter"
 		},
 		{
+			"id": "unit_j_10a",
+			"displayName": "J-10A Vigorous Dragon",
+			"shortName": "J-10A",
+			"faction": "china",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_j_11b",
+			"displayName": "J-11B Flanker-derived Fighter",
+			"shortName": "J-11B",
+			"faction": "china",
+			"categoryHint": "fighter"
+		},
+		{
+			"id": "unit_j_10c",
+			"displayName": "J-10C Vigorous Dragon",
+			"shortName": "J-10C",
+			"faction": "china",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_j_16",
+			"displayName": "J-16 Multirole Strike",
+			"shortName": "J-16",
+			"faction": "china",
+			"categoryHint": "multirole"
+		},
+		{
+			"id": "unit_j_20",
+			"displayName": "J-20 Mighty Dragon",
+			"shortName": "J-20",
+			"faction": "china",
+			"categoryHint": "fighter"
+		},
+		{
+			"id": "unit_j_35",
+			"displayName": "J-35 Stealth Carrier Fighter",
+			"shortName": "J-35",
+			"faction": "china",
+			"categoryHint": "fighter"
+		},
+		{
 			"id": "unit_type_053h",
 			"displayName": "Type 053H Frigate",
 			"shortName": "053H",
@@ -365,6 +1009,27 @@
 			"id": "unit_type_054",
 			"displayName": "Type 054 Frigate",
 			"shortName": "054",
+			"faction": "china",
+			"categoryHint": "frigate"
+		},
+		{
+			"id": "unit_type_054a",
+			"displayName": "Type 054A Frigate",
+			"shortName": "054A",
+			"faction": "china",
+			"categoryHint": "frigate"
+		},
+		{
+			"id": "unit_type_056a",
+			"displayName": "Type 056A Corvette",
+			"shortName": "056A",
+			"faction": "china",
+			"categoryHint": "corvette"
+		},
+		{
+			"id": "unit_type_054b",
+			"displayName": "Type 054B Frigate",
+			"shortName": "054B",
 			"faction": "china",
 			"categoryHint": "frigate"
 		},
@@ -383,6 +1048,27 @@
 			"categoryHint": "carrier"
 		},
 		{
+			"id": "unit_type_052d",
+			"displayName": "Type 052D Destroyer",
+			"shortName": "052D",
+			"faction": "china",
+			"categoryHint": "destroyer"
+		},
+		{
+			"id": "unit_type_055",
+			"displayName": "Type 055 Destroyer (Renhai-class)",
+			"shortName": "055",
+			"faction": "china",
+			"categoryHint": "destroyer"
+		},
+		{
+			"id": "unit_fujian_class",
+			"displayName": "Type 003 Fujian Carrier",
+			"shortName": "Fujian",
+			"faction": "china",
+			"categoryHint": "carrier"
+		},
+		{
 			"id": "unit_yaogan_1",
 			"displayName": "Yaogan 1",
 			"shortName": "Yaogan 1",
@@ -391,10 +1077,31 @@
 		},
 		{
 			"id": "unit_yaogan_30",
-			"displayName": "Yaogan 30",
+			"displayName": "Yaogan 30 Recon Satellite",
 			"shortName": "Yaogan 30",
 			"faction": "china",
 			"categoryHint": "satellite_recon"
+		},
+		{
+			"id": "unit_gaofen",
+			"displayName": "Gaofen High-Resolution Imaging Satellite",
+			"shortName": "Gaofen",
+			"faction": "china",
+			"categoryHint": "satellite_recon"
+		},
+		{
+			"id": "unit_tongxin_jishu",
+			"displayName": "Tongxin Jishu Communications Satellite",
+			"shortName": "TJS",
+			"faction": "china",
+			"categoryHint": "satellite_comms"
+		},
+		{
+			"id": "unit_guowang_constellation",
+			"displayName": "Guowang LEO Constellation",
+			"shortName": "Guowang",
+			"faction": "china",
+			"categoryHint": "satellite_comms"
 		}
 	]
 }

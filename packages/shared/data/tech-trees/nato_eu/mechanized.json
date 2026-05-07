@@ -26,6 +26,54 @@
 			"cost": { "money": 80000, "oil": 15000, "steel": 60000, "electronics": 8000 },
 			"researchTimeTicks": 60,
 			"introYear": 1985
+		},
+		{
+			"id": "leopard_2a6",
+			"tree": "mechanized",
+			"tier": 2,
+			"displayName": "Leopard 2A6",
+			"shortName": "Leo 2A6",
+			"prereqs": ["leopard_2a4"],
+			"unlocks": { "unitTypes": ["unit_leopard_2a6"] },
+			"cost": { "money": 200000, "oil": 37500, "steel": 150000, "electronics": 20000 },
+			"researchTimeTicks": 120,
+			"introYear": 2001
+		},
+		{
+			"id": "leclerc_xlr",
+			"tree": "mechanized",
+			"tier": 2,
+			"displayName": "Leclerc XLR",
+			"shortName": "Leclerc",
+			"prereqs": ["leopard_2a4"],
+			"unlocks": { "unitTypes": ["unit_leclerc_xlr"] },
+			"cost": { "money": 200000, "oil": 37500, "steel": 150000, "electronics": 25000 },
+			"researchTimeTicks": 120,
+			"introYear": 2020
+		},
+		{
+			"id": "leopard_2a7",
+			"tree": "mechanized",
+			"tier": 3,
+			"displayName": "Leopard 2A7+",
+			"shortName": "Leo 2A7+",
+			"prereqs": ["leopard_2a6"],
+			"unlocks": { "unitTypes": ["unit_leopard_2a7"] },
+			"cost": { "money": 400000, "oil": 75000, "steel": 300000, "electronics": 40000 },
+			"researchTimeTicks": 240,
+			"introYear": 2014
+		},
+		{
+			"id": "leopard_2a8",
+			"tree": "mechanized",
+			"tier": 4,
+			"displayName": "Leopard 2A8",
+			"shortName": "Leo 2A8",
+			"prereqs": ["leopard_2a7"],
+			"unlocks": { "unitTypes": ["unit_leopard_2a8"] },
+			"cost": { "money": 640000, "oil": 120000, "steel": 480000, "electronics": 64000 },
+			"researchTimeTicks": 480,
+			"introYear": 2025
 		}
 	]
 }

@@ -26,6 +26,90 @@
 			"cost": { "money": 120000, "oil": 50000, "steel": 15000, "electronics": 60000 },
 			"researchTimeTicks": 60,
 			"introYear": 1987
+		},
+		{
+			"id": "f_16_block_50",
+			"tree": "air",
+			"tier": 2,
+			"displayName": "F-16C Block 50 Fighting Falcon",
+			"shortName": "F-16 Blk 50",
+			"prereqs": ["f_16_block_30"],
+			"unlocks": { "unitTypes": ["unit_f_16_block_50"] },
+			"cost": { "money": 300000, "oil": 125000, "steel": 37500, "electronics": 150000 },
+			"researchTimeTicks": 120,
+			"introYear": 1991
+		},
+		{
+			"id": "f_16_block_52",
+			"tree": "air",
+			"tier": 2,
+			"displayName": "F-16C Block 52 Fighting Falcon",
+			"shortName": "F-16 Blk 52",
+			"prereqs": ["f_16_block_30"],
+			"unlocks": { "unitTypes": ["unit_f_16_block_52"] },
+			"cost": { "money": 300000, "oil": 125000, "steel": 37500, "electronics": 175000 },
+			"researchTimeTicks": 120,
+			"introYear": 1991
+		},
+		{
+			"id": "f_15ex",
+			"tree": "air",
+			"tier": 3,
+			"displayName": "F-15EX Eagle II",
+			"shortName": "F-15EX",
+			"prereqs": ["f_16_block_50"],
+			"unlocks": { "unitTypes": ["unit_f_15ex"] },
+			"cost": { "money": 600000, "oil": 250000, "steel": 75000, "electronics": 300000 },
+			"researchTimeTicks": 240,
+			"introYear": 2021
+		},
+		{
+			"id": "f_16_block_70",
+			"tree": "air",
+			"tier": 3,
+			"displayName": "F-16V Block 70/72 Viper",
+			"shortName": "F-16 Blk 70",
+			"prereqs": ["f_16_block_52"],
+			"unlocks": { "unitTypes": ["unit_f_16_block_70"] },
+			"cost": { "money": 600000, "oil": 250000, "steel": 75000, "electronics": 350000 },
+			"researchTimeTicks": 240,
+			"introYear": 2018
+		},
+		{
+			"id": "f_22_raptor",
+			"tree": "air",
+			"tier": 4,
+			"displayName": "F-22 Raptor",
+			"shortName": "F-22",
+			"prereqs": ["f_15ex"],
+			"unlocks": { "unitTypes": ["unit_f_22_raptor"] },
+			"cost": { "money": 960000, "oil": 400000, "steel": 120000, "electronics": 480000 },
+			"researchTimeTicks": 480,
+			"introYear": 2005
+		},
+		{
+			"id": "f_35a_lightning",
+			"tree": "air",
+			"tier": 4,
+			"displayName": "F-35A Lightning II",
+			"shortName": "F-35A",
+			"prereqs": ["f_16_block_70"],
+			"unlocks": { "unitTypes": ["unit_f_35a_lightning"] },
+			"cost": { "money": 960000, "oil": 400000, "steel": 120000, "electronics": 600000 },
+			"researchTimeTicks": 480,
+			"introYear": 2016
+		},
+		{
+			"id": "ngad",
+			"tree": "air",
+			"tier": 4,
+			"displayName": "NGAD F/A-XX Concept",
+			"shortName": "NGAD",
+			"prereqs": ["f_15ex", "f_22_raptor"],
+			"unlocks": { "unitTypes": ["unit_ngad"] },
+			"cost": { "money": 1500000, "oil": 500000, "steel": 200000, "electronics": 800000 },
+			"researchTimeTicks": 480,
+			"introYear": 2030
 		}
 	]
 }

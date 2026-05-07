@@ -26,6 +26,42 @@
 			"cost": { "money": 150000, "oil": 10000, "steel": 80000, "electronics": 30000 },
 			"researchTimeTicks": 60,
 			"introYear": 2005
+		},
+		{
+			"id": "type_054a",
+			"tree": "naval",
+			"tier": 2,
+			"displayName": "Type 054A Frigate",
+			"shortName": "054A",
+			"prereqs": ["type_054"],
+			"unlocks": { "unitTypes": ["unit_type_054a"] },
+			"cost": { "money": 375000, "oil": 25000, "steel": 200000, "electronics": 75000 },
+			"researchTimeTicks": 120,
+			"introYear": 2008
+		},
+		{
+			"id": "type_056a",
+			"tree": "naval",
+			"tier": 3,
+			"displayName": "Type 056A Corvette",
+			"shortName": "056A",
+			"prereqs": ["type_054a"],
+			"unlocks": { "unitTypes": ["unit_type_056a"] },
+			"cost": { "money": 750000, "oil": 50000, "steel": 400000, "electronics": 150000 },
+			"researchTimeTicks": 240,
+			"introYear": 2014
+		},
+		{
+			"id": "type_054b",
+			"tree": "naval",
+			"tier": 4,
+			"displayName": "Type 054B Frigate",
+			"shortName": "054B",
+			"prereqs": ["type_056a"],
+			"unlocks": { "unitTypes": ["unit_type_054b"] },
+			"cost": { "money": 1200000, "oil": 80000, "steel": 640000, "electronics": 240000 },
+			"researchTimeTicks": 480,
+			"introYear": 2024
 		}
 	]
 }

@@ -26,6 +26,42 @@
 			"cost": { "money": 100000, "oil": 25000, "steel": 25000, "electronics": 50000 },
 			"researchTimeTicks": 60,
 			"introYear": 1986
+		},
+		{
+			"id": "ah_64d",
+			"tree": "helicopters",
+			"tier": 2,
+			"displayName": "AH-64D Apache Longbow",
+			"shortName": "AH-64D",
+			"prereqs": ["ah_64a"],
+			"unlocks": { "unitTypes": ["unit_ah_64d"] },
+			"cost": { "money": 250000, "oil": 62500, "steel": 62500, "electronics": 125000 },
+			"researchTimeTicks": 120,
+			"introYear": 1997
+		},
+		{
+			"id": "ah_64e",
+			"tree": "helicopters",
+			"tier": 3,
+			"displayName": "AH-64E Apache Guardian",
+			"shortName": "AH-64E",
+			"prereqs": ["ah_64d"],
+			"unlocks": { "unitTypes": ["unit_ah_64e"] },
+			"cost": { "money": 500000, "oil": 125000, "steel": 125000, "electronics": 250000 },
+			"researchTimeTicks": 240,
+			"introYear": 2011
+		},
+		{
+			"id": "flraa_v_280",
+			"tree": "helicopters",
+			"tier": 4,
+			"displayName": "FLRAA V-280 Valor",
+			"shortName": "V-280",
+			"prereqs": ["ah_64e"],
+			"unlocks": { "unitTypes": ["unit_flraa_v_280"] },
+			"cost": { "money": 800000, "oil": 200000, "steel": 200000, "electronics": 400000 },
+			"researchTimeTicks": 480,
+			"introYear": 2030
 		}
 	]
 }

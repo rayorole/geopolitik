@@ -26,6 +26,42 @@
 			"cost": { "money": 250000, "oil": 80000, "steel": 120000, "electronics": 80000 },
 			"researchTimeTicks": 60,
 			"introYear": 1975
+		},
+		{
+			"id": "los_angeles_sub",
+			"tree": "deep_water",
+			"tier": 2,
+			"displayName": "Los Angeles-class Submarine",
+			"shortName": "LA-class",
+			"prereqs": ["nimitz_class"],
+			"unlocks": { "unitTypes": ["unit_los_angeles_sub"] },
+			"cost": { "money": 625000, "oil": 200000, "steel": 300000, "electronics": 200000 },
+			"researchTimeTicks": 120,
+			"introYear": 1976
+		},
+		{
+			"id": "virginia_sub",
+			"tree": "deep_water",
+			"tier": 3,
+			"displayName": "Virginia-class Attack Submarine",
+			"shortName": "Virginia",
+			"prereqs": ["los_angeles_sub"],
+			"unlocks": { "unitTypes": ["unit_virginia_sub"] },
+			"cost": { "money": 1250000, "oil": 400000, "steel": 600000, "electronics": 400000 },
+			"researchTimeTicks": 240,
+			"introYear": 2004
+		},
+		{
+			"id": "ford_class",
+			"tree": "deep_water",
+			"tier": 4,
+			"displayName": "Gerald R. Ford-class Supercarrier",
+			"shortName": "CVN-78",
+			"prereqs": ["virginia_sub"],
+			"unlocks": { "unitTypes": ["unit_ford_class"] },
+			"cost": { "money": 2000000, "oil": 640000, "steel": 960000, "electronics": 640000 },
+			"researchTimeTicks": 480,
+			"introYear": 2017
 		}
 	]
 }

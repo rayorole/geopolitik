@@ -26,6 +26,42 @@
 			"cost": { "money": 100000, "oil": 25000, "steel": 25000, "electronics": 50000 },
 			"researchTimeTicks": 60,
 			"introYear": 2012
+		},
+		{
+			"id": "z_19",
+			"tree": "helicopters",
+			"tier": 2,
+			"displayName": "Z-19 Black Whirlwind",
+			"shortName": "Z-19",
+			"prereqs": ["z_10"],
+			"unlocks": { "unitTypes": ["unit_z_19"] },
+			"cost": { "money": 250000, "oil": 62500, "steel": 62500, "electronics": 125000 },
+			"researchTimeTicks": 120,
+			"introYear": 2011
+		},
+		{
+			"id": "z_20",
+			"tree": "helicopters",
+			"tier": 3,
+			"displayName": "Z-20 Medium Utility Helicopter",
+			"shortName": "Z-20",
+			"prereqs": ["z_19"],
+			"unlocks": { "unitTypes": ["unit_z_20"] },
+			"cost": { "money": 500000, "oil": 125000, "steel": 125000, "electronics": 250000 },
+			"researchTimeTicks": 240,
+			"introYear": 2019
+		},
+		{
+			"id": "z_21",
+			"tree": "helicopters",
+			"tier": 4,
+			"displayName": "Z-21 Heavy Attack Helicopter",
+			"shortName": "Z-21",
+			"prereqs": ["z_20"],
+			"unlocks": { "unitTypes": ["unit_z_21"] },
+			"cost": { "money": 800000, "oil": 200000, "steel": 200000, "electronics": 400000 },
+			"researchTimeTicks": 480,
+			"introYear": 2030
 		}
 	]
 }
