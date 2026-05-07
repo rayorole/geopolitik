@@ -64,6 +64,20 @@
       "when": 1778163450000,
       "tag": "0008_world_v2_seed",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1778163500000,
+      "tag": "0009_world_v2_add_coastality",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1778163550000,
+      "tag": "0010_world_v2_seed",
+      "breakpoints": true
     }
   ]
 }

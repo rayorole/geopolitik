@@ -2,22 +2,29 @@
  * fetch-test-cities.ts — fixture v2 generator.
  *
  * Reproducible curation rule:
- *   1. Fetch GeoNames `countryInfo.txt` and `cities500.zip`.
+ *   1. Fetch GeoNames `countryInfo.txt` and `cities500.zip` and
+ *      Natural Earth `ne_50m_coastline.geojson`.
  *   2. Eligibility: 3-letter ISO + (population >= 250k OR area >= 30k km^2).
  *   3. Bucket by area:
  *        - playable     (area >= 50k km^2): pop-thirds -> 12 / 10 / 8 cities
  *        - decoration   (area <  50k km^2): pop-thirds -> 6 / 4 / 3 cities
  *      Decoration countries are unplayable (joinable=false in game schema)
  *      but render on the map as terrain.
- *   4. For each country, take top-N cities by population from cities500
- *      (capital first).
- *   5. Merge per-city multipliers from `packages/world-data/city-bonuses.json`.
- *   6. Write `packages/world-data/test-world.json` and a Drizzle seed
- *      migration `packages/db/drizzle/0008_world_v2_seed.sql` that wipes
+ *   4. For each country: drop GeoNames PPLX (city subdivisions); apply the
+ *      capital + largest-non-capital anchors then greedy-by-pop with a
+ *      country-area-aware min-distance veto. See pickCitiesFor().
+ *   5. Mark each country as landlocked (no naval access) using the hardcoded
+ *      LANDLOCKED set — Caspian-only countries are landlocked for our rules.
+ *   6. Mark each city as coastal if its country is NOT landlocked AND
+ *      (distance-to-coastline <= 10 km OR `${ISO3}:${asciiName}` is in
+ *      `port-overrides.json`).
+ *   7. Merge per-city multipliers from `packages/world-data/city-bonuses.json`.
+ *   8. Write `packages/world-data/test-world.json` and a Drizzle seed
+ *      migration `packages/db/drizzle/0010_world_v2_seed.sql` that wipes
  *      country/city (CASCADE) before inserting the v2 fixture.
  *
  * Run:    bun run apps/worldgen/scripts/fetch-test-cities.ts
- * Output: deterministic given the same GeoNames snapshot.
+ * Output: deterministic given the same GeoNames + NE snapshots.
  */
 
 import { existsSync, mkdirSync } from "node:fs";
@@ -32,12 +39,22 @@ import {
 } from "@geopolitik/world-data";
 import unzipper from "unzipper";
 import { v7 as uuidv7 } from "uuid";
+import { z } from "zod";
 
 const REPO_ROOT = join(import.meta.dir, "..", "..", "..");
 const CACHE_DIR = join(import.meta.dir, "..", ".cache");
 const COUNTRY_INFO_URL = "https://download.geonames.org/export/dump/countryInfo.txt";
 const CITIES_ZIP_URL = "https://download.geonames.org/export/dump/cities500.zip";
 const CITIES_TXT_NAME = "cities500.txt";
+// Pre-converted Natural Earth GeoJSON — naciscdn ships shapefiles only.
+const COASTLINE_GEOJSON_URL =
+	"https://raw.githubusercontent.com/martynafford/natural-earth-geojson/master/50m/physical/ne_50m_coastline.json";
+
+// Coastal city threshold — any city within this many km of the open-ocean
+// coastline polyline counts as `isCoastal`. River-port cities further inland
+// (Antwerp on the Scheldt, Hamburg on the Elbe, etc.) are flagged via the
+// curated `port-overrides.json` whitelist instead — see Q4 in ROADMAP grilling.
+const COASTAL_DISTANCE_KM = 10;
 
 // Eligibility — country shows up at all if either threshold is met.
 const MIN_COUNTRY_POPULATION = 250_000;
@@ -64,6 +81,61 @@ const DENYLIST_ISO3 = new Set([
 	"SHN", // Saint Helena, Ascension, Tristan da Cunha
 ]);
 
+// Landlocked = no naval access. Includes "Caspian-only" countries
+// (Kazakhstan, Turkmenistan, Azerbaijan) — they have shoreline but no open
+// ocean connection, so we treat them as landlocked for naval gameplay.
+const LANDLOCKED_ISO3 = new Set([
+	// Africa
+	"BDI", // Burundi
+	"BFA", // Burkina Faso
+	"BWA", // Botswana
+	"CAF", // Central African Republic
+	"ETH", // Ethiopia
+	"LSO", // Lesotho
+	"MLI", // Mali
+	"MWI", // Malawi
+	"NER", // Niger
+	"RWA", // Rwanda
+	"SSD", // South Sudan
+	"SWZ", // Eswatini
+	"TCD", // Chad
+	"UGA", // Uganda
+	"ZMB", // Zambia
+	"ZWE", // Zimbabwe
+	// Europe
+	"AND", // Andorra
+	"AUT", // Austria
+	"BLR", // Belarus
+	"CHE", // Switzerland
+	"CZE", // Czech Republic
+	"HUN", // Hungary
+	"LIE", // Liechtenstein
+	"LUX", // Luxembourg
+	"MDA", // Moldova
+	"MKD", // North Macedonia
+	"SMR", // San Marino
+	"SRB", // Serbia
+	"SVK", // Slovakia
+	"VAT", // Vatican City
+	"XKX", // Kosovo (GeoNames uses XKX)
+	// Asia
+	"AFG", // Afghanistan
+	"ARM", // Armenia
+	"AZE", // Azerbaijan (Caspian-only)
+	"BTN", // Bhutan
+	"KAZ", // Kazakhstan (Caspian-only)
+	"KGZ", // Kyrgyzstan
+	"LAO", // Laos
+	"MNG", // Mongolia
+	"NPL", // Nepal
+	"TJK", // Tajikistan
+	"TKM", // Turkmenistan (Caspian-only)
+	"UZB", // Uzbekistan
+	// Americas
+	"BOL", // Bolivia
+	"PRY", // Paraguay
+]);
+
 // Per-bucket city counts: top / mid / bottom population thirds within bucket.
 const PLAYABLE_TIER = { top: 12, mid: 10, low: 8 } as const;
 const DECORATION_TIER = { top: 6, mid: 4, low: 3 } as const;
@@ -74,7 +146,7 @@ const MIN_DISTANCE_FLOOR_KM = 30;
 const MIN_DISTANCE_SCALE = 0.4;
 
 const OUT_JSON = join(REPO_ROOT, "packages", "world-data", "test-world.json");
-const OUT_SQL = join(REPO_ROOT, "packages", "db", "drizzle", "0008_world_v2_seed.sql");
+const OUT_SQL = join(REPO_ROOT, "packages", "db", "drizzle", "0010_world_v2_seed.sql");
 const BONUSES_PATH = join(REPO_ROOT, "packages", "world-data", "city-bonuses.json");
 
 if (!existsSync(CACHE_DIR)) mkdirSync(CACHE_DIR, { recursive: true });
@@ -177,6 +249,127 @@ async function loadCitiesByIso2(targetIso2: Set<string>): Promise<Map<string, Ra
 			?.push({ id, name, asciiName, lat, lng, countryIso2: iso2, featureCode, population });
 	}
 	return byIso2;
+}
+
+// ── 2b. Coastline + port overrides ──────────────────────────────────────────
+
+type LngLat = [number, number]; // GeoJSON convention: [lng, lat]
+type Polyline = {
+	verts: LngLat[];
+	minLat: number;
+	maxLat: number;
+	minLng: number;
+	maxLng: number;
+};
+
+async function loadCoastlinePolylines(): Promise<Polyline[]> {
+	const buf = await fetchCached(COASTLINE_GEOJSON_URL, "ne_50m_coastline.geojson");
+	const fc = JSON.parse(buf.toString("utf8")) as {
+		features: Array<{ geometry: { type: string; coordinates: unknown } }>;
+	};
+	const polys: Polyline[] = [];
+	const pushLine = (verts: LngLat[]) => {
+		if (verts.length < 2) return;
+		let minLat = 90;
+		let maxLat = -90;
+		let minLng = 180;
+		let maxLng = -180;
+		for (const v of verts) {
+			if (v[1] < minLat) minLat = v[1];
+			if (v[1] > maxLat) maxLat = v[1];
+			if (v[0] < minLng) minLng = v[0];
+			if (v[0] > maxLng) maxLng = v[0];
+		}
+		polys.push({ verts, minLat, maxLat, minLng, maxLng });
+	};
+	for (const f of fc.features) {
+		const g = f.geometry;
+		if (g.type === "LineString") pushLine(g.coordinates as LngLat[]);
+		else if (g.type === "MultiLineString") {
+			for (const line of g.coordinates as LngLat[][]) pushLine(line);
+		}
+	}
+	return polys;
+}
+
+/*
+ * Approximate min-km-distance from (lat,lng) to a polyline's bounding box.
+ * Cheap pruning: if this is already > current best, the polyline can't beat it.
+ * Equirectangular approximation — fine for the 10–50 km scale we care about.
+ */
+function bboxDistanceKm(lat: number, lng: number, p: Polyline): number {
+	const dLat = lat < p.minLat ? p.minLat - lat : lat > p.maxLat ? lat - p.maxLat : 0;
+	const dLng = lng < p.minLng ? p.minLng - lng : lng > p.maxLng ? lng - p.maxLng : 0;
+	const kmLat = dLat * 111;
+	const kmLng = dLng * 111 * Math.cos((lat * Math.PI) / 180);
+	return Math.sqrt(kmLat * kmLat + kmLng * kmLng);
+}
+
+/*
+ * Distance from (lat,lng) to a single line segment, using equirectangular
+ * projection local to the city. Accurate to <0.1% within ~50 km — well below
+ * our 10 km threshold's precision needs.
+ */
+function pointToSegmentKm(lat: number, lng: number, a: LngLat, b: LngLat): number {
+	const cosLat = Math.cos((lat * Math.PI) / 180);
+	const ax = (a[0] - lng) * cosLat;
+	const ay = a[1] - lat;
+	const bx = (b[0] - lng) * cosLat;
+	const by = b[1] - lat;
+	const vx = bx - ax;
+	const vy = by - ay;
+	const len2 = vx * vx + vy * vy;
+	let fx: number;
+	let fy: number;
+	if (len2 === 0) {
+		fx = ax;
+		fy = ay;
+	} else {
+		let t = -(ax * vx + ay * vy) / len2;
+		t = Math.max(0, Math.min(1, t));
+		fx = ax + t * vx;
+		fy = ay + t * vy;
+	}
+	const kmLat = fy * 111;
+	const kmLng = fx * 111;
+	return Math.sqrt(kmLat * kmLat + kmLng * kmLng);
+}
+
+function distanceToCoastlineKm(polylines: Polyline[], lat: number, lng: number): number {
+	let min = Number.POSITIVE_INFINITY;
+	for (const p of polylines) {
+		if (bboxDistanceKm(lat, lng, p) > min) continue;
+		for (let i = 0; i < p.verts.length - 1; i++) {
+			const a = p.verts[i];
+			const b = p.verts[i + 1];
+			if (!a || !b) continue;
+			const d = pointToSegmentKm(lat, lng, a, b);
+			if (d < min) min = d;
+		}
+	}
+	return min;
+}
+
+const portOverridesSchema = z.object({
+	version: z.literal(1),
+	ports: z.array(
+		z.object({
+			country: z.string().length(3),
+			name: z.string(), // matches GeoNames asciiName
+			note: z.string().optional(),
+		}),
+	),
+});
+
+async function loadPortOverrides(): Promise<Set<string>> {
+	const path = join(REPO_ROOT, "packages", "world-data", "port-overrides.json");
+	if (!existsSync(path)) return new Set();
+	const raw = JSON.parse(await readFile(path, "utf8"));
+	const parsed = portOverridesSchema.parse(raw);
+	const set = new Set<string>();
+	for (const p of parsed.ports) set.add(`${p.country}:${p.name}`);
+	console.log(`[ports] ${set.size} river-port overrides loaded`);
+	return set;
 }
 
 // ── 3. Curation ─────────────────────────────────────────────────────────────
@@ -287,13 +480,13 @@ function emitSql(world: TestWorld): string {
 	];
 	for (const c of world.countries) {
 		lines.push(
-			`INSERT INTO "country" ("code", "name", "area_km2", "is_playable") VALUES ('${sqlEscape(c.code)}', '${sqlEscape(c.name)}', ${c.areaKm2}, ${c.isPlayable});`,
+			`INSERT INTO "country" ("code", "name", "area_km2", "is_playable", "is_landlocked") VALUES ('${sqlEscape(c.code)}', '${sqlEscape(c.name)}', ${c.areaKm2}, ${c.isPlayable}, ${c.isLandlocked});`,
 		);
 	}
 	lines.push("");
 	for (const c of world.cities) {
 		lines.push(
-			`INSERT INTO "city" ("id", "country_code", "name", "lat", "lng", "base_population", "is_capital", "money_mult", "steel_mult", "electronics_mult", "oil_mult") VALUES ('${c.id}', '${sqlEscape(c.countryCode)}', '${sqlEscape(c.name)}', ${c.lat}, ${c.lng}, ${c.basePopulation}, ${c.isCapital}, ${c.moneyMult}, ${c.steelMult}, ${c.electronicsMult}, ${c.oilMult});`,
+			`INSERT INTO "city" ("id", "country_code", "name", "lat", "lng", "base_population", "is_capital", "is_coastal", "money_mult", "steel_mult", "electronics_mult", "oil_mult") VALUES ('${c.id}', '${sqlEscape(c.countryCode)}', '${sqlEscape(c.name)}', ${c.lat}, ${c.lng}, ${c.basePopulation}, ${c.isCapital}, ${c.isCoastal}, ${c.moneyMult}, ${c.steelMult}, ${c.electronicsMult}, ${c.oilMult});`,
 		);
 	}
 	lines.push("");
@@ -328,6 +521,12 @@ async function main() {
 	const cityMap = await loadCitiesByIso2(targetIso2);
 	console.log("[cities] dataset loaded");
 
+	const coastline = await loadCoastlinePolylines();
+	const totalVerts = coastline.reduce((n, p) => n + p.verts.length, 0);
+	console.log(`[coastline] ${coastline.length} polylines, ${totalVerts} vertices`);
+
+	const portOverrides = await loadPortOverrides();
+
 	let bonuses: CityBonuses = {};
 	if (existsSync(BONUSES_PATH)) {
 		const raw = JSON.parse(await readFile(BONUSES_PATH, "utf8"));
@@ -351,17 +550,34 @@ async function main() {
 				return;
 			}
 
+			const isLandlocked = LANDLOCKED_ISO3.has(country.iso3);
+
 			countryRows.push({
 				code: country.iso3,
 				name: country.name,
 				population: country.population,
 				areaKm2: country.areaKm2,
 				isPlayable: playableBucket,
+				isLandlocked,
 			});
 
 			for (const c of top) {
 				const bonusKey = `${country.iso3}:${c.asciiName || c.name}`;
 				const b = bonuses[bonusKey] ?? {};
+
+				// A city is coastal iff its country is NOT landlocked AND
+				// (within COASTAL_DISTANCE_KM of NE coastline OR in the curated
+				// port-overrides whitelist). The landlocked guard prevents
+				// Caspian-shore cities (Atyrau, Aktau, Türkmenbaşy, Baku) from
+				// false-flagging — Caspian coastline is in NE_50m_coastline but
+				// has no ocean connection.
+				let isCoastal = false;
+				if (!isLandlocked) {
+					const distKm = distanceToCoastlineKm(coastline, c.lat, c.lng);
+					const overrideKey = `${country.iso3}:${c.asciiName || c.name}`;
+					isCoastal = distKm <= COASTAL_DISTANCE_KM || portOverrides.has(overrideKey);
+				}
+
 				cityRows.push({
 					id: uuidv7(),
 					countryCode: country.iso3,
@@ -370,6 +586,7 @@ async function main() {
 					lng: c.lng,
 					basePopulation: c.population,
 					isCapital: c.featureCode === "PPLC",
+					isCoastal,
 					moneyMult: b.moneyMult ?? 1.0,
 					steelMult: b.steelMult ?? 1.0,
 					electronicsMult: b.electronicsMult ?? 1.0,
@@ -402,8 +619,10 @@ async function main() {
 	await writeFile(OUT_SQL, emitSql(world));
 
 	const playableCount = countryRows.filter((c) => c.isPlayable).length;
+	const landlockedCount = countryRows.filter((c) => c.isLandlocked).length;
+	const coastalCount = cityRows.filter((c) => c.isCoastal).length;
 	console.log(
-		`[done] ${countryRows.length} countries (${playableCount} playable, ${countryRows.length - playableCount} decoration), ${cityRows.length} cities`,
+		`[done] ${countryRows.length} countries (${playableCount} playable, ${countryRows.length - playableCount} decoration, ${landlockedCount} landlocked), ${cityRows.length} cities (${coastalCount} coastal)`,
 	);
 	console.log(`        -> ${OUT_JSON}`);
 	console.log(`        -> ${OUT_SQL}`);

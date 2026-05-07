@@ -14,6 +14,7 @@ export const countryRowSchema = z.object({
 	population: z.number().int().nonnegative(),
 	areaKm2: z.number().int().nonnegative(),
 	isPlayable: z.boolean(),
+	isLandlocked: z.boolean(),
 });
 
 export const cityRowSchema = z.object({
@@ -24,6 +25,7 @@ export const cityRowSchema = z.object({
 	lng: z.number(),
 	basePopulation: z.number().int().positive(),
 	isCapital: z.boolean(),
+	isCoastal: z.boolean(),
 	moneyMult: z.number().nonnegative().default(1.0),
 	steelMult: z.number().nonnegative().default(1.0),
 	electronicsMult: z.number().nonnegative().default(1.0),
