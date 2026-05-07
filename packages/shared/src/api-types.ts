@@ -47,6 +47,8 @@ export const nationInSnapshot = z.object({
 	welfare: z.number().int().min(0).max(100),
 	healthcare: z.number().int().min(0).max(100),
 	propaganda: z.number().int().min(0).max(100),
+	researchSlotMax: z.number().int().positive(),
+	unlockedSystems: z.array(z.string()),
 });
 
 export const myOrder = z.object({

@@ -449,6 +449,8 @@ export function createGamesRouter() {
 				welfare: schema.nationState.welfare,
 				healthcare: schema.nationState.healthcare,
 				propaganda: schema.nationState.propaganda,
+				researchSlotMax: schema.nationState.researchSlotMax,
+				unlockedSystems: schema.nationState.unlockedSystems,
 			})
 			.from(schema.nationState)
 			.where(eq(schema.nationState.gameId, gameId));

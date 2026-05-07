@@ -271,6 +271,146 @@ export async function applyStartResearch(
 }
 
 /*
+ * Phase 4d helpers.
+ */
+
+export type MaturedResearchProject = {
+	projectId: string;
+	playerId: string;
+	nodeId: string;
+	unlockedAtTick: number;
+	systems: string[];
+};
+
+/*
+ * Lab economy yield boost — Phase 4d.
+ *
+ * Each completed research_lab adds 5% to the player's economy-category
+ * building yields, linear, capped at 5 labs (max +25%). Returns the boost
+ * factor (1.0 + 0.05 * min(labCount, 5)).
+ */
+export function labEconomyBoostFactor(labCount: number): number {
+	const eff = getBuildingDef("research_lab")?.effects;
+	if (!eff?.economyYieldBoostPct || !eff?.stackCap) return 1;
+	const effective = Math.min(Math.max(labCount, 0), eff.stackCap);
+	return 1 + (effective * eff.economyYieldBoostPct) / 100;
+}
+
+/*
+ * matureResearchProjects — Phase 4d tick step.
+ *
+ * Find all in_progress research_project rows where expected_completion_tick
+ * has elapsed. For each: insert a research_unlock row (idempotent via the
+ * PK on game/player/node), mark the project completed, append the node's
+ * unlocks.systems to nation_state.unlocked_systems.
+ *
+ * Returns the matured rows so the caller (tick.ts) can broadcast a private
+ * research_completed WS event to each owning player.
+ *
+ * Idempotent on tick retry:
+ *   - research_unlock PK prevents duplicate rows
+ *   - research_project status=completed is the terminal state
+ *   - unlocked_systems uses array_append-only-if-missing
+ */
+export async function matureResearchProjects(
+	tx: Tx,
+	gameId: string,
+	currentTick: number,
+): Promise<MaturedResearchProject[]> {
+	const due = await tx
+		.select({
+			projectId: schema.researchProject.id,
+			playerId: schema.researchProject.playerId,
+			nodeId: schema.researchProject.nodeId,
+			countryCode: schema.player.countryCode,
+		})
+		.from(schema.researchProject)
+		.innerJoin(schema.player, eq(schema.player.id, schema.researchProject.playerId))
+		.where(
+			and(
+				eq(schema.researchProject.gameId, gameId),
+				eq(schema.researchProject.status, "in_progress"),
+				sql`${schema.researchProject.expectedCompletionTick} <= ${currentTick}`,
+			),
+		);
+
+	const matured: MaturedResearchProject[] = [];
+	for (const row of due) {
+		const faction = factionForCountry(row.countryCode);
+		if (!faction) continue;
+		const node = findNode(faction, row.nodeId);
+		if (!node) continue;
+
+		await tx
+			.insert(schema.researchUnlock)
+			.values({
+				gameId,
+				playerId: row.playerId,
+				nodeId: row.nodeId,
+				unlockedAtTick: currentTick,
+				viaProjectId: row.projectId,
+			})
+			.onConflictDoNothing();
+
+		await tx
+			.update(schema.researchProject)
+			.set({ status: "completed", resolvedAtTick: currentTick })
+			.where(eq(schema.researchProject.id, row.projectId));
+
+		const systems = node.unlocks.systems ?? [];
+		if (systems.length > 0) {
+			// array_append only if missing — Postgres array_append always appends,
+			// so we use array(SELECT DISTINCT) to dedupe. Cheap for small arrays.
+			await tx
+				.update(schema.nationState)
+				.set({
+					unlockedSystems: sql`(
+						SELECT ARRAY(SELECT DISTINCT unnest(${schema.nationState.unlockedSystems} || ${systems}::text[]))
+					)`,
+					updatedAt: new Date(),
+				})
+				.where(
+					and(eq(schema.nationState.gameId, gameId), eq(schema.nationState.playerId, row.playerId)),
+				);
+		}
+
+		matured.push({
+			projectId: row.projectId,
+			playerId: row.playerId,
+			nodeId: row.nodeId,
+			unlockedAtTick: currentTick,
+			systems,
+		});
+	}
+
+	return matured;
+}
+
+/*
+ * countCompletedLabsByPlayer — pure helper for the lab boost. Filters rows
+ * already joined with city_state so defected cities don't count (the
+ * builder's investment forfeits when the host city flips, mirroring
+ * aggregateBuildingYields' invariant).
+ */
+export type LabCountRow = {
+	type: string;
+	state: string;
+	builtByPlayerId: string;
+	ownerPlayerId: string | null;
+};
+
+export function countCompletedLabsByPlayer(rows: LabCountRow[]): Map<string, number> {
+	const out = new Map<string, number>();
+	for (const r of rows) {
+		if (r.type !== "research_lab") continue;
+		if (r.state !== "complete") continue;
+		if (r.ownerPlayerId !== r.builtByPlayerId) continue;
+		out.set(r.builtByPlayerId, (out.get(r.builtByPlayerId) ?? 0) + 1);
+	}
+	return out;
+}
+
+/*
  * applyCancelResearch — refund 50% of paid (post-discount) cost, mark the
  * project cancelled. Slot frees as a consequence (the active-count query
  * filters by status='in_progress', so a cancelled row stops blocking).

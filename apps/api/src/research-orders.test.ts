@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
 	applyDiscountToCost,
+	countCompletedLabsByPlayer,
 	labDiscountPct,
+	labEconomyBoostFactor,
 	nodeIsAffordable,
 	researchCancelRefund,
 } from "./research-orders";
@@ -129,6 +131,67 @@ describe("nodeIsAffordable", () => {
 		expect(nodeIsAffordable({ money: 0, oil: 501, steel: 0, electronics: 0 }, balance)).toBe(false);
 		expect(nodeIsAffordable({ money: 0, oil: 0, steel: 801, electronics: 0 }, balance)).toBe(false);
 		expect(nodeIsAffordable({ money: 0, oil: 0, steel: 0, electronics: 201 }, balance)).toBe(false);
+	});
+});
+
+describe("labEconomyBoostFactor", () => {
+	it("returns 1.0 with no labs", () => {
+		expect(labEconomyBoostFactor(0)).toBe(1);
+	});
+
+	it("scales linearly per lab (5%, cap 5)", () => {
+		expect(labEconomyBoostFactor(1)).toBeCloseTo(1.05, 4);
+		expect(labEconomyBoostFactor(2)).toBeCloseTo(1.1, 4);
+		expect(labEconomyBoostFactor(3)).toBeCloseTo(1.15, 4);
+		expect(labEconomyBoostFactor(4)).toBeCloseTo(1.2, 4);
+		expect(labEconomyBoostFactor(5)).toBeCloseTo(1.25, 4);
+	});
+
+	it("caps at stackCap", () => {
+		expect(labEconomyBoostFactor(6)).toBeCloseTo(1.25, 4);
+		expect(labEconomyBoostFactor(100)).toBeCloseTo(1.25, 4);
+	});
+
+	it("clamps negative", () => {
+		expect(labEconomyBoostFactor(-1)).toBe(1);
+	});
+});
+
+describe("countCompletedLabsByPlayer", () => {
+	const alice = "00000000-0000-0000-0000-000000000001";
+	const bob = "00000000-0000-0000-0000-000000000002";
+
+	it("counts complete research_labs whose host city is still owned by the builder", () => {
+		const m = countCompletedLabsByPlayer([
+			{ type: "research_lab", state: "complete", builtByPlayerId: alice, ownerPlayerId: alice },
+			{ type: "research_lab", state: "complete", builtByPlayerId: alice, ownerPlayerId: alice },
+			{ type: "research_lab", state: "complete", builtByPlayerId: bob, ownerPlayerId: bob },
+		]);
+		expect(m.get(alice)).toBe(2);
+		expect(m.get(bob)).toBe(1);
+	});
+
+	it("ignores in-progress + cancelled labs", () => {
+		const m = countCompletedLabsByPlayer([
+			{ type: "research_lab", state: "in_progress", builtByPlayerId: alice, ownerPlayerId: alice },
+			{ type: "research_lab", state: "cancelled", builtByPlayerId: alice, ownerPlayerId: alice },
+		]);
+		expect(m.get(alice)).toBeUndefined();
+	});
+
+	it("ignores buildings on defected cities (owner ≠ builder)", () => {
+		const m = countCompletedLabsByPlayer([
+			{ type: "research_lab", state: "complete", builtByPlayerId: alice, ownerPlayerId: bob },
+			{ type: "research_lab", state: "complete", builtByPlayerId: alice, ownerPlayerId: null },
+		]);
+		expect(m.get(alice)).toBeUndefined();
+	});
+
+	it("ignores non-research_lab types", () => {
+		const m = countCompletedLabsByPlayer([
+			{ type: "steel_industry", state: "complete", builtByPlayerId: alice, ownerPlayerId: alice },
+		]);
+		expect(m.get(alice)).toBeUndefined();
 	});
 });
 

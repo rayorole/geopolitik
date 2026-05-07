@@ -6,6 +6,7 @@
  * All resource integers are stored × 100 so tick math stays in pure ints.
  */
 
+import { sql } from "drizzle-orm";
 import {
 	bigint,
 	integer,
@@ -93,6 +94,7 @@ export const nationState = pgTable(
 		healthcare: integer("healthcare").notNull().default(50),
 		propaganda: integer("propaganda").notNull().default(30),
 		researchSlotMax: integer("research_slot_max").notNull().default(2),
+		unlockedSystems: text("unlocked_systems").array().notNull().default(sql`ARRAY[]::text[]`),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 	},
 	(t) => ({
