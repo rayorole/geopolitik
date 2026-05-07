@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "nato_eu",
+	"tree": "deep_water",
+	"nodes": [
+		{
+			"id": "charles_de_gaulle",
+			"tree": "deep_water",
+			"tier": 0,
+			"displayName": "Charles de Gaulle (R91)",
+			"shortName": "CdG",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_charles_de_gaulle"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 2001
+		},
+		{
+			"id": "queen_elizabeth_class",
+			"tree": "deep_water",
+			"tier": 1,
+			"displayName": "Queen Elizabeth-class Carrier",
+			"shortName": "QE-class",
+			"prereqs": ["charles_de_gaulle"],
+			"unlocks": { "unitTypes": ["unit_queen_elizabeth_class"] },
+			"cost": { "money": 250000, "oil": 80000, "steel": 120000, "electronics": 80000 },
+			"researchTimeTicks": 60,
+			"introYear": 2017
+		}
+	]
+}

@@ -63,11 +63,8 @@ export type AggregateYieldRow = {
 
 export function aggregateBuildingYields(
 	rows: AggregateYieldRow[],
-): Map<string, { money: number; oil: number; steel: number; electronics: number; rp: number }> {
-	const out = new Map<
-		string,
-		{ money: number; oil: number; steel: number; electronics: number; rp: number }
-	>();
+): Map<string, { money: number; oil: number; steel: number; electronics: number }> {
+	const out = new Map<string, { money: number; oil: number; steel: number; electronics: number }>();
 	for (const row of rows) {
 		// Defected cities don't yield to the former owner — Q7a invariant.
 		if (row.ownerPlayerId !== row.builtByPlayerId) continue;
@@ -79,13 +76,11 @@ export function aggregateBuildingYields(
 			oil: 0,
 			steel: 0,
 			electronics: 0,
-			rp: 0,
 		};
 		acc.money += y.money ?? 0;
 		acc.oil += y.oil ?? 0;
 		acc.steel += y.steel ?? 0;
 		acc.electronics += y.electronics ?? 0;
-		acc.rp += y.rp ?? 0;
 		out.set(row.builtByPlayerId, acc);
 	}
 	return out;
@@ -246,10 +241,7 @@ export async function applyCancelBuildOrder(
  */
 export type MaturationOutcome = {
 	matured: { id: string; cityId: string; playerId: string; type: string }[];
-	yieldByPlayer: Map<
-		string,
-		{ money: number; oil: number; steel: number; electronics: number; rp: number }
-	>;
+	yieldByPlayer: Map<string, { money: number; oil: number; steel: number; electronics: number }>;
 };
 
 export async function matureBuildingsAndComputeYields(

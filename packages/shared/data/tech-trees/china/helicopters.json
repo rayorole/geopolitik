@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "china",
+	"tree": "helicopters",
+	"nodes": [
+		{
+			"id": "z_9",
+			"tree": "helicopters",
+			"tier": 0,
+			"displayName": "Z-9 Haitun",
+			"shortName": "Z-9",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_z_9"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1992
+		},
+		{
+			"id": "z_10",
+			"tree": "helicopters",
+			"tier": 1,
+			"displayName": "Z-10",
+			"shortName": "Z-10",
+			"prereqs": ["z_9"],
+			"unlocks": { "unitTypes": ["unit_z_10"] },
+			"cost": { "money": 100000, "oil": 25000, "steel": 25000, "electronics": 50000 },
+			"researchTimeTicks": 60,
+			"introYear": 2012
+		}
+	]
+}

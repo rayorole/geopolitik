@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "us",
+	"tree": "ground",
+	"nodes": [
+		{
+			"id": "us_inf_t0",
+			"tree": "ground",
+			"tier": 0,
+			"displayName": "M16-era Light Infantry",
+			"shortName": "US Inf (Legacy)",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_us_inf_t0"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1985
+		},
+		{
+			"id": "us_inf_t1",
+			"tree": "ground",
+			"tier": 1,
+			"displayName": "M4 Carbine Modular Infantry",
+			"shortName": "US Inf (Mod)",
+			"prereqs": ["us_inf_t0"],
+			"unlocks": { "unitTypes": ["unit_us_inf_t1"] },
+			"cost": { "money": 50000, "oil": 5000, "steel": 20000, "electronics": 5000 },
+			"researchTimeTicks": 60,
+			"introYear": 1995
+		}
+	]
+}

@@ -220,9 +220,15 @@ function summarizeYield(def: BuildingDef): string {
 	if (y.oil) parts.push(`${fmtRes(y.oil)} oil`);
 	if (y.steel) parts.push(`${fmtRes(y.steel)} steel`);
 	if (y.electronics) parts.push(`${fmtRes(y.electronics)} electronics`);
-	if (y.rp) parts.push(`${fmtRes(y.rp)} RP`);
+	const eff = def.effects;
+	if (eff?.researchCostDiscountPct) {
+		parts.push(`-${eff.researchCostDiscountPct}% research cost (cap ${eff.stackCap ?? "∞"})`);
+	}
+	if (eff?.economyYieldBoostPct) {
+		parts.push(`+${eff.economyYieldBoostPct}% economy yield (cap ${eff.stackCap ?? "∞"})`);
+	}
 	if (parts.length === 0) return "no yield (P5)";
-	return `+${parts.join(", ")}/tick`;
+	return parts.join(", ");
 }
 
 function InProgressRow({

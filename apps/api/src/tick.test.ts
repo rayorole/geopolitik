@@ -255,8 +255,6 @@ describe("getStartingResources", () => {
 		expect(r.oil).toBe(s.oil * RES_SCALE);
 		expect(r.steel).toBe(s.steel * RES_SCALE);
 		expect(r.electronics).toBe(s.electronics * RES_SCALE);
-		// RP is the only resource without a display scale.
-		expect(r.rp).toBe(s.rp);
 	});
 
 	it("displays 500K money on the HUD (i.e. 50M stored under ×100 scale)", () => {

@@ -351,9 +351,9 @@ export async function runTick(gameId: string): Promise<void> {
 			byPlayer.set(playerId, acc);
 		}
 
-		// Building yields fold in next. RP accumulates separately on nation_state.rp;
-		// the existing accumulator only tracks the four base resources.
-		const rpByPlayer = new Map<string, number>();
+		// Building yields fold in next. Phase 4 dropped the rp accumulator; the lab's
+		// effects now apply via researchCostDiscountPct / economyYieldBoostPct (see
+		// buildings.json).
 		for (const [playerId, y] of maturationOutcome.yieldByPlayer) {
 			const acc = byPlayer.get(playerId) ?? {
 				money: 0,
@@ -367,11 +367,9 @@ export async function runTick(gameId: string): Promise<void> {
 			acc.steel += y.steel;
 			acc.electronics += y.electronics;
 			byPlayer.set(playerId, acc);
-			if (y.rp > 0) rpByPlayer.set(playerId, (rpByPlayer.get(playerId) ?? 0) + y.rp);
 		}
 
 		for (const [playerId, acc] of byPlayer) {
-			const rpDelta = rpByPlayer.get(playerId) ?? 0;
 			await tx
 				.update(schema.nationState)
 				.set({
@@ -379,7 +377,6 @@ export async function runTick(gameId: string): Promise<void> {
 					oil: sql`${schema.nationState.oil} + ${acc.oil}`,
 					steel: sql`${schema.nationState.steel} + ${acc.steel}`,
 					electronics: sql`${schema.nationState.electronics} + ${acc.electronics}`,
-					rp: sql`${schema.nationState.rp} + ${rpDelta}`,
 					population: acc.population,
 					updatedAt: new Date(),
 				})
@@ -445,7 +442,6 @@ async function broadcastTick(
 			steel: schema.nationState.steel,
 			electronics: schema.nationState.electronics,
 			population: schema.nationState.population,
-			rp: schema.nationState.rp,
 			taxation: schema.nationState.taxation,
 			welfare: schema.nationState.welfare,
 			healthcare: schema.nationState.healthcare,

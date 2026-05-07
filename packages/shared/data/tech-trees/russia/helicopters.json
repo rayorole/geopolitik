@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "russia",
+	"tree": "helicopters",
+	"nodes": [
+		{
+			"id": "mi_24",
+			"tree": "helicopters",
+			"tier": 0,
+			"displayName": "Mi-24 Hind",
+			"shortName": "Mi-24",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_mi_24"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1972
+		},
+		{
+			"id": "mi_28",
+			"tree": "helicopters",
+			"tier": 1,
+			"displayName": "Mi-28 Havoc",
+			"shortName": "Mi-28",
+			"prereqs": ["mi_24"],
+			"unlocks": { "unitTypes": ["unit_mi_28"] },
+			"cost": { "money": 100000, "oil": 25000, "steel": 25000, "electronics": 50000 },
+			"researchTimeTicks": 60,
+			"introYear": 1996
+		}
+	]
+}

@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "nato_eu",
+	"tree": "air",
+	"nodes": [
+		{
+			"id": "mirage_f1",
+			"tree": "air",
+			"tier": 0,
+			"displayName": "Dassault Mirage F1",
+			"shortName": "Mirage F1",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_mirage_f1"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1973
+		},
+		{
+			"id": "mirage_2000",
+			"tree": "air",
+			"tier": 1,
+			"displayName": "Dassault Mirage 2000",
+			"shortName": "Mirage 2000",
+			"prereqs": ["mirage_f1"],
+			"unlocks": { "unitTypes": ["unit_mirage_2000"] },
+			"cost": { "money": 120000, "oil": 50000, "steel": 15000, "electronics": 60000 },
+			"researchTimeTicks": 60,
+			"introYear": 1984
+		}
+	]
+}

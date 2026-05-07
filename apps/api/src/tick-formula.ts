@@ -75,14 +75,13 @@ export function applyProductionToCity(c: CityProductionInput): {
 /*
  * Starting resources at /games/:id/join, in stored units. The JSON values are
  * in display units; this helper applies RES_SCALE so the caller can write
- * the result straight into nation_state without re-scaling. RP is raw.
+ * the result straight into nation_state without re-scaling.
  */
 export type StartingResources = {
 	money: number;
 	oil: number;
 	steel: number;
 	electronics: number;
-	rp: number;
 };
 
 export function getStartingResources(): StartingResources {
@@ -92,7 +91,6 @@ export function getStartingResources(): StartingResources {
 		oil: s.oil * RES_SCALE,
 		steel: s.steel * RES_SCALE,
 		electronics: s.electronics * RES_SCALE,
-		rp: s.rp,
 	};
 }
 

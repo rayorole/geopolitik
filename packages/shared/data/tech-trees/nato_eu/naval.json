@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "nato_eu",
+	"tree": "naval",
+	"nodes": [
+		{
+			"id": "type_23_frigate",
+			"tree": "naval",
+			"tier": 0,
+			"displayName": "Type 23 Frigate",
+			"shortName": "Type 23",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_type_23_frigate"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1990
+		},
+		{
+			"id": "la_fayette_class",
+			"tree": "naval",
+			"tier": 1,
+			"displayName": "La Fayette-class Frigate",
+			"shortName": "La Fayette",
+			"prereqs": ["type_23_frigate"],
+			"unlocks": { "unitTypes": ["unit_la_fayette_class"] },
+			"cost": { "money": 150000, "oil": 10000, "steel": 80000, "electronics": 30000 },
+			"researchTimeTicks": 60,
+			"introYear": 1996
+		}
+	]
+}

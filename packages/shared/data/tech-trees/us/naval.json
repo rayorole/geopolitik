@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "us",
+	"tree": "naval",
+	"nodes": [
+		{
+			"id": "oliver_hazard_perry",
+			"tree": "naval",
+			"tier": 0,
+			"displayName": "Oliver Hazard Perry-class Frigate",
+			"shortName": "FFG-7",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_oliver_hazard_perry"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1977
+		},
+		{
+			"id": "arleigh_burke_flight_i",
+			"tree": "naval",
+			"tier": 1,
+			"displayName": "Arleigh Burke Flight I",
+			"shortName": "DDG-51 Fl I",
+			"prereqs": ["oliver_hazard_perry"],
+			"unlocks": { "unitTypes": ["unit_arleigh_burke_flight_i"] },
+			"cost": { "money": 150000, "oil": 10000, "steel": 80000, "electronics": 30000 },
+			"researchTimeTicks": 60,
+			"introYear": 1991
+		}
+	]
+}

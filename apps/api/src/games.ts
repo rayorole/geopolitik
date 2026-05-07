@@ -283,7 +283,6 @@ export function createGamesRouter() {
 				oil: starting.oil,
 				steel: starting.steel,
 				electronics: starting.electronics,
-				rp: starting.rp,
 				population: 0,
 			});
 
@@ -415,7 +414,6 @@ export function createGamesRouter() {
 				steel: schema.nationState.steel,
 				electronics: schema.nationState.electronics,
 				population: schema.nationState.population,
-				rp: schema.nationState.rp,
 				taxation: schema.nationState.taxation,
 				welfare: schema.nationState.welfare,
 				healthcare: schema.nationState.healthcare,

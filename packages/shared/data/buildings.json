@@ -31,7 +31,13 @@
 			"category": "research",
 			"cost": { "money": 80000, "steel": 20000 },
 			"buildTimeTicks": 720,
-			"nationYieldPerTick": { "rp": 10000 }
+			"nationYieldPerTick": {},
+			"effects": {
+				"researchCostDiscountPct": 10,
+				"economyYieldBoostPct": 5,
+				"stack": "linear",
+				"stackCap": 5
+			}
 		},
 		{
 			"type": "recruitment_office",

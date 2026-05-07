@@ -16,7 +16,6 @@ import type { SliderName } from "./order-payloads";
  *     internal RES_SCALE (×100) at the boundary.
  *   - `economic` (slider-driven) is also in display-per-notch terms; the
  *     same RES_SCALE multiplication happens inside applySliderEconomics.
- *   - RP carries no display scale (raw integer everywhere).
  *
  * Same module-load pattern as buildings-catalog: a malformed JSON file fails
  * the boot, not a request.
@@ -32,14 +31,13 @@ const sliderRange = z
 
 export const nationPolicy = z
 	.object({
-		version: z.literal(2),
+		version: z.literal(3),
 		startingResources: z
 			.object({
 				money: z.number().int().nonnegative(),
 				oil: z.number().int().nonnegative(),
 				steel: z.number().int().nonnegative(),
 				electronics: z.number().int().nonnegative(),
-				rp: z.number().int().nonnegative(),
 			})
 			.strict(),
 		cityProduction: z

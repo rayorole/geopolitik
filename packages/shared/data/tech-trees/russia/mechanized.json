@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "russia",
+	"tree": "mechanized",
+	"nodes": [
+		{
+			"id": "t_72a",
+			"tree": "mechanized",
+			"tier": 0,
+			"displayName": "T-72A",
+			"shortName": "T-72A",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_t_72a"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1979
+		},
+		{
+			"id": "t_90",
+			"tree": "mechanized",
+			"tier": 1,
+			"displayName": "T-90 Vladimir",
+			"shortName": "T-90",
+			"prereqs": ["t_72a"],
+			"unlocks": { "unitTypes": ["unit_t_90"] },
+			"cost": { "money": 80000, "oil": 15000, "steel": 60000, "electronics": 8000 },
+			"researchTimeTicks": 60,
+			"introYear": 1992
+		}
+	]
+}
