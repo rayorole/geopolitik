@@ -22,6 +22,27 @@ import { applyBuildOrder, applyCancelBuildOrder } from "./buildings";
 import { generateGameCode, isValidGameCode } from "./code";
 import { pickFactionColor } from "./colors";
 import { db } from "./db";
+import {
+	applyApplyAlliance,
+	applyBreakTreaty,
+	applyCreateAlliance,
+	applyDeclareWar,
+	applyDemoteLeader,
+	applyDissolveAlliance,
+	applyKickMember,
+	applyLeaveAlliance,
+	applyMarkRead,
+	applyPromoteMember,
+	applyProposeTrade,
+	applyProposeTreaty,
+	applyRespondAllianceApp,
+	applyRespondTrade,
+	applyRespondTreaty,
+	applySendMessage,
+	applyVoteAlliance,
+	loadDiplomacySnapshot,
+	loadRecentMessages,
+} from "./diplomacy-orders";
 import { logger } from "./logger";
 import { rateLimit } from "./rate-limit";
 import { applyCancelResearch, applyStartResearch } from "./research-orders";
@@ -589,6 +610,31 @@ export function createGamesRouter() {
 		return c.json(playerResearchResponse.parse(response));
 	});
 
+	// ── GET /games/:id/diplomacy ──────────────────────────────────────────────
+	// Phase 6: returns the player's view of the diplomacy state — alliance,
+	// memberships, treaties, trades, applications, cooldown — plus a
+	// most-recent-N message slice per channel. WS deltas drive live updates
+	// post-load; this is the initial snapshot.
+	games.get("/games/:id/diplomacy", async (c) => {
+		const authResult = await requireAuth(c.req.raw);
+		if (authResult instanceof Response) return authResult;
+		const { userId } = authResult;
+
+		const gameId = c.req.param("id");
+
+		const [me] = await db
+			.select({ id: schema.player.id })
+			.from(schema.player)
+			.where(and(eq(schema.player.gameId, gameId), eq(schema.player.userId, userId)))
+			.limit(1);
+		if (!me) return c.json({ error: "not_a_player" }, 403);
+
+		const snap = await loadDiplomacySnapshot(db, gameId, me.id);
+		const messages = await loadRecentMessages(db, gameId, me.id, 50);
+
+		return c.json({ gameId, playerId: me.id, ...snap, messages });
+	});
+
 	// ── POST /games/:id/orders ────────────────────────────────────────────────
 	games.post("/games/:id/orders", async (c) => {
 		const authResult = await requireAuth(c.req.raw);
@@ -615,13 +661,46 @@ export function createGamesRouter() {
 
 		const orderId = newId();
 
-		// build / cancel_build / start_research / cancel_research apply at REST
-		// time under the per-game lock so the client gets a synchronous
-		// accept/reject and the persisted row is the single source of truth from
-		// the moment of acceptance. noop and set_slider continue to defer work
-		// to the tick worker.
-		const RESOLVE_AT_REST = ["build", "cancel_build", "start_research", "cancel_research"] as const;
+		// build / cancel_build / start_research / cancel_research + every Phase
+		// 6 diplomacy order apply at REST time under the per-game lock so the
+		// client gets a synchronous accept/reject and the persisted row is the
+		// single source of truth from the moment of acceptance. noop and
+		// set_slider continue to defer work to the tick worker.
+		const RESOLVE_AT_REST = [
+			"build",
+			"cancel_build",
+			"start_research",
+			"cancel_research",
+			"create_alliance",
+			"apply_alliance",
+			"vote_alliance",
+			"respond_alliance_app",
+			"promote_member",
+			"demote_leader",
+			"kick_member",
+			"leave_alliance",
+			"dissolve_alliance",
+			"propose_treaty",
+			"respond_treaty",
+			"break_treaty",
+			"declare_war",
+			"propose_trade",
+			"respond_trade",
+			"send_message",
+			"mark_read",
+		] as const;
 		if ((RESOLVE_AT_REST as readonly string[]).includes(parsed.data.kind)) {
+			// Per-channel rate limit for messaging on top of the standard
+			// 60/min order limit above.
+			if (parsed.data.kind === "send_message") {
+				const isBroadcast = parsed.data.payload.channel === "broadcast";
+				const msgLimit = await rateLimit(
+					isBroadcast
+						? { key: `rl:msg-broadcast:${me.id}`, max: 5, windowSeconds: 3600 }
+						: { key: `rl:msg-dm:${me.id}`, max: 30, windowSeconds: 60 },
+				);
+				if (!msgLimit.ok) return c.json({ error: "rate_limit_exceeded" }, 429);
+			}
 			const txResult = await db.transaction(async (tx) => {
 				const [g] = await tx
 					.select({ tick: schema.game.tick, status: schema.game.status })
@@ -643,6 +722,57 @@ export function createGamesRouter() {
 					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
 				} else if (parsed.data.kind === "cancel_research") {
 					const r = await applyCancelResearch(tx, gameId, me.id, g.tick, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "create_alliance") {
+					const r = await applyCreateAlliance(tx, gameId, me.id, g.tick, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "apply_alliance") {
+					const r = await applyApplyAlliance(tx, gameId, me.id, g.tick, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "vote_alliance") {
+					const r = await applyVoteAlliance(tx, gameId, me.id, g.tick, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "respond_alliance_app") {
+					const r = await applyRespondAllianceApp(tx, gameId, me.id, g.tick, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "promote_member") {
+					const r = await applyPromoteMember(tx, gameId, me.id, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "demote_leader") {
+					const r = await applyDemoteLeader(tx, gameId, me.id, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "kick_member") {
+					const r = await applyKickMember(tx, gameId, me.id, g.tick, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "leave_alliance") {
+					const r = await applyLeaveAlliance(tx, gameId, me.id, g.tick, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "dissolve_alliance") {
+					const r = await applyDissolveAlliance(tx, gameId, me.id, g.tick, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "propose_treaty") {
+					const r = await applyProposeTreaty(tx, gameId, me.id, g.tick, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "respond_treaty") {
+					const r = await applyRespondTreaty(tx, gameId, me.id, g.tick, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "break_treaty") {
+					const r = await applyBreakTreaty(tx, gameId, me.id, g.tick, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "declare_war") {
+					const r = await applyDeclareWar(tx, gameId, me.id, g.tick, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "propose_trade") {
+					const r = await applyProposeTrade(tx, gameId, me.id, g.tick, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "respond_trade") {
+					const r = await applyRespondTrade(tx, gameId, me.id, g.tick, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "send_message") {
+					const r = await applySendMessage(tx, gameId, me.id, g.tick, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "mark_read") {
+					const r = await applyMarkRead(tx, gameId, me.id, parsed.data.payload);
 					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
 				}
 

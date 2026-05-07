@@ -63,7 +63,140 @@ export const gamesApi = {
 
 	research: (gameId: string): Promise<PlayerResearchResponse> =>
 		api<PlayerResearchResponse>(`/games/${gameId}/research`),
+
+	// Phase 6: server-side type is broad (Drizzle row types). The client treats
+	// this as `unknown`-ish data for now and narrows where consumed.
+	diplomacy: (gameId: string): Promise<DiplomacySnapshot> =>
+		api<DiplomacySnapshot>(`/games/${gameId}/diplomacy`),
 };
+
+export interface DiplomacyAlliance {
+	id: string;
+	gameId: string;
+	name: string;
+	tag: string;
+	color: string;
+	description: string | null;
+	state: "active" | "dissolved";
+	createdAtTick: number;
+	dissolvedAtTick: number | null;
+	createdAt: string;
+}
+
+export interface DiplomacyMembership {
+	allianceId: string;
+	playerId: string;
+	rank: "founder" | "leader" | "member";
+	joinedAtTick: number;
+}
+
+export interface DiplomacyApplication {
+	id: string;
+	allianceId: string;
+	applicantId: string;
+	submittedAtTick: number;
+	expiresAtTick: number;
+	resolvedAtTick: number | null;
+	resolution: string | null;
+}
+
+export interface DiplomacyTreaty {
+	id: string;
+	gameId: string;
+	type:
+		| "non_aggression"
+		| "defensive_pact"
+		| "trade_route"
+		| "military_access"
+		| "coalition_war"
+		| "forced_non_aggression";
+	status: "pending" | "active" | "expired" | "broken";
+	proposerId: string;
+	targetId: string;
+	proposedAtTick: number;
+	expiresAtTick: number;
+	activatedAtTick: number | null;
+	resolvedAtTick: number | null;
+	note: string | null;
+}
+
+export interface DiplomacyTradeProposal {
+	id: string;
+	gameId: string;
+	proposerId: string;
+	targetId: string;
+	giveMoney: number;
+	giveOil: number;
+	giveSteel: number;
+	giveElectronics: number;
+	receiveMoney: number;
+	receiveOil: number;
+	receiveSteel: number;
+	receiveElectronics: number;
+	note: string | null;
+	status: "pending" | "accepted" | "rejected" | "expired";
+	proposedAtTick: number;
+	expiresAtTick: number;
+	resolvedAtTick: number | null;
+}
+
+export interface DiplomacyMessage {
+	id: string;
+	gameId: string;
+	channel: "dm" | "alliance" | "broadcast";
+	senderId: string;
+	recipientPlayerId: string | null;
+	recipientAllianceId: string | null;
+	body: string;
+	sentAtTick: number;
+	createdAt: string;
+}
+
+export interface DiplomacyMessageRead {
+	playerId: string;
+	channel: "dm" | "alliance" | "broadcast";
+	peerKey: string;
+	lastSeenMessageId: string;
+}
+
+export interface DiplomacyWar {
+	id: string;
+	attackerId: string;
+	defenderId: string;
+	declaredAtTick: number;
+	endedAtTick: number | null;
+	fromDefensivePact: boolean;
+}
+
+export interface DiplomacyLeaveCooldown {
+	gameId: string;
+	playerId: string;
+	expiresAtTick: number;
+}
+
+export interface DiplomacySnapshot {
+	gameId: string;
+	playerId: string;
+	myAlliance: DiplomacyAlliance | null;
+	myMembership: DiplomacyMembership | null;
+	allMembers: DiplomacyMembership[];
+	directory: DiplomacyAlliance[];
+	incomingApps: DiplomacyApplication[];
+	myApplications: DiplomacyApplication[];
+	incomingTreaties: DiplomacyTreaty[];
+	outgoingTreaties: DiplomacyTreaty[];
+	activeTreaties: DiplomacyTreaty[];
+	incomingTrades: DiplomacyTradeProposal[];
+	outgoingTrades: DiplomacyTradeProposal[];
+	leaveCooldown: DiplomacyLeaveCooldown | null;
+	wars: DiplomacyWar[];
+	messages: {
+		dms: DiplomacyMessage[];
+		alliance: DiplomacyMessage[];
+		broadcast: DiplomacyMessage[];
+		reads: DiplomacyMessageRead[];
+	};
+}
 
 export const worldApi = {
 	cities: (): Promise<WorldDataset> => api<WorldDataset>("/world/cities"),
@@ -88,6 +221,7 @@ export const queryKeys = {
 	gameByCode: (code: string) => ["games", "by-code", code] as const,
 	gameSnapshot: (id: string) => ["games", "snapshot", id] as const,
 	gameResearch: (id: string) => ["games", "research", id] as const,
+	gameDiplomacy: (id: string) => ["games", "diplomacy", id] as const,
 	worldCities: ["world", "cities"] as const,
 	worldBuildings: ["world", "buildings"] as const,
 	worldFactions: ["world", "factions"] as const,
