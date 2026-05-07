@@ -78,6 +78,13 @@
       "when": 1778163550000,
       "tag": "0010_world_v2_seed",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1778186806410,
+      "tag": "0011_phase_6_foundation",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { CityDetail, CityRowMini } from "@/components/city-detail";
+import { DiplomacyDrawer } from "@/components/diplomacy-drawer";
 import {
 	type CityRender,
 	type CursorCoord,
@@ -263,6 +264,7 @@ export default function PlayPage() {
 					</code>
 					<span className="h-4 w-px bg-border" />
 					<ResearchDrawer gameId={gameId} mePlayerId={snapshot.data?.mePlayerId ?? null} />
+					<DiplomacyDrawer gameId={gameId} mePlayerId={snapshot.data?.mePlayerId ?? null} />
 				</div>
 
 				<div className="pointer-events-auto absolute top-3 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1 border border-border bg-card/95 px-4 py-2 backdrop-blur-sm">
