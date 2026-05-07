@@ -21,6 +21,7 @@ import { SLIDER_NAMES } from "@geopolitik/shared/policy";
 import { and, eq, sql } from "drizzle-orm";
 import { type MaturationOutcome, matureBuildingsAndComputeYields } from "./buildings";
 import { db } from "./db";
+import { applyDiplomacyExpiry } from "./diplomacy-orders";
 import { logger } from "./logger";
 import {
 	type MaturedResearchProject,
@@ -213,6 +214,12 @@ export async function runTick(gameId: string): Promise<void> {
 		// marks projects completed, appends unlocks.systems to
 		// nation_state.unlocked_systems. Idempotent on tick retry.
 		maturedResearch = await matureResearchProjects(tx, gameId, tickNumber);
+
+		// Phase 6: expiry sweep for pending treaty proposals, applications,
+		// trade offers, and active forced_non_aggression cooling pacts past
+		// their expiresAtTick. Idempotent on tick retry — only flips rows
+		// that haven't already been resolved.
+		await applyDiplomacyExpiry(tx, gameId, tickNumber);
 
 		// Load every nation's current slider state for this game. Used to drive
 		// healthcare-scaled pop growth on each owned city and slider-economics

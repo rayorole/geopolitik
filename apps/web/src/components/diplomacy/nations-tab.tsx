@@ -44,9 +44,11 @@ interface NationCardData {
 }
 
 export function NationsTab({
+	gameId,
 	snapshot,
 	world,
 }: {
+	gameId: string;
 	snapshot: GameSnapshot | undefined;
 	world: WorldDataset | undefined;
 }) {
@@ -170,23 +172,63 @@ export function NationsTab({
 			</div>
 
 			<ProposeTreatyModal
+				gameId={gameId}
 				open={openModal?.kind === "treaty"}
-				target={openModal?.target ?? null}
+				target={
+					openModal?.target
+						? {
+								code: openModal.target.code,
+								name: openModal.target.name,
+								leaderName: openModal.target.leaderName,
+								playerId: openModal.target.owner?.id ?? null,
+							}
+						: null
+				}
 				onClose={() => setOpenModal(null)}
 			/>
 			<ProposeTradeModal
+				gameId={gameId}
 				open={openModal?.kind === "trade"}
-				target={openModal?.target ?? null}
+				target={
+					openModal?.target
+						? {
+								code: openModal.target.code,
+								name: openModal.target.name,
+								leaderName: openModal.target.leaderName,
+								playerId: openModal.target.owner?.id ?? null,
+							}
+						: null
+				}
 				onClose={() => setOpenModal(null)}
 			/>
 			<SendMessageModal
+				gameId={gameId}
 				open={openModal?.kind === "message"}
-				target={openModal?.target ?? null}
+				target={
+					openModal?.target
+						? {
+								code: openModal.target.code,
+								name: openModal.target.name,
+								leaderName: openModal.target.leaderName,
+								playerId: openModal.target.owner?.id ?? null,
+							}
+						: null
+				}
 				onClose={() => setOpenModal(null)}
 			/>
 			<DeclareWarModal
+				gameId={gameId}
 				open={openModal?.kind === "war"}
-				target={openModal?.target ?? null}
+				target={
+					openModal?.target
+						? {
+								code: openModal.target.code,
+								name: openModal.target.name,
+								leaderName: openModal.target.leaderName,
+								playerId: openModal.target.owner?.id ?? null,
+							}
+						: null
+				}
 				onClose={() => setOpenModal(null)}
 			/>
 		</>

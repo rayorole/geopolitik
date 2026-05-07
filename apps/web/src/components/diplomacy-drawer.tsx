@@ -2,6 +2,7 @@
 
 import { AlliancesTab } from "@/components/diplomacy/alliances-tab";
 import { NationsTab } from "@/components/diplomacy/nations-tab";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Sheet,
@@ -11,10 +12,18 @@ import {
 	SheetTitle,
 	SheetTrigger,
 } from "@/components/ui/sheet";
-import { gamesApi, queryKeys, worldApi } from "@/lib/api-client";
-import { useQuery } from "@tanstack/react-query";
+import {
+	type DiplomacySnapshot,
+	type DiplomacyTreaty,
+	gamesApi,
+	queryKeys,
+	worldApi,
+} from "@/lib/api-client";
+import type { GameSnapshot } from "@geopolitik/shared/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Handshake } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 /*
  * Diplomacy drawer — Phase 6a foundation.
@@ -142,7 +151,17 @@ export function DiplomacyDrawer({
 				</nav>
 
 				<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-					{tab === "nations" && <NationsTab snapshot={snapshot.data} world={world.data} />}
+					{tab === "nations" && (
+						<>
+							<TreatyInbox
+								gameId={gameId}
+								diplomacy={diplomacy.data}
+								gameSnapshot={snapshot.data}
+								currentTick={snapshot.data?.game.tick ?? 0}
+							/>
+							<NationsTab gameId={gameId} snapshot={snapshot.data} world={world.data} />
+						</>
+					)}
 					{tab === "alliances" && (
 						<AlliancesTab
 							gameId={gameId}
@@ -187,5 +206,226 @@ function TradesTabPlaceholder() {
 			title="Trades — coming in Phase 6f"
 			body="Free-form atomic resource trades. Pick give and receive bundles freely; settle in one tick when both sides accept."
 		/>
+	);
+}
+
+function TreatyInbox({
+	gameId,
+	diplomacy,
+	gameSnapshot,
+	currentTick,
+}: {
+	gameId: string;
+	diplomacy: DiplomacySnapshot | undefined;
+	gameSnapshot: GameSnapshot | undefined;
+	currentTick: number;
+}) {
+	const queryClient = useQueryClient();
+
+	const respond = useMutation({
+		mutationFn: (vars: { treatyId: string; action: "accept" | "reject" }) =>
+			gamesApi.submitOrder(gameId, {
+				kind: "respond_treaty",
+				payload: { treatyId: vars.treatyId, action: vars.action },
+			}),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: queryKeys.gameDiplomacy(gameId) });
+		},
+		onError: (e) => toast.error(e instanceof Error ? e.message : "Response rejected"),
+	});
+
+	const breakTreaty = useMutation({
+		mutationFn: (treatyId: string) =>
+			gamesApi.submitOrder(gameId, {
+				kind: "break_treaty",
+				payload: { treatyId },
+			}),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: queryKeys.gameDiplomacy(gameId) });
+		},
+		onError: (e) => toast.error(e instanceof Error ? e.message : "Break rejected"),
+	});
+
+	if (!diplomacy || !gameSnapshot) return null;
+	const incoming = diplomacy.incomingTreaties;
+	const outgoing = diplomacy.outgoingTreaties;
+	const active = diplomacy.activeTreaties;
+	const wars = diplomacy.wars;
+	if (incoming.length + outgoing.length + active.length + wars.length === 0) return null;
+
+	const playerName = (id: string) =>
+		gameSnapshot.players.find((p) => p.id === id)?.displayName ?? id.slice(0, 8);
+
+	return (
+		<section className="border-b border-border bg-card/40 px-3 py-3">
+			<div className="mb-2 flex items-baseline justify-between">
+				<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
+					Treaty + war inbox
+				</span>
+				<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+					tick #{currentTick}
+				</span>
+			</div>
+
+			{incoming.length > 0 && (
+				<div className="flex flex-col gap-1">
+					<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+						Incoming · {incoming.length}
+					</span>
+					{incoming.map((t) => (
+						<TreatyRow
+							key={t.id}
+							treaty={t}
+							direction="incoming"
+							otherName={playerName(t.proposerId)}
+							currentTick={currentTick}
+							onAccept={() => respond.mutate({ treatyId: t.id, action: "accept" })}
+							onReject={() => respond.mutate({ treatyId: t.id, action: "reject" })}
+							busy={respond.isPending}
+						/>
+					))}
+				</div>
+			)}
+			{outgoing.length > 0 && (
+				<div className="mt-2 flex flex-col gap-1">
+					<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+						Outgoing · {outgoing.length}
+					</span>
+					{outgoing.map((t) => (
+						<TreatyRow
+							key={t.id}
+							treaty={t}
+							direction="outgoing"
+							otherName={playerName(t.targetId)}
+							currentTick={currentTick}
+							busy={false}
+						/>
+					))}
+				</div>
+			)}
+			{active.length > 0 && (
+				<div className="mt-2 flex flex-col gap-1">
+					<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+						Active · {active.length}
+					</span>
+					{active.map((t) => {
+						const other = t.proposerId === gameSnapshot.mePlayerId ? t.targetId : t.proposerId;
+						return (
+							<TreatyRow
+								key={t.id}
+								treaty={t}
+								direction="active"
+								otherName={playerName(other)}
+								currentTick={currentTick}
+								onBreak={
+									t.type === "forced_non_aggression" ? undefined : () => breakTreaty.mutate(t.id)
+								}
+								busy={breakTreaty.isPending}
+							/>
+						);
+					})}
+				</div>
+			)}
+			{wars.length > 0 && (
+				<div className="mt-2 flex flex-col gap-1">
+					<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-destructive">
+						Active wars · {wars.length}
+					</span>
+					{wars.map((w) => (
+						<div
+							key={w.id}
+							className="flex items-center justify-between border border-destructive/40 bg-destructive/5 px-3 py-1.5 font-mono text-[11px]"
+						>
+							<span className="text-foreground">
+								{w.attackerId === gameSnapshot.mePlayerId
+									? `Attacking ${playerName(w.defenderId)}`
+									: `Attacked by ${playerName(w.attackerId)}`}
+							</span>
+							<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+								{w.fromDefensivePact ? "auto-pact" : "declared"} · tick {w.declaredAtTick}
+							</span>
+						</div>
+					))}
+				</div>
+			)}
+		</section>
+	);
+}
+
+function TreatyRow({
+	treaty,
+	direction,
+	otherName,
+	currentTick,
+	onAccept,
+	onReject,
+	onBreak,
+	busy,
+}: {
+	treaty: DiplomacyTreaty;
+	direction: "incoming" | "outgoing" | "active";
+	otherName: string;
+	currentTick: number;
+	onAccept?: () => void;
+	onReject?: () => void;
+	onBreak?: () => void;
+	busy: boolean;
+}) {
+	const isCooling = treaty.type === "forced_non_aggression";
+	return (
+		<div className="flex items-center justify-between border border-border bg-card px-3 py-1.5 font-mono text-[11px]">
+			<div className="flex items-center gap-2">
+				<TreatyTypeBadge type={treaty.type} />
+				<span className="text-foreground">{otherName}</span>
+				{isCooling && treaty.expiresAtTick && (
+					<span className="text-muted-foreground">
+						clears in {Math.max(0, treaty.expiresAtTick - currentTick)}t
+					</span>
+				)}
+				{direction !== "active" && treaty.expiresAtTick && (
+					<span className="text-muted-foreground">
+						expires in {Math.max(0, treaty.expiresAtTick - currentTick)}t
+					</span>
+				)}
+				{treaty.note && <span className="truncate text-muted-foreground">· "{treaty.note}"</span>}
+			</div>
+			<div className="flex gap-1">
+				{direction === "incoming" && (
+					<>
+						<Button size="xs" variant="primary" onClick={onAccept} disabled={busy}>
+							Accept
+						</Button>
+						<Button size="xs" variant="destructive" onClick={onReject} disabled={busy}>
+							Reject
+						</Button>
+					</>
+				)}
+				{direction === "active" && onBreak && (
+					<Button size="xs" variant="destructive" onClick={onBreak} disabled={busy}>
+						Break
+					</Button>
+				)}
+			</div>
+		</div>
+	);
+}
+
+function TreatyTypeBadge({ type }: { type: DiplomacyTreaty["type"] }) {
+	const labels: Record<
+		DiplomacyTreaty["type"],
+		{ label: string; variant: "default" | "info" | "ok" | "warn" | "crit" }
+	> = {
+		non_aggression: { label: "Non-aggression", variant: "info" },
+		defensive_pact: { label: "Defensive pact", variant: "ok" },
+		trade_route: { label: "Trade route", variant: "default" },
+		military_access: { label: "Mil. access", variant: "info" },
+		coalition_war: { label: "Coalition war", variant: "warn" },
+		forced_non_aggression: { label: "Cooling pact", variant: "warn" },
+	};
+	const { label, variant } = labels[type];
+	return (
+		<Badge variant={variant} size="sm">
+			{label}
+		</Badge>
 	);
 }
