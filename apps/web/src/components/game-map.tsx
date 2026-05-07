@@ -2,6 +2,7 @@
 
 import { UnitIcon } from "@/components/icons";
 import { MapLabels } from "@/components/map-labels";
+import { MapLoadingSplash } from "@/components/map/map-loading-splash";
 import { Badge } from "@/components/ui/badge";
 import {
 	DropdownMenu,
@@ -548,6 +549,10 @@ export function GameMap({
 	const onDeselectCityRef = useRef<(() => void) | undefined>(onDeselectCity);
 	onDeselectCityRef.current = onDeselectCity;
 	const [mapReadyState, setMapReadyState] = useState<MapInstance | null>(null);
+	// Tracks MapLibre's `load` event — true once the style + initial sources
+	// have loaded and the first frame has rendered. Drives the splash overlay
+	// + canvas fade-in so the player never sees an empty black rectangle.
+	const [isMapLoaded, setIsMapLoaded] = useState(false);
 	const [contextCoord, setContextCoord] = useState<{
 		lat: number;
 		lng: number;
@@ -714,6 +719,14 @@ export function GameMap({
 		// (MapLabels) re-render once the canvas is ready.
 		setMapReadyState(map);
 
+		// Flip the splash-gate flag once MapLibre has finished its first
+		// paint. `idle` fires after `load` once all sources have settled,
+		// which is when the canvas actually has a rendered world on it
+		// — using `load` alone reveals the canvas a frame too early on
+		// slower hardware and produces a brief flash of empty fill.
+		const onLoaded = () => setIsMapLoaded(true);
+		map.once("idle", onLoaded);
+
 		map.on("mousemove", "country-fill", (e) => {
 			const f = e.features?.[0];
 			if (!f) return;
@@ -817,10 +830,14 @@ export function GameMap({
 
 		return () => {
 			map.off("contextmenu", onMapContextMenu);
+			// `idle` listener registered via `map.once` self-removes after firing,
+			// and `map.remove()` below clears any still-pending listeners — no
+			// explicit off() needed.
 			ro.disconnect();
 			map.remove();
 			mapRef.current = null;
 			setMapReadyState(null);
+			setIsMapLoaded(false);
 		};
 	}, [styleSpec, onCursorMove, onHoverCountry, syncContextMenuCoords]);
 
@@ -1091,9 +1108,15 @@ export function GameMap({
 			<div className="absolute inset-0" style={{ position: "absolute", inset: 0 }}>
 				<div
 					ref={containerRef}
-					style={{ width: "100%", height: "100%" }}
+					style={{
+						width: "100%",
+						height: "100%",
+						opacity: isMapLoaded ? 1 : 0,
+						transition: "opacity 0.32s ease-out",
+					}}
 					className="h-full w-full"
 				/>
+				{!isMapLoaded && <MapLoadingSplash />}
 				<MapLabels
 					map={mapReadyState}
 					cities={cities}
