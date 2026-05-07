@@ -1,17 +1,10 @@
 "use client";
 
 import { CityDetail, CityRowMini } from "@/components/city-detail";
-import { DiplomacyDrawer } from "@/components/diplomacy-drawer";
-import {
-	type CityRender,
-	type CursorCoord,
-	GameMap,
-	type HoveredCity,
-	type HoveredCountry,
-} from "@/components/game-map";
+import type { CityRender, CursorCoord, HoveredCity, HoveredCountry } from "@/components/game-map";
 import { UnitIcon } from "@/components/icons";
+import { MapLoadingSplash } from "@/components/map/map-loading-splash";
 import { PolicyPanel } from "@/components/policy-panel";
-import { ResearchDrawer } from "@/components/research-drawer";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,10 +15,34 @@ import { type WsStatus, closeGameSocket, getGameSocket } from "@/lib/game-socket
 import { type SelectedCity, writeSelectedCity } from "@/lib/selected-city";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ZoomIn, ZoomOut } from "lucide-react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+/*
+ * Map + drawers are dynamic-imported. MapLibre (~700 KB), the research
+ * tree UI, and the diplomacy multi-tab drawer are all gated behind user
+ * actions or behind the splash, so keeping them out of the initial
+ * play-route bundle is a real first-paint win. `ssr: false` on GameMap
+ * is required — MapLibre touches `window` and `document` at module
+ * eval time. The `loading` prop renders the same splash the page uses
+ * post-mount, so the user sees one continuous screen from click → first
+ * frame.
+ */
+const GameMap = dynamic(
+	() => import("@/components/game-map").then((m) => ({ default: m.GameMap })),
+	{ ssr: false, loading: () => <MapLoadingSplash /> },
+);
+
+const ResearchDrawer = dynamic(() =>
+	import("@/components/research-drawer").then((m) => ({ default: m.ResearchDrawer })),
+);
+
+const DiplomacyDrawer = dynamic(() =>
+	import("@/components/diplomacy-drawer").then((m) => ({ default: m.DiplomacyDrawer })),
+);
 
 const RES_DIVISOR = 100;
 
