@@ -56,6 +56,8 @@ const COLOR = {
 	signal500: "#d68b3e", // sodium-vapor amber, full opacity
 	signal500a18: "rgba(214, 139, 62, 0.22)", // hover fill
 	signal500a40: "rgba(214, 139, 62, 0.45)", // owned-country fill
+	ally500: "#4a90d9", // allied-country outline + city dot color (Phase 6c)
+	ally500a40: "rgba(74, 144, 217, 0.45)", // allied-country fill
 } as const;
 
 const CITY_NEUTRAL_COLOR = "#4a5666";
@@ -65,12 +67,23 @@ const NEVER_MATCH = "__NONE__";
 
 function fillExpression(
 	myCountryCode: string | null | undefined,
+	alliedCountryCodes: readonly string[] = [],
 ): maplibregl.DataDrivenPropertyValueSpecification<string> {
 	const code = myCountryCode ?? NEVER_MATCH;
+	const allied = alliedCountryCodes.length > 0 ? alliedCountryCodes : [NEVER_MATCH];
 	return [
 		"case",
+		// You: amber.
 		["any", ["==", ["get", "ISO_A3"], code], ["==", ["get", "ADM0_A3"], code]],
 		COLOR.signal500a40,
+		// Alliance co-members: blue.
+		[
+			"any",
+			["in", ["get", "ISO_A3"], ["literal", allied]],
+			["in", ["get", "ADM0_A3"], ["literal", allied]],
+		],
+		COLOR.ally500a40,
+		// Hover state — only when not allied or owned.
 		["boolean", ["feature-state", "hover"], false],
 		COLOR.signal500a18,
 		COLOR.ink3,
@@ -79,12 +92,20 @@ function fillExpression(
 
 function lineColorExpression(
 	myCountryCode: string | null | undefined,
+	alliedCountryCodes: readonly string[] = [],
 ): maplibregl.DataDrivenPropertyValueSpecification<string> {
 	const code = myCountryCode ?? NEVER_MATCH;
+	const allied = alliedCountryCodes.length > 0 ? alliedCountryCodes : [NEVER_MATCH];
 	return [
 		"case",
 		["any", ["==", ["get", "ISO_A3"], code], ["==", ["get", "ADM0_A3"], code]],
 		COLOR.signal500,
+		[
+			"any",
+			["in", ["get", "ISO_A3"], ["literal", allied]],
+			["in", ["get", "ADM0_A3"], ["literal", allied]],
+		],
+		COLOR.ally500,
 		["boolean", ["feature-state", "hover"], false],
 		COLOR.signal500,
 		COLOR.ink5,
@@ -313,6 +334,10 @@ export type CityRender = {
 	ownerColor: string | null;
 	ownerName: string | null;
 	isMine: boolean;
+	/** Phase 6c: city is owned by an alliance co-member. Treated like
+	 *  `isMine` for color purposes — keeps faction-team identity visible
+	 *  on the map (allies render blue) instead of getting forced to grey. */
+	isAlly: boolean;
 	isCapital: boolean;
 	countryCode: string;
 };
@@ -323,6 +348,10 @@ export type GameMapProps = {
 	onHoverCity?: (city: HoveredCity | null) => void;
 	onCityClick?: (cityId: string) => void;
 	myCountryCode?: string | null;
+	/** Phase 6c: ISO3 codes of every country held by an alliance co-member.
+	 *  Their fill + outline render in `ally500` blue and their city dots
+	 *  override the per-faction `ownerColor` to the same blue. */
+	alliedCountryCodes?: readonly string[];
 	cities?: WorldDataset["cities"];
 	citiesRender?: CityRender[];
 	selectedCityId?: string | null;
@@ -424,16 +453,19 @@ function citiesToFeatureCollection(rows: CityRender[] | undefined): GeoJSON.Feat
 				cityId: c.id,
 				name: c.name,
 				population: c.population,
-				// Faction color is reserved for the player's own cities. Foreign
-				// cities and unowned cities both render in the neutral grey so
-				// the player's territory is unambiguous on the map; faction
-				// identity for foreigners surfaces via popovers + sidebar.
-				ownerColor: c.isMine && c.ownerColor ? c.ownerColor : CITY_NEUTRAL_COLOR,
+				// Color rule:
+				//   - Owned by you → faction color (signal amber via ownerColor)
+				//   - Owned by an alliance co-member → ally blue (caller passes
+				//     the COLOR.ally500 value as ownerColor when isAlly is set)
+				//   - Owned by anyone else → neutral grey
+				//   - Unowned → neutral grey
+				// Faction identity for non-allied foreigners surfaces via the
+				// popover + sidebar instead of bleeding onto the map.
+				ownerColor: (c.isMine || c.isAlly) && c.ownerColor ? c.ownerColor : CITY_NEUTRAL_COLOR,
 				isMine: c.isMine ? 1 : 0,
 				// Foreign-owned cities still count as "has owner" for the
 				// opacity fade-in — they stay visible at world zoom so the
-				// player can see other powers' territory at a glance, just
-				// without faction colors stealing focus from their own.
+				// player can see other powers' territory at a glance.
 				hasOwner: c.ownerColor ? 1 : 0,
 			},
 		})),
@@ -446,6 +478,7 @@ export function GameMap({
 	onHoverCity,
 	onCityClick,
 	myCountryCode,
+	alliedCountryCodes,
 	cities,
 	citiesRender,
 	selectedCityId,
@@ -704,22 +737,33 @@ export function GameMap({
 		};
 	}, [styleSpec, onCursorMove, onHoverCountry, syncContextMenuCoords]);
 
-	// Re-apply paint properties whenever the player's country changes so the
-	// owned country lights up in signal amber. Waits for the style to load
-	// the first time, then mutates the paint expressions in place.
+	// Re-apply paint properties whenever the player's country or the allied
+	// set changes so owned country lights up in amber and alliance peers
+	// render in blue. Waits for the style to load the first time, then
+	// mutates the paint expressions in place. The caller is expected to
+	// memoize `alliedCountryCodes` so a stable reference avoids re-running
+	// this on unrelated re-renders.
 	useEffect(() => {
 		const map = mapRef.current;
 		if (!map) return;
 		const apply = () => {
-			map.setPaintProperty("country-fill", "fill-color", fillExpression(myCountryCode));
-			map.setPaintProperty("country-line", "line-color", lineColorExpression(myCountryCode));
+			map.setPaintProperty(
+				"country-fill",
+				"fill-color",
+				fillExpression(myCountryCode, alliedCountryCodes),
+			);
+			map.setPaintProperty(
+				"country-line",
+				"line-color",
+				lineColorExpression(myCountryCode, alliedCountryCodes),
+			);
 		};
 		if (map.isStyleLoaded()) {
 			apply();
 		} else {
 			map.once("load", apply);
 		}
-	}, [myCountryCode]);
+	}, [myCountryCode, alliedCountryCodes]);
 
 	// Push city geojson into the source whenever ownership / cities change.
 	useEffect(() => {
