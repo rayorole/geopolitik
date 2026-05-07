@@ -36,6 +36,15 @@ interface CountryCentroid {
 	name: string;
 	lng: number;
 	lat: number;
+	/** Bounding-box area in square degrees of the country's largest
+	 *  polygon. Used as a "size" priority so big countries draw first
+	 *  and tiny island nations drop out at low zoom. Russia ≈ 4500;
+	 *  USA ≈ 1800; France ≈ 90; Andorra ≈ 0.05. */
+	area: number;
+	/** Country has a row in `factions.json` and is therefore part of the
+	 *  game. Non-playable polygons (Antarctic territories, French
+	 *  Guiana, Greenland, etc.) get filtered out so labels track gameplay. */
+	playable: boolean;
 }
 
 interface MapLabelsProps {
@@ -60,16 +69,20 @@ export function MapLabels({ map, cities, countries }: MapLabelsProps) {
 			.then((fc) => {
 				if (cancelled) return;
 				const countryNameByCode = new Map<string, string>();
+				const playableSet = new Set<string>();
 				if (countries) {
-					for (const c of countries) countryNameByCode.set(c.code, c.name);
+					for (const c of countries) {
+						countryNameByCode.set(c.code, c.name);
+						if (c.isPlayable) playableSet.add(c.code);
+					}
 				}
 				const out: CountryCentroid[] = [];
 				for (const f of fc.features) {
 					const props = (f.properties ?? {}) as Record<string, unknown>;
 					const iso3 = (props.ISO_A3 as string) ?? (props.ADM0_A3 as string) ?? null;
 					if (!iso3 || iso3 === "ATA" || iso3 === "-99") continue;
-					const center = polygonBboxCenter(f.geometry as GeoJSON.Geometry);
-					if (!center) continue;
+					const stats = polygonBboxStats(f.geometry as GeoJSON.Geometry);
+					if (!stats) continue;
 					out.push({
 						iso3,
 						name:
@@ -77,8 +90,10 @@ export function MapLabels({ map, cities, countries }: MapLabelsProps) {
 							(props.NAME as string) ??
 							(props.ADMIN as string) ??
 							iso3,
-						lng: center[0],
-						lat: center[1],
+						lng: stats.center[0],
+						lat: stats.center[1],
+						area: stats.area,
+						playable: playableSet.has(iso3),
 					});
 				}
 				setCentroids(out);
@@ -132,10 +147,33 @@ export function MapLabels({ map, cities, countries }: MapLabelsProps) {
 		const bounds = map.getBounds();
 		const sw = bounds.getSouthWest();
 		const ne = bounds.getNorthEast();
-		for (const c of centroids) {
-			if (hidden.has(`c:${c.iso3}`)) continue;
-			if (c.lng < sw.lng || c.lng > ne.lng || c.lat < sw.lat || c.lat > ne.lat) continue;
+		// Importance threshold: at world zoom show only continental-scale
+		// nations; lift the bar progressively as the player zooms in.
+		// Bbox-area (sq deg) cutoffs roughly correspond to:
+		//   600 → Russia / USA / China / Canada / Brazil / Australia / India
+		//   150 → above + Argentina / Algeria / Mexico / Iran / Saudi / DRC
+		//    30 → most major nations including most of Europe
+		//     5 → small but non-trivial (Belgium, Netherlands, Denmark…)
+		//     0 → all (microstates, Caribbean islands, Pacific)
+		const minArea = zoom < 1.8 ? 600 : zoom < 2.4 ? 150 : zoom < 3.0 ? 30 : zoom < 3.8 ? 5 : 0;
+		// Sort by area descending so big countries get placed first and tiny
+		// ones drop in collision detection rather than the other way around.
+		const candidates = centroids
+			.filter((c) => c.playable)
+			.filter((c) => c.area >= minArea)
+			.filter((c) => !hidden.has(`c:${c.iso3}`))
+			.filter((c) => c.lng >= sw.lng && c.lng <= ne.lng && c.lat >= sw.lat && c.lat <= ne.lat)
+			.sort((a, b) => b.area - a.area);
+		// Approximate font size at this zoom — used for collision rects.
+		const fontPx = 11;
+		const placed: PlacedRect[] = [];
+		for (const c of candidates) {
 			const p = map.project([c.lng, c.lat]);
+			const w = approxTextWidth(c.name, fontPx, 1.5);
+			const h = fontPx + 2;
+			const rect = { x: p.x - w / 2 - 6, y: p.y - h / 2 - 2, w: w + 12, h: h + 4 };
+			if (placed.some((r) => rectsOverlap(rect, r))) continue;
+			placed.push(rect);
 			visibleCountryLabels.push({ ...c, x: p.x, y: p.y });
 		}
 	}
@@ -155,11 +193,28 @@ export function MapLabels({ map, cities, countries }: MapLabelsProps) {
 		// At lower zooms only show the largest cities + capitals to avoid
 		// label soup. Threshold lifts as the player zooms further in.
 		const minPop = zoom < 5.5 ? 1_500_000 : zoom < 6.5 ? 500_000 : zoom < 8 ? 150_000 : 0;
-		for (const c of cities) {
-			if (hidden.has(`p:${c.id}`)) continue;
-			if (!c.isCapital && c.basePopulation < minPop) continue;
-			if (c.lng < sw.lng || c.lng > ne.lng || c.lat < sw.lat || c.lat > ne.lat) continue;
+		// Sort by importance: capitals first, then by population descending.
+		// Higher-priority labels claim screen space first; lower-priority
+		// ones drop on collision instead.
+		const candidates = cities
+			.filter((c) => !hidden.has(`p:${c.id}`))
+			.filter((c) => c.isCapital || c.basePopulation >= minPop)
+			.filter((c) => c.lng >= sw.lng && c.lng <= ne.lng && c.lat >= sw.lat && c.lat <= ne.lat)
+			.sort((a, b) => {
+				if (a.isCapital !== b.isCapital) return a.isCapital ? -1 : 1;
+				return b.basePopulation - a.basePopulation;
+			});
+		const fontPx = 10;
+		const placed: PlacedRect[] = [];
+		for (const c of candidates) {
 			const p = map.project([c.lng, c.lat]);
+			const w = approxTextWidth(c.name, fontPx, 0.4);
+			const h = fontPx + 2;
+			// City label is anchored 14px above the dot — collision rect
+			// matches that offset so we test the actual rendered position.
+			const rect = { x: p.x - w / 2 - 4, y: p.y - 14 - h / 2 - 2, w: w + 8, h: h + 4 };
+			if (placed.some((r) => rectsOverlap(rect, r))) continue;
+			placed.push(rect);
 			visibleCityLabels.push({
 				id: c.id,
 				name: c.name,
@@ -257,13 +312,18 @@ function clamp01(n: number) {
 }
 
 /**
- * Bounding-box center of a polygon's largest ring. Good enough for
- * label placement; not a true centroid (no shoelace formula). For
- * MultiPolygon countries we pick the polygon with the most coordinates
- * — usually the mainland — so labels don't drop on tiny offshore
- * islands.
+ * Bounding-box center + area of a polygon's largest ring. Good enough
+ * for label placement and "country importance" sorting; not a true
+ * centroid (no shoelace formula). For MultiPolygon countries we pick
+ * the polygon with the most coordinates — usually the mainland — so
+ * labels don't drop on tiny offshore islands.
+ *
+ * Area is in square degrees (lng-span × lat-span). Useful only as a
+ * relative ordering, not as a real geographic area.
  */
-function polygonBboxCenter(geom: GeoJSON.Geometry): [number, number] | null {
+function polygonBboxStats(
+	geom: GeoJSON.Geometry,
+): { center: [number, number]; area: number } | null {
 	let lngMin = Number.POSITIVE_INFINITY;
 	let lngMax = Number.NEGATIVE_INFINITY;
 	let latMin = Number.POSITIVE_INFINITY;
@@ -298,5 +358,23 @@ function polygonBboxCenter(geom: GeoJSON.Geometry): [number, number] | null {
 	}
 
 	if (!Number.isFinite(lngMin)) return null;
-	return [(lngMin + lngMax) / 2, (latMin + latMax) / 2];
+	const area = (lngMax - lngMin) * (latMax - latMin);
+	return { center: [(lngMin + lngMax) / 2, (latMin + latMax) / 2], area };
+}
+
+/** Approximate text width in pixels for collision detection. Conservative
+ *  multiplier (0.62) leaves a small gap between adjacent labels. */
+function approxTextWidth(text: string, fontSize: number, tracking = 0): number {
+	return text.length * fontSize * 0.62 + (text.length - 1) * tracking;
+}
+
+interface PlacedRect {
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+}
+
+function rectsOverlap(a: PlacedRect, b: PlacedRect): boolean {
+	return !(a.x + a.w < b.x || b.x + b.w < a.x || a.y + a.h < b.y || b.y + b.h < a.y);
 }
