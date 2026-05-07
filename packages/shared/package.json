@@ -13,7 +13,8 @@
 		"./policy": "./src/nation-policy.ts",
 		"./factions": "./src/factions.ts",
 		"./unit-types": "./src/unit-types.ts",
-		"./research": "./src/research-catalog.ts"
+		"./research": "./src/research-catalog.ts",
+		"./leaders": "./src/leaders.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",

@@ -4,7 +4,6 @@ import { CityBuildingsSection } from "@/components/city-buildings";
 import { CityUnrestSection } from "@/components/city-unrest";
 import { type UnitGlyph, UnitIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
-import { factionToCss } from "@/lib/faction-colors";
 import type { GameSnapshot, PlayerInGame, WorldDataset } from "@geopolitik/shared/api";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
