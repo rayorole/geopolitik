@@ -287,12 +287,15 @@ const STYLE: maplibregl.StyleSpecification = {
 					3.2,
 					1,
 				],
+				// Stroke width is uniform across owned, allied, and foreign
+				// cities so all dots read at the same physical size. Selection
+				// state still inflates to 2.5 to highlight the click target.
+				// Per-faction identity comes from circle-color, not stroke
+				// width, so my own dots aren't visually larger than peers'.
 				"circle-stroke-width": [
 					"case",
 					["boolean", ["feature-state", "selected"], false],
 					2.5,
-					["==", ["get", "isMine"], 1],
-					1.4,
 					0.6,
 				],
 				"circle-stroke-color": [
@@ -301,7 +304,7 @@ const STYLE: maplibregl.StyleSpecification = {
 					CITY_SELECTED_RING,
 					["==", ["get", "isMine"], 1],
 					COLOR.signal500,
-					"#0a0e14",
+					COLOR.ink1,
 				],
 				"circle-stroke-opacity": [
 					"interpolate",
@@ -312,6 +315,39 @@ const STYLE: maplibregl.StyleSpecification = {
 					3.2,
 					1,
 				],
+			},
+		},
+		// Animated hover ring — a stroke-only circle drawn around the
+		// hovered city. Visibility is gated via the `hover` feature-state
+		// flag (0 opacity when not hovered) and the radius + stroke-opacity
+		// pulse via setPaintProperty in a requestAnimationFrame loop while a
+		// city is hovered. Transparent fill so it doesn't cover the dot.
+		{
+			id: "city-hover-ring",
+			type: "circle",
+			source: "cities",
+			paint: {
+				"circle-color": "rgba(0,0,0,0)",
+				"circle-radius": [
+					"interpolate",
+					["linear"],
+					["zoom"],
+					1.5,
+					["case", ["boolean", ["feature-state", "hover"], false], 4, 0],
+					4,
+					["case", ["boolean", ["feature-state", "hover"], false], 7, 0],
+					7,
+					["case", ["boolean", ["feature-state", "hover"], false], 9, 0],
+					10,
+					["case", ["boolean", ["feature-state", "hover"], false], 12, 0],
+				],
+				"circle-stroke-color": CITY_SELECTED_RING,
+				"circle-stroke-width": ["case", ["boolean", ["feature-state", "hover"], false], 1, 0],
+				"circle-stroke-opacity": ["case", ["boolean", ["feature-state", "hover"], false], 0.6, 0],
+				// Smooth ease in/out on hover-enter / leave is configured via
+				// setPaintProperty(`<prop>-transition`, …) after the layer is
+				// created — those transition properties exist at runtime in
+				// MapLibre but aren't in the strict paint-object types.
 			},
 		},
 	],
@@ -347,6 +383,10 @@ export type GameMapProps = {
 	onHoverCountry?: (country: HoveredCountry | null) => void;
 	onHoverCity?: (city: HoveredCity | null) => void;
 	onCityClick?: (cityId: string) => void;
+	/** Fires on any click that didn't hit a city dot — country fills and
+	 *  bare ocean alike. Used to clear the selected-city panel when the
+	 *  player clicks away from the currently-selected city. */
+	onDeselectCity?: () => void;
 	myCountryCode?: string | null;
 	/** Phase 6c: ISO3 codes of every country held by an alliance co-member.
 	 *  Their fill + outline render in `ally500` blue and their city dots
@@ -479,6 +519,7 @@ export function GameMap({
 	onCityClick,
 	myCountryCode,
 	alliedCountryCodes,
+	onDeselectCity,
 	cities,
 	citiesRender,
 	selectedCityId,
@@ -491,6 +532,8 @@ export function GameMap({
 	const clickAudioRef = useRef<HTMLAudioElement | null>(null);
 	const myCountryCodeRef = useRef<string | null | undefined>(myCountryCode);
 	myCountryCodeRef.current = myCountryCode;
+	const onDeselectCityRef = useRef<(() => void) | undefined>(onDeselectCity);
+	onDeselectCityRef.current = onDeselectCity;
 	const [contextCoord, setContextCoord] = useState<{
 		lat: number;
 		lng: number;
@@ -686,6 +729,9 @@ export function GameMap({
 			if ((e.originalEvent as MouseEvent & { _cityHandled?: boolean })._cityHandled) {
 				return;
 			}
+			// Click landed on a country, not a city — deselect the city panel
+			// if anything was selected.
+			onDeselectCityRef.current?.();
 			const f = e.features?.[0];
 			const props = f?.properties ?? {};
 			const iso3 = (props.ISO_A3 as string) ?? (props.ADM0_A3 as string) ?? "";
@@ -718,6 +764,29 @@ export function GameMap({
 				y: e.point.y,
 			});
 			setCityPopover(null);
+		});
+
+		// Catch-all click handler for ocean / map background. The country-fill
+		// and city-circle handlers fire first via layer-specific listeners; if
+		// neither tagged the event, the click hit water or unmapped land and
+		// we treat it as a click-away → deselect any selected city + close any
+		// open popovers.
+		map.on("click", (e) => {
+			const ev = e.originalEvent as MouseEvent & {
+				_cityHandled?: boolean;
+				_countryHandled?: boolean;
+			};
+			if (ev._cityHandled) return;
+			// country-fill handler always fires when over land, so reaching here
+			// means we're on water.
+			const features = map.queryRenderedFeatures(e.point, {
+				layers: ["country-fill", "city-circle"],
+			});
+			if (features.length === 0) {
+				onDeselectCityRef.current?.();
+				setPopover(null);
+				setCityPopover(null);
+			}
 		});
 
 		map.on("mousemove", (e) => onCursorMove?.({ lat: e.lngLat.lat, lng: e.lngLat.lng }));
@@ -840,6 +909,122 @@ export function GameMap({
 			map.off("mouseleave", "city-circle", onLeave);
 		};
 	}, [onHoverCity]);
+
+	// Pulse animation for the city-hover-ring layer. While any city is
+	// hovered, oscillate the layer-level circle-radius and
+	// circle-stroke-opacity via a sin wave so the ring "breathes" — drawing
+	// the eye and signaling clickability. Stops when no city is hovered so
+	// MapLibre isn't repainting needlessly.
+	useEffect(() => {
+		const map = mapRef.current;
+		if (!map) return;
+		const PERIOD_MS = 1800;
+		let raf: number | null = null;
+		let lastHoverId: string | null = null;
+
+		const setBaseRadius = () => {
+			map.setPaintProperty("city-hover-ring", "circle-radius", [
+				"interpolate",
+				["linear"],
+				["zoom"],
+				1.5,
+				["case", ["boolean", ["feature-state", "hover"], false], 4, 0],
+				4,
+				["case", ["boolean", ["feature-state", "hover"], false], 7, 0],
+				7,
+				["case", ["boolean", ["feature-state", "hover"], false], 9, 0],
+				10,
+				["case", ["boolean", ["feature-state", "hover"], false], 12, 0],
+			]);
+		};
+
+		const tick = () => {
+			const id = hoverCityIdRef.current;
+			if (id) {
+				const t = (performance.now() % PERIOD_MS) / PERIOD_MS; // 0..1
+				const phase = (Math.sin(t * Math.PI * 2) + 1) / 2; // 0..1
+				// Subtle pulse: ~2px breath, 0.5..0.7 opacity. Just enough to
+				// draw the eye without becoming a fidget toy.
+				const radiusBoost = phase * 2; // 0..2px outward
+				const opacity = 0.5 + phase * 0.2; // 0.50..0.70
+				try {
+					map.setPaintProperty("city-hover-ring", "circle-radius", [
+						"interpolate",
+						["linear"],
+						["zoom"],
+						1.5,
+						["case", ["boolean", ["feature-state", "hover"], false], 4 + radiusBoost, 0],
+						4,
+						["case", ["boolean", ["feature-state", "hover"], false], 7 + radiusBoost, 0],
+						7,
+						["case", ["boolean", ["feature-state", "hover"], false], 9 + radiusBoost, 0],
+						10,
+						["case", ["boolean", ["feature-state", "hover"], false], 12 + radiusBoost, 0],
+					]);
+					map.setPaintProperty("city-hover-ring", "circle-stroke-opacity", [
+						"case",
+						["boolean", ["feature-state", "hover"], false],
+						opacity,
+						0,
+					]);
+				} catch {
+					// Layer not ready yet (style still loading) — try again next frame.
+				}
+				lastHoverId = id;
+			} else if (lastHoverId !== null) {
+				// Cursor just left a city — settle the ring back to its base size
+				// (the layer's static expression handles fading via transitions).
+				try {
+					setBaseRadius();
+					map.setPaintProperty("city-hover-ring", "circle-stroke-opacity", [
+						"case",
+						["boolean", ["feature-state", "hover"], false],
+						0.6,
+						0,
+					]);
+				} catch {
+					// noop
+				}
+				lastHoverId = null;
+			}
+			raf = requestAnimationFrame(tick);
+		};
+
+		// Wait for style to load before driving paint properties.
+		const start = () => {
+			// Configure ease-in / ease-out for the static (non-RAF) value
+			// transitions so hover-enter / hover-leave fade smoothly. These
+			// properties exist on MapLibre at runtime but aren't in the
+			// strict paint-object types — set via the runtime API instead.
+			try {
+				(
+					map as unknown as {
+						setPaintProperty: (l: string, p: string, v: unknown) => void;
+					}
+				).setPaintProperty("city-hover-ring", "circle-radius-transition", {
+					duration: 200,
+					delay: 0,
+				});
+				(
+					map as unknown as {
+						setPaintProperty: (l: string, p: string, v: unknown) => void;
+					}
+				).setPaintProperty("city-hover-ring", "circle-stroke-opacity-transition", {
+					duration: 200,
+					delay: 0,
+				});
+			} catch {
+				// noop
+			}
+			raf = requestAnimationFrame(tick);
+		};
+		if (map.isStyleLoaded()) start();
+		else map.once("load", start);
+
+		return () => {
+			if (raf !== null) cancelAnimationFrame(raf);
+		};
+	}, []);
 
 	// Selected-city ring via feature-state. Track the previously-selected id
 	// in a ref so we can clear it without snapshotting external state.

@@ -193,6 +193,10 @@ export default function PlayPage() {
 		[selectCity],
 	);
 
+	const onDeselectCity = useCallback(() => {
+		selectCity(null);
+	}, [selectCity]);
+
 	const onCityClickFromList = useCallback(
 		(cityId: string) => {
 			selectCity(cityId);
@@ -267,6 +271,7 @@ export default function PlayPage() {
 					onHoverCountry={onHoverCountry}
 					onHoverCity={onHoverCity}
 					onCityClick={onCityClickFromMap}
+					onDeselectCity={onDeselectCity}
 					myCountryCode={myCountryCode}
 					alliedCountryCodes={alliedCountryCodes}
 					cities={world.data?.cities}
