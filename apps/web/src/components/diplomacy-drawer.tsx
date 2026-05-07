@@ -1,5 +1,6 @@
 "use client";
 
+import { NationsTab } from "@/components/diplomacy/nations-tab";
 import { Button } from "@/components/ui/button";
 import {
 	Sheet,
@@ -9,6 +10,8 @@ import {
 	SheetTitle,
 	SheetTrigger,
 } from "@/components/ui/sheet";
+import { gamesApi, queryKeys, worldApi } from "@/lib/api-client";
+import { useQuery } from "@tanstack/react-query";
 import { Handshake } from "lucide-react";
 import { useState } from "react";
 
@@ -52,13 +55,25 @@ export interface DiplomacyDrawerProps {
 }
 
 export function DiplomacyDrawer({
-	gameId: _gameId,
+	gameId,
 	mePlayerId: _mePlayerId,
 	pendingProposalCount = 0,
 	unreadMessageCount = 0,
 }: DiplomacyDrawerProps) {
 	const [open, setOpen] = useState(false);
 	const [tab, setTab] = useState<DiplomacyTab>("nations");
+
+	const snapshot = useQuery({
+		queryKey: queryKeys.gameSnapshot(gameId),
+		queryFn: () => gamesApi.snapshot(gameId),
+		enabled: open,
+	});
+	const world = useQuery({
+		queryKey: queryKeys.worldCities,
+		queryFn: worldApi.cities,
+		staleTime: 60 * 60 * 1000,
+		enabled: open,
+	});
 
 	const showProposalDot = pendingProposalCount > 0;
 	const showUnreadDot = unreadMessageCount > 0;
@@ -121,7 +136,7 @@ export function DiplomacyDrawer({
 				</nav>
 
 				<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-					{tab === "nations" && <NationsTabPlaceholder />}
+					{tab === "nations" && <NationsTab snapshot={snapshot.data} world={world.data} />}
 					{tab === "alliances" && <AlliancesTabPlaceholder />}
 					{tab === "messages" && <MessagesTabPlaceholder />}
 					{tab === "trades" && <TradesTabPlaceholder />}
@@ -141,15 +156,6 @@ function EmptyTab({ title, body }: { title: string; body: string }) {
 				{body}
 			</span>
 		</div>
-	);
-}
-
-function NationsTabPlaceholder() {
-	return (
-		<EmptyTab
-			title="Nations — coming in Phase 6b"
-			body="Browse all ~140 world nations split into Active Powers (player-held) and Sleeper Nations. Per-nation: leader, flag, city count, and quick actions for treaties / trade / messaging / war."
-		/>
 	);
 }
 
