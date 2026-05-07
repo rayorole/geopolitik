@@ -1,5 +1,6 @@
 "use client";
 
+import { AlliancesTab } from "@/components/diplomacy/alliances-tab";
 import { NationsTab } from "@/components/diplomacy/nations-tab";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,6 +75,11 @@ export function DiplomacyDrawer({
 		staleTime: 60 * 60 * 1000,
 		enabled: open,
 	});
+	const diplomacy = useQuery({
+		queryKey: queryKeys.gameDiplomacy(gameId),
+		queryFn: () => gamesApi.diplomacy(gameId),
+		enabled: open,
+	});
 
 	const showProposalDot = pendingProposalCount > 0;
 	const showUnreadDot = unreadMessageCount > 0;
@@ -137,7 +143,14 @@ export function DiplomacyDrawer({
 
 				<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 					{tab === "nations" && <NationsTab snapshot={snapshot.data} world={world.data} />}
-					{tab === "alliances" && <AlliancesTabPlaceholder />}
+					{tab === "alliances" && (
+						<AlliancesTab
+							gameId={gameId}
+							snapshot={diplomacy.data}
+							gameSnapshot={snapshot.data}
+							currentTick={snapshot.data?.game.tick ?? 0}
+						/>
+					)}
 					{tab === "messages" && <MessagesTabPlaceholder />}
 					{tab === "trades" && <TradesTabPlaceholder />}
 				</div>
@@ -156,15 +169,6 @@ function EmptyTab({ title, body }: { title: string; body: string }) {
 				{body}
 			</span>
 		</div>
-	);
-}
-
-function AlliancesTabPlaceholder() {
-	return (
-		<EmptyTab
-			title="Alliances — coming in Phase 6c"
-			body="Form alliances with multi-rank governance. Implicit non-aggression, defensive pact, shared sight. Apply-to-vote joining. Anti-abuse cooling pacts on leave."
-		/>
 	);
 }
 
