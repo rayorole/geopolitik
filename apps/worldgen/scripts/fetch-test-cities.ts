@@ -216,6 +216,9 @@ type RawCity = {
 	countryIso2: string;
 	featureCode: string;
 	population: number;
+	// Filled by enrichWithCoastality() before pickCitiesFor runs, so the picker
+	// can promote a coastal anchor without re-doing the distance math itself.
+	isCoastal: boolean;
 };
 
 async function loadCitiesByIso2(targetIso2: Set<string>): Promise<Map<string, RawCity[]>> {
@@ -244,9 +247,17 @@ async function loadCitiesByIso2(targetIso2: Set<string>): Promise<Map<string, Ra
 		const population = Number.parseInt(cols[14] ?? "", 10);
 		if (!Number.isFinite(id) || !Number.isFinite(lat) || !Number.isFinite(lng)) continue;
 		if (!Number.isFinite(population)) continue;
-		byIso2
-			.get(iso2)
-			?.push({ id, name, asciiName, lat, lng, countryIso2: iso2, featureCode, population });
+		byIso2.get(iso2)?.push({
+			id,
+			name,
+			asciiName,
+			lat,
+			lng,
+			countryIso2: iso2,
+			featureCode,
+			population,
+			isCoastal: false, // filled by enrichWithCoastality
+		});
 	}
 	return byIso2;
 }
@@ -398,18 +409,34 @@ function minDistanceKm(areaKm2: number, targetCount: number): number {
 	return Math.max(MIN_DISTANCE_FLOOR_KM, MIN_DISTANCE_SCALE * Math.sqrt(areaKm2 / target));
 }
 
+// Pop floor for the "real large city" coastal anchor. Below this we fall back
+// to the largest available coastal city of any size.
+const COASTAL_ANCHOR_MIN_POP = 100_000;
+
 /*
- * Pick the country's cities under three rules:
+ * Pick the country's cities under five rules:
  *   1. Drop GeoNames PPLX entries (sections of populated place — Bucharest
  *      Sector 2/3/4/5/6, etc.). These are subdivisions of bigger cities and
  *      cluster on top of capitals.
- *   2. Always include the capital (PPLC) and the largest non-capital city —
- *      these two anchors ignore the spread veto so famous cities are never
- *      dropped.
- *   3. Fill remaining slots greedy-by-pop, vetoing any candidate within
+ *   2. Anchor 1 — capital (PPLC), always.
+ *   3. Anchor 2 — coastal anchor: only for non-landlocked countries, only if
+ *      no anchor already qualifies as coastal. Pick the largest coastal city
+ *      with pop >= COASTAL_ANCHOR_MIN_POP; if none qualifies, fall back to the
+ *      largest coastal city of any size (still subject to the country having
+ *      one in cities500).
+ *   4. Anchor 3 — largest non-capital, regardless of coast/inland.
+ *   5. Fill remaining slots greedy-by-pop, vetoing any candidate within
  *      minDistanceKm() of an already-picked city.
+ *
+ * Anchors are exempt from the spread veto BY DEFINITION — we want famous
+ * cities preserved even when they sit close to one another.
  */
-function pickCitiesFor(country: CountryInfo, raw: RawCity[], limit: number): RawCity[] {
+function pickCitiesFor(
+	country: CountryInfo,
+	raw: RawCity[],
+	limit: number,
+	isCountryLandlocked: boolean,
+): RawCity[] {
 	const sorted = [...raw]
 		.filter((c) => c.featureCode !== "PPLX")
 		.sort((a, b) => b.population - a.population);
@@ -421,9 +448,30 @@ function pickCitiesFor(country: CountryInfo, raw: RawCity[], limit: number): Raw
 	const capital = sorted.find((c) => c.featureCode === "PPLC");
 	if (capital) picked.push(capital);
 
-	// Anchor 2: largest non-capital (exempt from veto by design)
-	const largestNonCapital = sorted.find((c) => c.featureCode !== "PPLC");
-	if (largestNonCapital && !picked.includes(largestNonCapital) && picked.length < limit) {
+	// Anchor 2: coastal anchor (coastal countries only, only if no current
+	// anchor is already coastal). Promotes a coastal city even when natural
+	// pop sort wouldn't have picked one — see Q3 grilling.
+	if (!isCountryLandlocked && !picked.some((p) => p.isCoastal) && picked.length < limit) {
+		const bigCoastal = sorted.find(
+			(c) => c.isCoastal && c.population >= COASTAL_ANCHOR_MIN_POP && !picked.includes(c),
+		);
+		const fallbackCoastal = sorted.find((c) => c.isCoastal && !picked.includes(c));
+		const coastalAnchor = bigCoastal ?? fallbackCoastal;
+		if (coastalAnchor) {
+			picked.push(coastalAnchor);
+			if (!bigCoastal) {
+				console.log(
+					`[coast-fallback] ${country.iso3} no >=${COASTAL_ANCHOR_MIN_POP} coastal city; using ${coastalAnchor.name} (${coastalAnchor.population})`,
+				);
+			}
+		} else {
+			console.warn(`[no-coast] ${country.iso3} (${country.name}) has no coastal city in cities500`);
+		}
+	}
+
+	// Anchor 3: largest non-capital (exempt from veto)
+	const largestNonCapital = sorted.find((c) => c.featureCode !== "PPLC" && !picked.includes(c));
+	if (largestNonCapital && picked.length < limit) {
 		picked.push(largestNonCapital);
 	}
 
@@ -527,6 +575,22 @@ async function main() {
 
 	const portOverrides = await loadPortOverrides();
 
+	// Enrich every raw candidate city with isCoastal so the picker can pick a
+	// coastal anchor without re-doing distance math. Skips cities in landlocked
+	// countries — Caspian-shore cities (Atyrau, Aktau, Baku) deliberately stay
+	// false even though NE coastline traces the Caspian.
+	for (const country of eligible) {
+		const isLandlocked = LANDLOCKED_ISO3.has(country.iso3);
+		const cities = cityMap.get(country.iso2);
+		if (!cities) continue;
+		for (const c of cities) {
+			if (isLandlocked) continue;
+			const dist = distanceToCoastlineKm(coastline, c.lat, c.lng);
+			const overrideKey = `${country.iso3}:${c.asciiName || c.name}`;
+			c.isCoastal = dist <= COASTAL_DISTANCE_KM || portOverrides.has(overrideKey);
+		}
+	}
+
 	let bonuses: CityBonuses = {};
 	if (existsSync(BONUSES_PATH)) {
 		const raw = JSON.parse(await readFile(BONUSES_PATH, "utf8"));
@@ -539,9 +603,10 @@ async function main() {
 
 	const processBucket = (bucket: CountryInfo[], playableBucket: boolean) => {
 		bucket.forEach((country, idx) => {
+			const isLandlocked = LANDLOCKED_ISO3.has(country.iso3);
 			const limit = tierLimit(idx, bucket.length, playableBucket);
 			const raw = cityMap.get(country.iso2) ?? [];
-			const top = pickCitiesFor(country, raw, limit);
+			const top = pickCitiesFor(country, raw, limit, isLandlocked);
 
 			// Skip countries with no eligible cities — leaves a country polygon
 			// with no dots, which is uglier than just dropping the entry.
@@ -549,8 +614,6 @@ async function main() {
 				console.warn(`[skip] ${country.name} (${country.iso3}) — no cities500 entries`);
 				return;
 			}
-
-			const isLandlocked = LANDLOCKED_ISO3.has(country.iso3);
 
 			countryRows.push({
 				code: country.iso3,
@@ -565,19 +628,6 @@ async function main() {
 				const bonusKey = `${country.iso3}:${c.asciiName || c.name}`;
 				const b = bonuses[bonusKey] ?? {};
 
-				// A city is coastal iff its country is NOT landlocked AND
-				// (within COASTAL_DISTANCE_KM of NE coastline OR in the curated
-				// port-overrides whitelist). The landlocked guard prevents
-				// Caspian-shore cities (Atyrau, Aktau, Türkmenbaşy, Baku) from
-				// false-flagging — Caspian coastline is in NE_50m_coastline but
-				// has no ocean connection.
-				let isCoastal = false;
-				if (!isLandlocked) {
-					const distKm = distanceToCoastlineKm(coastline, c.lat, c.lng);
-					const overrideKey = `${country.iso3}:${c.asciiName || c.name}`;
-					isCoastal = distKm <= COASTAL_DISTANCE_KM || portOverrides.has(overrideKey);
-				}
-
 				cityRows.push({
 					id: uuidv7(),
 					countryCode: country.iso3,
@@ -586,7 +636,7 @@ async function main() {
 					lng: c.lng,
 					basePopulation: c.population,
 					isCapital: c.featureCode === "PPLC",
-					isCoastal,
+					isCoastal: c.isCoastal,
 					moneyMult: b.moneyMult ?? 1.0,
 					steelMult: b.steelMult ?? 1.0,
 					electronicsMult: b.electronicsMult ?? 1.0,
