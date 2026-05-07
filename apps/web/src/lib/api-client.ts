@@ -9,13 +9,16 @@ import type {
 	GameSummary,
 	JoinGameBody,
 	MineGameSummary,
+	PlayerResearchResponse,
 	SubmitOrderResponse,
 	UpdateProfileBody,
 	UpdateProfileResponse,
 	WorldDataset,
 } from "@geopolitik/shared/api";
 import type { BuildingsCatalog } from "@geopolitik/shared/buildings";
+import type { FactionId, FactionsCatalog } from "@geopolitik/shared/factions";
 import type { SubmitOrderBodyV3 } from "@geopolitik/shared/orders";
+import type { ResearchTreeFile } from "@geopolitik/shared/research";
 import { publicEnv } from "./env";
 
 const API = publicEnv.NEXT_PUBLIC_API_URL;
@@ -57,11 +60,17 @@ export const gamesApi = {
 
 	cancelOrder: (gameId: string, orderId: string): Promise<{ ok: true }> =>
 		api(`/games/${gameId}/orders/${orderId}`, { method: "DELETE" }),
+
+	research: (gameId: string): Promise<PlayerResearchResponse> =>
+		api<PlayerResearchResponse>(`/games/${gameId}/research`),
 };
 
 export const worldApi = {
 	cities: (): Promise<WorldDataset> => api<WorldDataset>("/world/cities"),
 	buildings: (): Promise<BuildingsCatalog> => api<BuildingsCatalog>("/world/buildings"),
+	factions: (): Promise<FactionsCatalog> => api<FactionsCatalog>("/world/factions"),
+	researchTrees: (faction: FactionId): Promise<{ faction: FactionId; trees: ResearchTreeFile[] }> =>
+		api(`/world/research/${faction}`),
 };
 
 export const accountApi = {
@@ -78,8 +87,11 @@ export const queryKeys = {
 	gameSummary: (id: string) => ["games", "summary", id] as const,
 	gameByCode: (code: string) => ["games", "by-code", code] as const,
 	gameSnapshot: (id: string) => ["games", "snapshot", id] as const,
+	gameResearch: (id: string) => ["games", "research", id] as const,
 	worldCities: ["world", "cities"] as const,
 	worldBuildings: ["world", "buildings"] as const,
+	worldFactions: ["world", "factions"] as const,
+	worldResearchTrees: (faction: FactionId) => ["world", "research", faction] as const,
 	wsStatus: (id: string) => ["games", id, "ws", "status"] as const,
 	selectedCity: (gameId: string) => ["games", gameId, "ui", "selectedCity"] as const,
 };

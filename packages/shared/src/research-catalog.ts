@@ -221,8 +221,18 @@ export function defaultResearchTimeTicksForTier(tier: 1 | 2 | 3 | 4): number {
 	return RES_TIME_TIER_TICKS[tier];
 }
 
-// Re-export the Zod parser for runtime use elsewhere (e.g., tests).
-export { researchTreeFile, type ResearchTreeFile, type ResearchNode } from "./research-tree";
+// Re-export the Zod parser + types for runtime use elsewhere (e.g., tests, web).
+export {
+	researchTreeFile,
+	type ResearchTreeFile,
+	type ResearchNode,
+	type TreeId,
+	type ResearchTier,
+	type ResearchCost,
+	type ResearchUnlocks,
+	TREE_IDS,
+	treeId,
+} from "./research-tree";
 
 // Resource keys used by research costs.
 export const RESEARCH_RESOURCE_KEYS = ["money", "oil", "steel", "electronics"] as const;

@@ -173,3 +173,16 @@ describe("GET /world/research/:faction", () => {
 		expect(res.status).toBe(404);
 	});
 });
+
+describe("GET /games/:id/research auth boundary", () => {
+	beforeEach(() => {
+		getSessionMock.mockReset();
+	});
+
+	it("requires auth", async () => {
+		getSessionMock.mockResolvedValue(null);
+		const app = createApp();
+		const res = await app.request("/games/00000000-0000-0000-0000-000000000099/research");
+		expect(res.status).toBe(401);
+	});
+});
