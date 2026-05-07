@@ -72,6 +72,33 @@ export default function PlayPage() {
 		enabled: !!session,
 	});
 
+	// Phase 6c: alliance state drives map coloring (allies render blue).
+	// Polled at 15s staleTime — light load, responsive to membership changes.
+	const diplomacy = useQuery({
+		queryKey: queryKeys.gameDiplomacy(gameId),
+		queryFn: () => gamesApi.diplomacy(gameId),
+		enabled: !!session && !!snapshot.data?.mePlayerId,
+		staleTime: 15_000,
+	});
+
+	// Set of player IDs in the same alliance as me (excluding me).
+	const allyPlayerIds = useMemo<Set<string>>(() => {
+		const set = new Set<string>();
+		const me = snapshot.data?.mePlayerId;
+		if (!me || !diplomacy.data?.myAlliance) return set;
+		for (const m of diplomacy.data.allMembers) {
+			if (m.playerId !== me) set.add(m.playerId);
+		}
+		return set;
+	}, [snapshot.data?.mePlayerId, diplomacy.data]);
+
+	// ISO3 codes of countries held by alliance peers — drives the map's
+	// country-fill + country-line paint expressions.
+	const alliedCountryCodes = useMemo<string[]>(() => {
+		if (!snapshot.data || allyPlayerIds.size === 0) return [];
+		return snapshot.data.players.filter((p) => allyPlayerIds.has(p.id)).map((p) => p.countryCode);
+	}, [snapshot.data, allyPlayerIds]);
+
 	const { data: wsStatus = "connecting" } = useQuery<WsStatus>({
 		queryKey: queryKeys.wsStatus(gameId),
 		queryFn: () => "connecting",
@@ -117,6 +144,8 @@ export default function PlayPage() {
 	// Every world city renders — cities without a city_state row (no player has
 	// joined that country) fall back to basePopulation and show as neutral. The
 	// map layer hides neutrals at world zoom so the overview stays readable.
+	// Alliance peers' cities use the ally-blue swatch instead of their faction
+	// color so the team reads at a glance on the map.
 	const citiesRender = useMemo<CityRender[]>(() => {
 		if (!snapshot.data || !world.data) return [];
 		const playerById = new Map(snapshot.data.players.map((p) => [p.id, p]));
@@ -124,20 +153,24 @@ export default function PlayPage() {
 		return world.data.cities.map((c) => {
 			const cs = popByCity.get(c.id);
 			const owner = cs?.ownerPlayerId ? playerById.get(cs.ownerPlayerId) : undefined;
+			const isMine = !!owner && owner.id === snapshot.data?.mePlayerId;
+			const isAlly = !!owner && allyPlayerIds.has(owner.id);
+			const ownerColor = owner ? (isAlly ? "#4a90d9" : factionToHex(owner.color)) : null;
 			return {
 				id: c.id,
 				lng: c.lng,
 				lat: c.lat,
 				name: c.name,
 				population: cs?.population ?? c.basePopulation,
-				ownerColor: owner ? factionToHex(owner.color) : null,
+				ownerColor,
 				ownerName: owner?.displayName ?? null,
-				isMine: !!cs?.ownerPlayerId && cs.ownerPlayerId === snapshot.data?.mePlayerId,
+				isMine,
+				isAlly,
 				isCapital: c.isCapital,
 				countryCode: c.countryCode,
 			} satisfies CityRender;
 		});
-	}, [snapshot.data, world.data]);
+	}, [snapshot.data, world.data, allyPlayerIds]);
 
 	const { data: selectedCityId = null } = useQuery<SelectedCity>({
 		queryKey: queryKeys.selectedCity(gameId),
@@ -159,6 +192,10 @@ export default function PlayPage() {
 		},
 		[selectCity],
 	);
+
+	const onDeselectCity = useCallback(() => {
+		selectCity(null);
+	}, [selectCity]);
 
 	const onCityClickFromList = useCallback(
 		(cityId: string) => {
@@ -234,8 +271,11 @@ export default function PlayPage() {
 					onHoverCountry={onHoverCountry}
 					onHoverCity={onHoverCity}
 					onCityClick={onCityClickFromMap}
+					onDeselectCity={onDeselectCity}
 					myCountryCode={myCountryCode}
+					alliedCountryCodes={alliedCountryCodes}
 					cities={world.data?.cities}
+					countries={world.data?.countries}
 					citiesRender={citiesRender}
 					selectedCityId={selectedCityId}
 					onMapReady={onMapReady}

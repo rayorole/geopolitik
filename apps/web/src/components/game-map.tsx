@@ -1,6 +1,7 @@
 "use client";
 
 import { UnitIcon } from "@/components/icons";
+import { MapLabels } from "@/components/map-labels";
 import { Badge } from "@/components/ui/badge";
 import {
 	DropdownMenu,
@@ -56,6 +57,8 @@ const COLOR = {
 	signal500: "#d68b3e", // sodium-vapor amber, full opacity
 	signal500a18: "rgba(214, 139, 62, 0.22)", // hover fill
 	signal500a40: "rgba(214, 139, 62, 0.45)", // owned-country fill
+	ally500: "#4a90d9", // allied-country outline + city dot color (Phase 6c)
+	ally500a40: "rgba(74, 144, 217, 0.45)", // allied-country fill
 } as const;
 
 const CITY_NEUTRAL_COLOR = "#4a5666";
@@ -65,12 +68,23 @@ const NEVER_MATCH = "__NONE__";
 
 function fillExpression(
 	myCountryCode: string | null | undefined,
+	alliedCountryCodes: readonly string[] = [],
 ): maplibregl.DataDrivenPropertyValueSpecification<string> {
 	const code = myCountryCode ?? NEVER_MATCH;
+	const allied = alliedCountryCodes.length > 0 ? alliedCountryCodes : [NEVER_MATCH];
 	return [
 		"case",
+		// You: amber.
 		["any", ["==", ["get", "ISO_A3"], code], ["==", ["get", "ADM0_A3"], code]],
 		COLOR.signal500a40,
+		// Alliance co-members: blue.
+		[
+			"any",
+			["in", ["get", "ISO_A3"], ["literal", allied]],
+			["in", ["get", "ADM0_A3"], ["literal", allied]],
+		],
+		COLOR.ally500a40,
+		// Hover state — only when not allied or owned.
 		["boolean", ["feature-state", "hover"], false],
 		COLOR.signal500a18,
 		COLOR.ink3,
@@ -79,12 +93,20 @@ function fillExpression(
 
 function lineColorExpression(
 	myCountryCode: string | null | undefined,
+	alliedCountryCodes: readonly string[] = [],
 ): maplibregl.DataDrivenPropertyValueSpecification<string> {
 	const code = myCountryCode ?? NEVER_MATCH;
+	const allied = alliedCountryCodes.length > 0 ? alliedCountryCodes : [NEVER_MATCH];
 	return [
 		"case",
 		["any", ["==", ["get", "ISO_A3"], code], ["==", ["get", "ADM0_A3"], code]],
 		COLOR.signal500,
+		[
+			"any",
+			["in", ["get", "ISO_A3"], ["literal", allied]],
+			["in", ["get", "ADM0_A3"], ["literal", allied]],
+		],
+		COLOR.ally500,
 		["boolean", ["feature-state", "hover"], false],
 		COLOR.signal500,
 		COLOR.ink5,
@@ -234,6 +256,10 @@ const STYLE: maplibregl.StyleSpecification = {
 			id: "city-circle",
 			type: "circle",
 			source: "cities",
+			// Capital cities render as star icons via the DOM overlay (see
+			// map-labels.tsx); filter them out of the circle layer so they
+			// don't render as a dot underneath the star.
+			filter: ["!=", ["get", "isCapital"], 1],
 			paint: {
 				// Radius interpolates with zoom AND with the city's pop bracket via
 				// a step expression on properties.population. Cheap on the GPU; no
@@ -243,13 +269,13 @@ const STYLE: maplibregl.StyleSpecification = {
 					["linear"],
 					["zoom"],
 					1.5,
-					["case", ["boolean", ["feature-state", "hover"], false], 4.5, 2],
+					["case", ["boolean", ["feature-state", "hover"], false], 2.5, 1.2],
 					4,
-					["case", ["boolean", ["feature-state", "hover"], false], 7, 4],
+					["case", ["boolean", ["feature-state", "hover"], false], 4.5, 2.5],
 					7,
-					["case", ["boolean", ["feature-state", "hover"], false], 10, 7],
+					["case", ["boolean", ["feature-state", "hover"], false], 6, 4],
 					10,
-					["case", ["boolean", ["feature-state", "hover"], false], 13, 10],
+					["case", ["boolean", ["feature-state", "hover"], false], 8.5, 6],
 				],
 				"circle-color": ["get", "ownerColor"],
 				// Neutral cities fade in between zoom 2.8 and 3.2 — invisible at
@@ -266,12 +292,15 @@ const STYLE: maplibregl.StyleSpecification = {
 					3.2,
 					1,
 				],
+				// Stroke width is uniform across owned, allied, and foreign
+				// cities so all dots read at the same physical size. Selection
+				// state still inflates to 2.5 to highlight the click target.
+				// Per-faction identity comes from circle-color, not stroke
+				// width, so my own dots aren't visually larger than peers'.
 				"circle-stroke-width": [
 					"case",
 					["boolean", ["feature-state", "selected"], false],
 					2.5,
-					["==", ["get", "isMine"], 1],
-					1.4,
 					0.6,
 				],
 				"circle-stroke-color": [
@@ -280,7 +309,7 @@ const STYLE: maplibregl.StyleSpecification = {
 					CITY_SELECTED_RING,
 					["==", ["get", "isMine"], 1],
 					COLOR.signal500,
-					"#0a0e14",
+					COLOR.ink1,
 				],
 				"circle-stroke-opacity": [
 					"interpolate",
@@ -291,6 +320,39 @@ const STYLE: maplibregl.StyleSpecification = {
 					3.2,
 					1,
 				],
+			},
+		},
+		// Animated hover ring — a stroke-only circle drawn around the
+		// hovered city. Visibility is gated via the `hover` feature-state
+		// flag (0 opacity when not hovered) and the radius + stroke-opacity
+		// pulse via setPaintProperty in a requestAnimationFrame loop while a
+		// city is hovered. Transparent fill so it doesn't cover the dot.
+		{
+			id: "city-hover-ring",
+			type: "circle",
+			source: "cities",
+			paint: {
+				"circle-color": "rgba(0,0,0,0)",
+				"circle-radius": [
+					"interpolate",
+					["linear"],
+					["zoom"],
+					1.5,
+					["case", ["boolean", ["feature-state", "hover"], false], 4, 0],
+					4,
+					["case", ["boolean", ["feature-state", "hover"], false], 7, 0],
+					7,
+					["case", ["boolean", ["feature-state", "hover"], false], 9, 0],
+					10,
+					["case", ["boolean", ["feature-state", "hover"], false], 12, 0],
+				],
+				"circle-stroke-color": CITY_SELECTED_RING,
+				"circle-stroke-width": ["case", ["boolean", ["feature-state", "hover"], false], 1, 0],
+				"circle-stroke-opacity": ["case", ["boolean", ["feature-state", "hover"], false], 0.6, 0],
+				// Smooth ease in/out on hover-enter / leave is configured via
+				// setPaintProperty(`<prop>-transition`, …) after the layer is
+				// created — those transition properties exist at runtime in
+				// MapLibre but aren't in the strict paint-object types.
 			},
 		},
 	],
@@ -313,6 +375,10 @@ export type CityRender = {
 	ownerColor: string | null;
 	ownerName: string | null;
 	isMine: boolean;
+	/** Phase 6c: city is owned by an alliance co-member. Treated like
+	 *  `isMine` for color purposes — keeps faction-team identity visible
+	 *  on the map (allies render blue) instead of getting forced to grey. */
+	isAlly: boolean;
 	isCapital: boolean;
 	countryCode: string;
 };
@@ -322,8 +388,19 @@ export type GameMapProps = {
 	onHoverCountry?: (country: HoveredCountry | null) => void;
 	onHoverCity?: (city: HoveredCity | null) => void;
 	onCityClick?: (cityId: string) => void;
+	/** Fires on any click that didn't hit a city dot — country fills and
+	 *  bare ocean alike. Used to clear the selected-city panel when the
+	 *  player clicks away from the currently-selected city. */
+	onDeselectCity?: () => void;
 	myCountryCode?: string | null;
+	/** Phase 6c: ISO3 codes of every country held by an alliance co-member.
+	 *  Their fill + outline render in `ally500` blue and their city dots
+	 *  override the per-faction `ownerColor` to the same blue. */
+	alliedCountryCodes?: readonly string[];
 	cities?: WorldDataset["cities"];
+	/** World-data countries — used by the DOM label overlay to render
+	 *  country names at low zoom and resolve display names. */
+	countries?: WorldDataset["countries"];
 	citiesRender?: CityRender[];
 	selectedCityId?: string | null;
 	onMapReady?: (api: {
@@ -424,16 +501,23 @@ function citiesToFeatureCollection(rows: CityRender[] | undefined): GeoJSON.Feat
 				cityId: c.id,
 				name: c.name,
 				population: c.population,
-				// Faction color is reserved for the player's own cities. Foreign
-				// cities and unowned cities both render in the neutral grey so
-				// the player's territory is unambiguous on the map; faction
-				// identity for foreigners surfaces via popovers + sidebar.
-				ownerColor: c.isMine && c.ownerColor ? c.ownerColor : CITY_NEUTRAL_COLOR,
+				// Color rule:
+				//   - Owned by you → faction color (signal amber via ownerColor)
+				//   - Owned by an alliance co-member → ally blue (caller passes
+				//     the COLOR.ally500 value as ownerColor when isAlly is set)
+				//   - Owned by anyone else → neutral grey
+				//   - Unowned → neutral grey
+				// Faction identity for non-allied foreigners surfaces via the
+				// popover + sidebar instead of bleeding onto the map.
+				ownerColor: (c.isMine || c.isAlly) && c.ownerColor ? c.ownerColor : CITY_NEUTRAL_COLOR,
 				isMine: c.isMine ? 1 : 0,
+				// Used by the city-circle filter to suppress dots for
+				// capitals — they render as star icons via the DOM overlay
+				// instead.
+				isCapital: c.isCapital ? 1 : 0,
 				// Foreign-owned cities still count as "has owner" for the
 				// opacity fade-in — they stay visible at world zoom so the
-				// player can see other powers' territory at a glance, just
-				// without faction colors stealing focus from their own.
+				// player can see other powers' territory at a glance.
 				hasOwner: c.ownerColor ? 1 : 0,
 			},
 		})),
@@ -446,7 +530,10 @@ export function GameMap({
 	onHoverCity,
 	onCityClick,
 	myCountryCode,
+	alliedCountryCodes,
+	onDeselectCity,
 	cities,
+	countries,
 	citiesRender,
 	selectedCityId,
 	onMapReady,
@@ -458,6 +545,9 @@ export function GameMap({
 	const clickAudioRef = useRef<HTMLAudioElement | null>(null);
 	const myCountryCodeRef = useRef<string | null | undefined>(myCountryCode);
 	myCountryCodeRef.current = myCountryCode;
+	const onDeselectCityRef = useRef<(() => void) | undefined>(onDeselectCity);
+	onDeselectCityRef.current = onDeselectCity;
+	const [mapReadyState, setMapReadyState] = useState<MapInstance | null>(null);
 	const [contextCoord, setContextCoord] = useState<{
 		lat: number;
 		lng: number;
@@ -620,6 +710,9 @@ export function GameMap({
 		// Natural Earth attribution lives in packages/world-data/CREDITS.md
 		// per CC-BY 4.0; the on-map label is removed for HUD cleanliness.
 		mapRef.current = map;
+		// Surface the map instance to React state so DOM-overlay siblings
+		// (MapLabels) re-render once the canvas is ready.
+		setMapReadyState(map);
 
 		map.on("mousemove", "country-fill", (e) => {
 			const f = e.features?.[0];
@@ -653,6 +746,9 @@ export function GameMap({
 			if ((e.originalEvent as MouseEvent & { _cityHandled?: boolean })._cityHandled) {
 				return;
 			}
+			// Click landed on a country, not a city — deselect the city panel
+			// if anything was selected.
+			onDeselectCityRef.current?.();
 			const f = e.features?.[0];
 			const props = f?.properties ?? {};
 			const iso3 = (props.ISO_A3 as string) ?? (props.ADM0_A3 as string) ?? "";
@@ -687,6 +783,29 @@ export function GameMap({
 			setCityPopover(null);
 		});
 
+		// Catch-all click handler for ocean / map background. The country-fill
+		// and city-circle handlers fire first via layer-specific listeners; if
+		// neither tagged the event, the click hit water or unmapped land and
+		// we treat it as a click-away → deselect any selected city + close any
+		// open popovers.
+		map.on("click", (e) => {
+			const ev = e.originalEvent as MouseEvent & {
+				_cityHandled?: boolean;
+				_countryHandled?: boolean;
+			};
+			if (ev._cityHandled) return;
+			// country-fill handler always fires when over land, so reaching here
+			// means we're on water.
+			const features = map.queryRenderedFeatures(e.point, {
+				layers: ["country-fill", "city-circle"],
+			});
+			if (features.length === 0) {
+				onDeselectCityRef.current?.();
+				setPopover(null);
+				setCityPopover(null);
+			}
+		});
+
 		map.on("mousemove", (e) => onCursorMove?.({ lat: e.lngLat.lat, lng: e.lngLat.lng }));
 
 		const onMapContextMenu = (e: maplibregl.MapMouseEvent) => {
@@ -701,25 +820,37 @@ export function GameMap({
 			ro.disconnect();
 			map.remove();
 			mapRef.current = null;
+			setMapReadyState(null);
 		};
 	}, [styleSpec, onCursorMove, onHoverCountry, syncContextMenuCoords]);
 
-	// Re-apply paint properties whenever the player's country changes so the
-	// owned country lights up in signal amber. Waits for the style to load
-	// the first time, then mutates the paint expressions in place.
+	// Re-apply paint properties whenever the player's country or the allied
+	// set changes so owned country lights up in amber and alliance peers
+	// render in blue. Waits for the style to load the first time, then
+	// mutates the paint expressions in place. The caller is expected to
+	// memoize `alliedCountryCodes` so a stable reference avoids re-running
+	// this on unrelated re-renders.
 	useEffect(() => {
 		const map = mapRef.current;
 		if (!map) return;
 		const apply = () => {
-			map.setPaintProperty("country-fill", "fill-color", fillExpression(myCountryCode));
-			map.setPaintProperty("country-line", "line-color", lineColorExpression(myCountryCode));
+			map.setPaintProperty(
+				"country-fill",
+				"fill-color",
+				fillExpression(myCountryCode, alliedCountryCodes),
+			);
+			map.setPaintProperty(
+				"country-line",
+				"line-color",
+				lineColorExpression(myCountryCode, alliedCountryCodes),
+			);
 		};
 		if (map.isStyleLoaded()) {
 			apply();
 		} else {
 			map.once("load", apply);
 		}
-	}, [myCountryCode]);
+	}, [myCountryCode, alliedCountryCodes]);
 
 	// Push city geojson into the source whenever ownership / cities change.
 	useEffect(() => {
@@ -797,6 +928,122 @@ export function GameMap({
 		};
 	}, [onHoverCity]);
 
+	// Pulse animation for the city-hover-ring layer. While any city is
+	// hovered, oscillate the layer-level circle-radius and
+	// circle-stroke-opacity via a sin wave so the ring "breathes" — drawing
+	// the eye and signaling clickability. Stops when no city is hovered so
+	// MapLibre isn't repainting needlessly.
+	useEffect(() => {
+		const map = mapRef.current;
+		if (!map) return;
+		const PERIOD_MS = 1800;
+		let raf: number | null = null;
+		let lastHoverId: string | null = null;
+
+		const setBaseRadius = () => {
+			map.setPaintProperty("city-hover-ring", "circle-radius", [
+				"interpolate",
+				["linear"],
+				["zoom"],
+				1.5,
+				["case", ["boolean", ["feature-state", "hover"], false], 4, 0],
+				4,
+				["case", ["boolean", ["feature-state", "hover"], false], 7, 0],
+				7,
+				["case", ["boolean", ["feature-state", "hover"], false], 9, 0],
+				10,
+				["case", ["boolean", ["feature-state", "hover"], false], 12, 0],
+			]);
+		};
+
+		const tick = () => {
+			const id = hoverCityIdRef.current;
+			if (id) {
+				const t = (performance.now() % PERIOD_MS) / PERIOD_MS; // 0..1
+				const phase = (Math.sin(t * Math.PI * 2) + 1) / 2; // 0..1
+				// Subtle pulse: ~2px breath, 0.5..0.7 opacity. Just enough to
+				// draw the eye without becoming a fidget toy.
+				const radiusBoost = phase * 2; // 0..2px outward
+				const opacity = 0.5 + phase * 0.2; // 0.50..0.70
+				try {
+					map.setPaintProperty("city-hover-ring", "circle-radius", [
+						"interpolate",
+						["linear"],
+						["zoom"],
+						1.5,
+						["case", ["boolean", ["feature-state", "hover"], false], 4 + radiusBoost, 0],
+						4,
+						["case", ["boolean", ["feature-state", "hover"], false], 7 + radiusBoost, 0],
+						7,
+						["case", ["boolean", ["feature-state", "hover"], false], 9 + radiusBoost, 0],
+						10,
+						["case", ["boolean", ["feature-state", "hover"], false], 12 + radiusBoost, 0],
+					]);
+					map.setPaintProperty("city-hover-ring", "circle-stroke-opacity", [
+						"case",
+						["boolean", ["feature-state", "hover"], false],
+						opacity,
+						0,
+					]);
+				} catch {
+					// Layer not ready yet (style still loading) — try again next frame.
+				}
+				lastHoverId = id;
+			} else if (lastHoverId !== null) {
+				// Cursor just left a city — settle the ring back to its base size
+				// (the layer's static expression handles fading via transitions).
+				try {
+					setBaseRadius();
+					map.setPaintProperty("city-hover-ring", "circle-stroke-opacity", [
+						"case",
+						["boolean", ["feature-state", "hover"], false],
+						0.6,
+						0,
+					]);
+				} catch {
+					// noop
+				}
+				lastHoverId = null;
+			}
+			raf = requestAnimationFrame(tick);
+		};
+
+		// Wait for style to load before driving paint properties.
+		const start = () => {
+			// Configure ease-in / ease-out for the static (non-RAF) value
+			// transitions so hover-enter / hover-leave fade smoothly. These
+			// properties exist on MapLibre at runtime but aren't in the
+			// strict paint-object types — set via the runtime API instead.
+			try {
+				(
+					map as unknown as {
+						setPaintProperty: (l: string, p: string, v: unknown) => void;
+					}
+				).setPaintProperty("city-hover-ring", "circle-radius-transition", {
+					duration: 200,
+					delay: 0,
+				});
+				(
+					map as unknown as {
+						setPaintProperty: (l: string, p: string, v: unknown) => void;
+					}
+				).setPaintProperty("city-hover-ring", "circle-stroke-opacity-transition", {
+					duration: 200,
+					delay: 0,
+				});
+			} catch {
+				// noop
+			}
+			raf = requestAnimationFrame(tick);
+		};
+		if (map.isStyleLoaded()) start();
+		else map.once("load", start);
+
+		return () => {
+			if (raf !== null) cancelAnimationFrame(raf);
+		};
+	}, []);
+
 	// Selected-city ring via feature-state. Track the previously-selected id
 	// in a ref so we can clear it without snapshotting external state.
 	const prevSelectedRef = useRef<string | null>(null);
@@ -846,6 +1093,13 @@ export function GameMap({
 					ref={containerRef}
 					style={{ width: "100%", height: "100%" }}
 					className="h-full w-full"
+				/>
+				<MapLabels
+					map={mapReadyState}
+					cities={cities}
+					countries={countries}
+					citiesRender={citiesRender}
+					onCityClick={onCityClick}
 				/>
 			</div>
 
