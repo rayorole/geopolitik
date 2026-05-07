@@ -12,6 +12,9 @@ export const countryRowSchema = z.object({
 	code: z.string().length(3),
 	name: z.string(),
 	population: z.number().int().nonnegative(),
+	areaKm2: z.number().int().nonnegative(),
+	isPlayable: z.boolean(),
+	isLandlocked: z.boolean(),
 });
 
 export const cityRowSchema = z.object({
@@ -22,6 +25,7 @@ export const cityRowSchema = z.object({
 	lng: z.number(),
 	basePopulation: z.number().int().positive(),
 	isCapital: z.boolean(),
+	isCoastal: z.boolean(),
 	moneyMult: z.number().nonnegative().default(1.0),
 	steelMult: z.number().nonnegative().default(1.0),
 	electronicsMult: z.number().nonnegative().default(1.0),
@@ -29,7 +33,7 @@ export const cityRowSchema = z.object({
 });
 
 export const testWorldSchema = z.object({
-	version: z.literal(1),
+	version: z.literal(2),
 	generatedAt: z.string(),
 	source: z.string(),
 	countries: z.array(countryRowSchema),

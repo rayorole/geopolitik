@@ -1,0 +1,29 @@
+{
+	"version": 1,
+	"_doc": "River-port whitelist. A city listed here is flagged isCoastal=true even when it sits >10 km from open ocean, because the city is on a navigable river/estuary that connects to the sea. Keys match GeoNames asciiName (column 3 of cities500.txt). Reviewed cities only — fabricated entries forbidden. Caspian-shore river ports (e.g., Astrakhan on the Volga) deliberately excluded since the Caspian is not ocean-connected.",
+	"ports": [
+		{ "country": "BEL", "name": "Antwerpen", "note": "Scheldt — Europe's second-largest port" },
+		{ "country": "DEU", "name": "Hamburg", "note": "Elbe estuary, ~95 km from open sea" },
+		{ "country": "DEU", "name": "Bremen", "note": "Weser, ~70 km from open sea" },
+		{ "country": "DEU", "name": "Koeln", "note": "Rhine — major inland port, ocean-reachable via Rotterdam (Köln in display)" },
+		{ "country": "NLD", "name": "Rotterdam", "note": "Maas/Rhine delta — Europe's largest port" },
+		{ "country": "NLD", "name": "Amsterdam", "note": "North Sea Canal connects IJ to open sea" },
+		{ "country": "GBR", "name": "London", "note": "Thames, historically the world's largest port" },
+		{ "country": "GBR", "name": "Glasgow", "note": "Clyde estuary, shipbuilding capital" },
+		{ "country": "FRA", "name": "Bordeaux", "note": "Garonne, ~95 km from Atlantic" },
+		{ "country": "FRA", "name": "Nantes", "note": "Loire estuary" },
+		{ "country": "ESP", "name": "Sevilla", "note": "Guadalquivir — Spain's only river port reachable from sea" },
+		{ "country": "POL", "name": "Szczecin", "note": "Oder estuary, Baltic-bound" },
+		{ "country": "ARG", "name": "Buenos Aires", "note": "Río de la Plata estuary" },
+		{ "country": "ARG", "name": "Rosario", "note": "Paraná, ~300 km up — major grain export port" },
+		{ "country": "BRA", "name": "Manaus", "note": "Amazon — ocean-going ships reach 1,500 km inland" },
+		{ "country": "CAN", "name": "Quebec", "note": "St. Lawrence Seaway terminus (Québec in display)" },
+		{ "country": "CHN", "name": "Shanghai", "note": "Yangtze + Huangpu — world's busiest container port" },
+		{ "country": "IND", "name": "Kolkata", "note": "Hooghly, ~150 km from Bay of Bengal" },
+		{ "country": "BGD", "name": "Dhaka", "note": "Buriganga / Padma delta" },
+		{ "country": "MMR", "name": "Yangon", "note": "Yangon River" },
+		{ "country": "THA", "name": "Bangkok", "note": "Chao Phraya, ~30 km from Gulf of Thailand" },
+		{ "country": "VNM", "name": "Ho Chi Minh City", "note": "Saigon River, ~80 km up" },
+		{ "country": "KOR", "name": "Seoul", "note": "Han River — historic seaport, less so today" }
+	]
+}

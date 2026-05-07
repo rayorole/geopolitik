@@ -10,6 +10,7 @@ import {
 	bigint,
 	boolean,
 	doublePrecision,
+	integer,
 	pgTable,
 	real,
 	text,
@@ -20,6 +21,9 @@ import {
 export const country = pgTable("country", {
 	code: text("code").primaryKey(),
 	name: text("name").notNull(),
+	areaKm2: integer("area_km2").notNull().default(0),
+	isPlayable: boolean("is_playable").notNull().default(false),
+	isLandlocked: boolean("is_landlocked").notNull().default(false),
 	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -33,6 +37,7 @@ export const city = pgTable("city", {
 	lng: doublePrecision("lng").notNull(),
 	basePopulation: bigint("base_population", { mode: "number" }).notNull(),
 	isCapital: boolean("is_capital").notNull().default(false),
+	isCoastal: boolean("is_coastal").notNull().default(false),
 	moneyMult: real("money_mult").notNull().default(1.0),
 	steelMult: real("steel_mult").notNull().default(1.0),
 	electronicsMult: real("electronics_mult").notNull().default(1.0),

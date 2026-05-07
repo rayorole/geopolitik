@@ -54,9 +54,14 @@ export default function JoinGamePage() {
 		return map;
 	}, [snapshot.data]);
 
+	// Only playable countries (area >= 50k km^2) appear in the picker —
+	// decoration countries (Belgium, Netherlands, etc.) render on the map
+	// but cannot be claimed.
 	const sortedCountries = useMemo(() => {
 		if (!world.data) return [];
-		return [...world.data.countries].sort((a, b) => a.name.localeCompare(b.name));
+		return world.data.countries
+			.filter((c) => c.isPlayable)
+			.sort((a, b) => a.name.localeCompare(b.name));
 	}, [world.data]);
 
 	const filteredCountries = useMemo(() => {
