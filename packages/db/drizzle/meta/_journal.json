@@ -50,6 +50,20 @@
       "when": 1778166250056,
       "tag": "0006_phase_4d_unlocked_systems",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1778163400000,
+      "tag": "0007_world_v2_add_area_playable",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1778163450000,
+      "tag": "0008_world_v2_seed",
+      "breakpoints": true
     }
   ]
 }

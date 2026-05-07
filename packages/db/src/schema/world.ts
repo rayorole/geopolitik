@@ -10,6 +10,7 @@ import {
 	bigint,
 	boolean,
 	doublePrecision,
+	integer,
 	pgTable,
 	real,
 	text,
@@ -20,6 +21,8 @@ import {
 export const country = pgTable("country", {
 	code: text("code").primaryKey(),
 	name: text("name").notNull(),
+	areaKm2: integer("area_km2").notNull().default(0),
+	isPlayable: boolean("is_playable").notNull().default(false),
 	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
