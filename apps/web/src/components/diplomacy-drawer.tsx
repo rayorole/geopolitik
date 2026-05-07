@@ -3,6 +3,7 @@
 import { AlliancesTab } from "@/components/diplomacy/alliances-tab";
 import { MessagesTab } from "@/components/diplomacy/messages-tab";
 import { NationsTab } from "@/components/diplomacy/nations-tab";
+import { TradesTab } from "@/components/diplomacy/trades-tab";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -187,32 +188,17 @@ export function DiplomacyDrawer({
 					{tab === "messages" && (
 						<MessagesTab gameId={gameId} diplomacy={diplomacy.data} gameSnapshot={snapshot.data} />
 					)}
-					{tab === "trades" && <TradesTabPlaceholder />}
+					{tab === "trades" && (
+						<TradesTab
+							gameId={gameId}
+							diplomacy={diplomacy.data}
+							gameSnapshot={snapshot.data}
+							currentTick={snapshot.data?.game.tick ?? 0}
+						/>
+					)}
 				</div>
 			</SheetContent>
 		</Sheet>
-	);
-}
-
-function EmptyTab({ title, body }: { title: string; body: string }) {
-	return (
-		<div className="flex flex-1 flex-col items-center justify-center gap-2 p-12 text-center">
-			<span className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
-				{title}
-			</span>
-			<span className="max-w-md font-mono text-[11px] leading-relaxed text-muted-foreground/70">
-				{body}
-			</span>
-		</div>
-	);
-}
-
-function TradesTabPlaceholder() {
-	return (
-		<EmptyTab
-			title="Trades — coming in Phase 6f"
-			body="Free-form atomic resource trades. Pick give and receive bundles freely; settle in one tick when both sides accept."
-		/>
 	);
 }
 
