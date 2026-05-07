@@ -225,11 +225,9 @@ export function ResearchDrawer({
 
 	const discountPct = computeLabDiscountPct(labCount);
 
-	// Phase 9 monetization aside: research_slot_max can grow past 2 via Command
-	// Pass. We don't have it on the GameSnapshot yet (it's not in the snapshot
-	// query selection). For now we read 2 as the default; if the column is
-	// non-default we'll route it through the snapshot in a follow-up.
-	const researchSlotMax = 2;
+	// research_slot_max comes through nationInSnapshot now (Phase 4d). Phase 9
+	// Command Pass bumps the column; we just read it.
+	const researchSlotMax = myNation?.researchSlotMax ?? 2;
 
 	const startMutation = useMutation({
 		mutationFn: (nodeId: string) =>

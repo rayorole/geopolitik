@@ -43,6 +43,13 @@
       "when": 1778165627954,
       "tag": "0005_phase_4c_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1778166250056,
+      "tag": "0006_phase_4d_unlocked_systems",
+      "breakpoints": true
     }
   ]
 }

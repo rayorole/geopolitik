@@ -78,6 +78,8 @@ export const tickNationState = z.object({
 	welfare: z.number().int().min(0).max(100),
 	healthcare: z.number().int().min(0).max(100),
 	propaganda: z.number().int().min(0).max(100),
+	researchSlotMax: z.number().int().positive(),
+	unlockedSystems: z.array(z.string()),
 });
 
 export const wsOutboundTick = z.object({
@@ -132,6 +134,14 @@ export const wsOutboundDefection = z.object({
 	tick: z.number().int().nonnegative(),
 });
 
+export const wsOutboundResearchCompleted = z.object({
+	type: z.literal("research_completed"),
+	projectId: z.string().uuid(),
+	nodeId: z.string(),
+	unlockedAtTick: z.number().int().nonnegative(),
+	systems: z.array(z.string()),
+});
+
 export const wsOutboundMessage = z.discriminatedUnion("type", [
 	wsOutboundPong,
 	wsOutboundError,
@@ -143,6 +153,7 @@ export const wsOutboundMessage = z.discriminatedUnion("type", [
 	wsOutboundBuildingComplete,
 	wsOutboundRevoltStarted,
 	wsOutboundDefection,
+	wsOutboundResearchCompleted,
 ]);
 export type WsOutboundMessage = z.infer<typeof wsOutboundMessage>;
 export type WsOutboundTick = z.infer<typeof wsOutboundTick>;

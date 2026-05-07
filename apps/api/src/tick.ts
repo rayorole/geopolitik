@@ -23,6 +23,12 @@ import { type MaturationOutcome, matureBuildingsAndComputeYields } from "./build
 import { db } from "./db";
 import { logger } from "./logger";
 import {
+	type MaturedResearchProject,
+	countCompletedLabsByPlayer,
+	labEconomyBoostFactor,
+	matureResearchProjects,
+} from "./research-orders";
+import {
 	type ResourceDelta,
 	type SliderState,
 	applyProductionToCity,
@@ -118,6 +124,7 @@ export async function runTick(gameId: string): Promise<void> {
 	let tickNumber = 0;
 	const resolvedOrders: ResolvedOrder[] = [];
 	let maturationOutcome: MaturationOutcome = { matured: [], yieldByPlayer: new Map() };
+	let maturedResearch: MaturedResearchProject[] = [];
 	const revoltEvents: RevoltEvent[] = [];
 	const defectionEvents: DefectionEvent[] = [];
 
@@ -200,6 +207,12 @@ export async function runTick(gameId: string): Promise<void> {
 		// forfeit pending builds. Yields aggregated across complete buildings
 		// run THIS tick (a building completing on tick N produces on tick N).
 		maturationOutcome = await matureBuildingsAndComputeYields(tx, gameId, tickNumber);
+
+		// Phase 4d: mature any in_progress research projects whose
+		// expected_completion_tick has elapsed. Inserts research_unlock rows,
+		// marks projects completed, appends unlocks.systems to
+		// nation_state.unlocked_systems. Idempotent on tick retry.
+		maturedResearch = await matureResearchProjects(tx, gameId, tickNumber);
 
 		// Load every nation's current slider state for this game. Used to drive
 		// healthcare-scaled pop growth on each owned city and slider-economics
@@ -351,10 +364,32 @@ export async function runTick(gameId: string): Promise<void> {
 			byPlayer.set(playerId, acc);
 		}
 
-		// Building yields fold in next. Phase 4 dropped the rp accumulator; the lab's
-		// effects now apply via researchCostDiscountPct / economyYieldBoostPct (see
-		// buildings.json).
+		// Building yields fold in next. Phase 4d: each completed research_lab
+		// owned by the player boosts economy yields by 5% (cap 5 labs → +25%).
+		// Lab count uses the same defection invariant as aggregateBuildingYields
+		// (host city must still be owned by the builder).
+		const labRows = await tx
+			.select({
+				type: schema.cityBuilding.type,
+				state: schema.cityBuilding.state,
+				builtByPlayerId: schema.cityBuilding.builtByPlayerId,
+				ownerPlayerId: schema.cityState.ownerPlayerId,
+			})
+			.from(schema.cityBuilding)
+			.innerJoin(
+				schema.cityState,
+				and(
+					eq(schema.cityState.gameId, schema.cityBuilding.gameId),
+					eq(schema.cityState.cityId, schema.cityBuilding.cityId),
+				),
+			)
+			.where(
+				and(eq(schema.cityBuilding.gameId, gameId), eq(schema.cityBuilding.type, "research_lab")),
+			);
+		const labCountByPlayer = countCompletedLabsByPlayer(labRows);
+
 		for (const [playerId, y] of maturationOutcome.yieldByPlayer) {
+			const factor = labEconomyBoostFactor(labCountByPlayer.get(playerId) ?? 0);
 			const acc = byPlayer.get(playerId) ?? {
 				money: 0,
 				oil: 0,
@@ -362,10 +397,10 @@ export async function runTick(gameId: string): Promise<void> {
 				electronics: 0,
 				population: 0,
 			};
-			acc.money += y.money;
-			acc.oil += y.oil;
-			acc.steel += y.steel;
-			acc.electronics += y.electronics;
+			acc.money += Math.floor(y.money * factor);
+			acc.oil += Math.floor(y.oil * factor);
+			acc.steel += Math.floor(y.steel * factor);
+			acc.electronics += Math.floor(y.electronics * factor);
 			byPlayer.set(playerId, acc);
 		}
 
@@ -410,6 +445,7 @@ export async function runTick(gameId: string): Promise<void> {
 		maturationOutcome,
 		revoltEvents,
 		defectionEvents,
+		maturedResearch,
 	);
 }
 
@@ -420,6 +456,7 @@ async function broadcastTick(
 	maturation: MaturationOutcome,
 	revoltEvents: RevoltEvent[],
 	defectionEvents: DefectionEvent[],
+	maturedResearch: MaturedResearchProject[],
 ): Promise<void> {
 	if (!publish) return;
 
@@ -446,6 +483,8 @@ async function broadcastTick(
 			welfare: schema.nationState.welfare,
 			healthcare: schema.nationState.healthcare,
 			propaganda: schema.nationState.propaganda,
+			researchSlotMax: schema.nationState.researchSlotMax,
+			unlockedSystems: schema.nationState.unlockedSystems,
 		})
 		.from(schema.nationState)
 		.where(eq(schema.nationState.gameId, gameId));
@@ -494,6 +533,21 @@ async function broadcastTick(
 				cityId: e.cityId,
 				formerOwnerId: e.formerOwnerId,
 				tick: tickNumber,
+			}),
+		);
+	}
+
+	// Phase 4d: research_completed is private (per-player topic only). Other
+	// players learn enemy tech via Phase 5 unit appearance + Phase 7 espionage.
+	for (const m of maturedResearch) {
+		publish(
+			playerTopic(m.playerId),
+			JSON.stringify({
+				type: "research_completed",
+				projectId: m.projectId,
+				nodeId: m.nodeId,
+				unlockedAtTick: m.unlockedAtTick,
+				systems: m.systems,
 			}),
 		);
 	}

@@ -94,6 +94,18 @@ export function getGameSocket(gameId: string, qc: QueryClient): WebSocket {
 			});
 			qc.invalidateQueries({ queryKey: queryKeys.gameSnapshot(gameId) });
 		}
+		if (msg.type === "research_completed") {
+			const nodeId = (msg.nodeId as string) ?? "research";
+			const systems = (msg.systems as string[] | undefined) ?? [];
+			toast.success(`Research complete: ${nodeId}`, {
+				description:
+					systems.length > 0
+						? `Unlocked: ${systems.join(", ")}`
+						: "Open the Research drawer to inspect the unlocked node.",
+			});
+			qc.invalidateQueries({ queryKey: queryKeys.gameResearch(gameId) });
+			qc.invalidateQueries({ queryKey: queryKeys.gameSnapshot(gameId) });
+		}
 		if (msg.type === "desync") {
 			qc.invalidateQueries({ queryKey: queryKeys.gameSnapshot(gameId) });
 		}
