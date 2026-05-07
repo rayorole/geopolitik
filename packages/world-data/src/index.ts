@@ -34,7 +34,6 @@ export const cityRowSchema = z.object({
 
 export const testWorldSchema = z.object({
 	version: z.literal(2),
-	generatedAt: z.string(),
 	source: z.string(),
 	countries: z.array(countryRowSchema),
 	cities: z.array(cityRowSchema),
