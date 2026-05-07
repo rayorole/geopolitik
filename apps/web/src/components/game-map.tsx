@@ -41,9 +41,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
  * update both places.
  */
 const COLOR = {
-	ink1: "#0a0e14", // background canvas
+	ink1: "#0a0e14", // background canvas (Antarctica + non-mapped land)
 	ink3: "#1a212c", // country fill (default)
 	ink5: "#34404f", // country outline
+	water1: "#0e2030", // ocean + lake fill — slightly bluer than ink1 so water reads as water
+	water2: "#2a4a64", // river polyline — brighter steel blue, visible on country fill
 	signal500: "#d68b3e", // sodium-vapor amber, full opacity
 	signal500a18: "rgba(214, 139, 62, 0.22)", // hover fill
 	signal500a40: "rgba(214, 139, 62, 0.45)", // owned-country fill
@@ -85,6 +87,18 @@ function lineColorExpression(
 const STYLE: maplibregl.StyleSpecification = {
 	version: 8,
 	sources: {
+		ocean: {
+			type: "geojson",
+			data: "/ne_50m_ocean.geojson",
+		},
+		lakes: {
+			type: "geojson",
+			data: "/ne_50m_lakes.geojson",
+		},
+		rivers: {
+			type: "geojson",
+			data: "/ne_50m_rivers_lake_centerlines.geojson",
+		},
 		countries: {
 			type: "geojson",
 			data: "/world-countries.geojson",
@@ -102,6 +116,15 @@ const STYLE: maplibregl.StyleSpecification = {
 			type: "background",
 			paint: { "background-color": COLOR.ink1 },
 		},
+		// Ocean polygon below countries — covers actual sea/ocean. Land outside
+		// any country polygon (Antarctica when filtered out, etc.) shows as
+		// ink1 background.
+		{
+			id: "ocean-fill",
+			type: "fill",
+			source: "ocean",
+			paint: { "fill-color": COLOR.water1 },
+		},
 		{
 			id: "country-fill",
 			type: "fill",
@@ -110,6 +133,26 @@ const STYLE: maplibregl.StyleSpecification = {
 			paint: {
 				"fill-color": fillExpression(null),
 				"fill-outline-color": COLOR.ink5,
+			},
+		},
+		// Inland lakes — Caspian, Great Lakes, Victoria, Baikal — over country fill.
+		{
+			id: "lakes-fill",
+			type: "fill",
+			source: "lakes",
+			paint: { "fill-color": COLOR.water1 },
+		},
+		// Major navigable rivers — Mississippi, Amazon, Yangtze, etc. Thin
+		// hairline at world zoom; thickens as you zoom in.
+		{
+			id: "rivers-line",
+			type: "line",
+			source: "rivers",
+			layout: { "line-cap": "round", "line-join": "round" },
+			paint: {
+				"line-color": COLOR.water2,
+				"line-width": ["interpolate", ["linear"], ["zoom"], 1, 0.3, 4, 0.6, 7, 1, 10, 1.6],
+				"line-opacity": 0.7,
 			},
 		},
 		{
