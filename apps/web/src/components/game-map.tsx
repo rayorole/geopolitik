@@ -1,6 +1,7 @@
 "use client";
 
 import { UnitIcon } from "@/components/icons";
+import { MapLabels } from "@/components/map-labels";
 import { Badge } from "@/components/ui/badge";
 import {
 	DropdownMenu,
@@ -138,15 +139,8 @@ const SOUTH_MASK_GEOJSON: GeoJSON.FeatureCollection = {
 	],
 };
 
-// Public CORS-enabled glyph endpoint used by symbol (text) layers. MapLibre
-// requires a glyph URL for any layer with `text-field`. demotiles is a free
-// public CDN; production should swap to glyphs hosted on the same R2 bucket
-// as the .pmtiles per CLAUDE.md.
-const MAPLIBRE_GLYPHS_URL = "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf";
-
 const STYLE: maplibregl.StyleSpecification = {
 	version: 8,
-	glyphs: MAPLIBRE_GLYPHS_URL,
 	sources: {
 		ocean: {
 			type: "geojson",
@@ -357,66 +351,6 @@ const STYLE: maplibregl.StyleSpecification = {
 				// MapLibre but aren't in the strict paint-object types.
 			},
 		},
-		// Country name labels — visible at world / continental zoom levels.
-		// Fades out as the player zooms in past 4.5 so city labels can take
-		// over without crowding. symbol-placement defaults to "point" on a
-		// polygon source, which puts one label at the polygon's interior
-		// centroid; collision detection removes overlapping labels for free.
-		{
-			id: "country-label",
-			type: "symbol",
-			source: "countries",
-			filter: ["!=", ["get", "ISO_A3"], "ATA"],
-			minzoom: 1,
-			maxzoom: 6,
-			layout: {
-				"text-field": ["upcase", ["coalesce", ["get", "NAME"], ["get", "ADMIN"], ""]],
-				"text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-				"text-size": ["interpolate", ["linear"], ["zoom"], 1, 9, 3, 11, 5, 13],
-				"text-letter-spacing": 0.18,
-				"text-padding": 4,
-				"text-allow-overlap": false,
-				"text-ignore-placement": false,
-				"text-anchor": "center",
-				"text-max-width": 8,
-			},
-			paint: {
-				"text-color": "rgba(255, 255, 255, 0.85)",
-				"text-halo-color": COLOR.ink1,
-				"text-halo-width": 1.2,
-				"text-halo-blur": 0.4,
-				// Fade out as city labels fade in (~zoom 4.5–5.5 crossover).
-				"text-opacity": ["interpolate", ["linear"], ["zoom"], 1, 0.7, 3.5, 1, 4.5, 1, 5.5, 0],
-			},
-		},
-		// City labels — appear once the player zooms past country level.
-		// Anchored above the dot via text-offset and sorted by population so
-		// larger cities win when MapLibre's collision detector evicts
-		// overlapping labels.
-		{
-			id: "city-label",
-			type: "symbol",
-			source: "cities",
-			minzoom: 4,
-			layout: {
-				"text-field": ["get", "name"],
-				"text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
-				"text-size": ["interpolate", ["linear"], ["zoom"], 4, 9, 7, 11, 10, 13],
-				"text-letter-spacing": 0.04,
-				"text-padding": 2,
-				"text-allow-overlap": false,
-				"text-anchor": "bottom",
-				"text-offset": [0, -0.9],
-				"symbol-sort-key": ["-", 0, ["coalesce", ["get", "population"], 0]],
-			},
-			paint: {
-				"text-color": "rgba(255, 255, 255, 0.92)",
-				"text-halo-color": COLOR.ink1,
-				"text-halo-width": 1,
-				"text-halo-blur": 0.3,
-				"text-opacity": ["interpolate", ["linear"], ["zoom"], 4, 0, 5.5, 1],
-			},
-		},
 	],
 };
 
@@ -460,6 +394,9 @@ export type GameMapProps = {
 	 *  override the per-faction `ownerColor` to the same blue. */
 	alliedCountryCodes?: readonly string[];
 	cities?: WorldDataset["cities"];
+	/** World-data countries — used by the DOM label overlay to render
+	 *  country names at low zoom and resolve display names. */
+	countries?: WorldDataset["countries"];
 	citiesRender?: CityRender[];
 	selectedCityId?: string | null;
 	onMapReady?: (api: {
@@ -588,6 +525,7 @@ export function GameMap({
 	alliedCountryCodes,
 	onDeselectCity,
 	cities,
+	countries,
 	citiesRender,
 	selectedCityId,
 	onMapReady,
@@ -601,6 +539,7 @@ export function GameMap({
 	myCountryCodeRef.current = myCountryCode;
 	const onDeselectCityRef = useRef<(() => void) | undefined>(onDeselectCity);
 	onDeselectCityRef.current = onDeselectCity;
+	const [mapReadyState, setMapReadyState] = useState<MapInstance | null>(null);
 	const [contextCoord, setContextCoord] = useState<{
 		lat: number;
 		lng: number;
@@ -763,6 +702,9 @@ export function GameMap({
 		// Natural Earth attribution lives in packages/world-data/CREDITS.md
 		// per CC-BY 4.0; the on-map label is removed for HUD cleanliness.
 		mapRef.current = map;
+		// Surface the map instance to React state so DOM-overlay siblings
+		// (MapLabels) re-render once the canvas is ready.
+		setMapReadyState(map);
 
 		map.on("mousemove", "country-fill", (e) => {
 			const f = e.features?.[0];
@@ -870,6 +812,7 @@ export function GameMap({
 			ro.disconnect();
 			map.remove();
 			mapRef.current = null;
+			setMapReadyState(null);
 		};
 	}, [styleSpec, onCursorMove, onHoverCountry, syncContextMenuCoords]);
 
@@ -1143,6 +1086,7 @@ export function GameMap({
 					style={{ width: "100%", height: "100%" }}
 					className="h-full w-full"
 				/>
+				<MapLabels map={mapReadyState} cities={cities} countries={countries} />
 			</div>
 
 			<DropdownMenu

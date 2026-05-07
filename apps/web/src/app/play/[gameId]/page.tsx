@@ -275,6 +275,7 @@ export default function PlayPage() {
 					myCountryCode={myCountryCode}
 					alliedCountryCodes={alliedCountryCodes}
 					cities={world.data?.cities}
+					countries={world.data?.countries}
 					citiesRender={citiesRender}
 					selectedCityId={selectedCityId}
 					onMapReady={onMapReady}
