@@ -256,6 +256,10 @@ const STYLE: maplibregl.StyleSpecification = {
 			id: "city-circle",
 			type: "circle",
 			source: "cities",
+			// Capital cities render as star icons via the DOM overlay (see
+			// map-labels.tsx); filter them out of the circle layer so they
+			// don't render as a dot underneath the star.
+			filter: ["!=", ["get", "isCapital"], 1],
 			paint: {
 				// Radius interpolates with zoom AND with the city's pop bracket via
 				// a step expression on properties.population. Cheap on the GPU; no
@@ -507,6 +511,10 @@ function citiesToFeatureCollection(rows: CityRender[] | undefined): GeoJSON.Feat
 				// popover + sidebar instead of bleeding onto the map.
 				ownerColor: (c.isMine || c.isAlly) && c.ownerColor ? c.ownerColor : CITY_NEUTRAL_COLOR,
 				isMine: c.isMine ? 1 : 0,
+				// Used by the city-circle filter to suppress dots for
+				// capitals — they render as star icons via the DOM overlay
+				// instead.
+				isCapital: c.isCapital ? 1 : 0,
 				// Foreign-owned cities still count as "has owner" for the
 				// opacity fade-in — they stay visible at world zoom so the
 				// player can see other powers' territory at a glance.
@@ -1086,7 +1094,13 @@ export function GameMap({
 					style={{ width: "100%", height: "100%" }}
 					className="h-full w-full"
 				/>
-				<MapLabels map={mapReadyState} cities={cities} countries={countries} />
+				<MapLabels
+					map={mapReadyState}
+					cities={cities}
+					countries={countries}
+					citiesRender={citiesRender}
+					onCityClick={onCityClick}
+				/>
 			</div>
 
 			<DropdownMenu

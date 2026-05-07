@@ -1,5 +1,7 @@
 "use client";
 
+import type { CityRender } from "@/components/game-map";
+import { UnitIcon } from "@/components/icons";
 import type { WorldDataset } from "@geopolitik/shared/api";
 import type { Map as MapInstance } from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
@@ -51,9 +53,14 @@ interface MapLabelsProps {
 	map: MapInstance | null;
 	cities: WorldDataset["cities"] | undefined;
 	countries: WorldDataset["countries"] | undefined;
+	/** Per-game render rows — carries ownership info for capital markers
+	 *  (so the star color matches the dot color rule: mine=amber, ally=
+	 *  blue, foreign=grey). Only the capital subset is used. */
+	citiesRender?: CityRender[];
+	onCityClick?: (cityId: string) => void;
 }
 
-export function MapLabels({ map, cities, countries }: MapLabelsProps) {
+export function MapLabels({ map, cities, countries, citiesRender, onCityClick }: MapLabelsProps) {
 	const [centroids, setCentroids] = useState<CountryCentroid[] | null>(null);
 	const [zoom, setZoom] = useState(1);
 	const [tickCounter, setTickCounter] = useState(0);
@@ -178,6 +185,39 @@ export function MapLabels({ map, cities, countries }: MapLabelsProps) {
 		}
 	}
 
+	// Capital star markers — projected at every zoom (capitals are always
+	// shown as a star instead of a dot). Color matches the corresponding
+	// city-circle rule (mine=amber, ally=blue, foreign/unowned=grey).
+	const visibleCapitalMarkers: Array<{
+		id: string;
+		name: string;
+		color: string;
+		x: number;
+		y: number;
+	}> = [];
+	if (map && citiesRender) {
+		const bounds = map.getBounds();
+		const sw = bounds.getSouthWest();
+		const ne = bounds.getNorthEast();
+		for (const c of citiesRender) {
+			if (!c.isCapital) continue;
+			if (c.lng < sw.lng || c.lng > ne.lng || c.lat < sw.lat || c.lat > ne.lat) continue;
+			const p = map.project([c.lng, c.lat]);
+			const color =
+				(c.isMine || c.isAlly) && c.ownerColor
+					? c.ownerColor
+					: // CITY_NEUTRAL_COLOR mirror — keep in sync with game-map.tsx.
+						"#4a5666";
+			visibleCapitalMarkers.push({
+				id: c.id,
+				name: c.name,
+				color,
+				x: p.x,
+				y: p.y,
+			});
+		}
+	}
+
 	const visibleCityLabels: Array<{
 		id: string;
 		name: string;
@@ -261,6 +301,32 @@ export function MapLabels({ map, cities, countries }: MapLabelsProps) {
 					</button>
 				))}
 
+			{/* Capital star markers — replace the city dot for capital
+				cities. Always rendered (no zoom gate) so every nation's
+				capital is identifiable on the map. Color matches the dot
+				rule: mine=amber, ally=blue, foreign/unowned=neutral grey. */}
+			{visibleCapitalMarkers.map((m) => (
+				<button
+					type="button"
+					key={`star:${m.id}`}
+					aria-label={`Capital of ${m.name}`}
+					onClick={(e) => {
+						e.stopPropagation();
+						onCityClick?.(m.id);
+					}}
+					className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer select-none transition-transform duration-150 hover:scale-110"
+					style={{
+						left: `${m.x}px`,
+						top: `${m.y}px`,
+						color: m.color,
+						filter: "drop-shadow(0 0 1.5px #0a0e14) drop-shadow(0 0 1.5px #0a0e14)",
+					}}
+					title={m.name}
+				>
+					<UnitIcon glyph="capital" size={14} aria-hidden />
+				</button>
+			))}
+
 			{/* City labels — JetBrains Mono, anchored above the dot */}
 			{cityOpacity > 0 &&
 				visibleCityLabels.map((c) => (
@@ -275,9 +341,7 @@ export function MapLabels({ map, cities, countries }: MapLabelsProps) {
 								return next;
 							});
 						}}
-						className={`pointer-events-auto absolute -translate-x-1/2 cursor-pointer select-none whitespace-nowrap font-mono text-[10px] tabular-nums transition-opacity duration-150 ${
-							c.isCapital ? "font-semibold text-primary" : "text-foreground/90"
-						} hover:text-foreground`}
+						className="pointer-events-auto absolute -translate-x-1/2 cursor-pointer select-none whitespace-nowrap font-mono text-[10px] text-foreground/90 tabular-nums transition-opacity duration-150 hover:text-foreground"
 						style={{
 							left: `${c.x}px`,
 							// 14px above the dot. Dots top out at radius ~6px + stroke,
