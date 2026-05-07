@@ -8,6 +8,7 @@ import {
 	type HoveredCity,
 	type HoveredCountry,
 } from "@/components/game-map";
+import { UnitIcon } from "@/components/icons";
 import { PolicyPanel } from "@/components/policy-panel";
 import { ResearchDrawer } from "@/components/research-drawer";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { ButtonGroup } from "@/components/ui/button-group";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { gamesApi, queryKeys, worldApi } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
+import { factionToHex } from "@/lib/faction-colors";
 import { type WsStatus, closeGameSocket, getGameSocket } from "@/lib/game-socket";
 import { type SelectedCity, writeSelectedCity } from "@/lib/selected-city";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -83,11 +85,6 @@ export default function PlayPage() {
 		return () => closeGameSocket(gameId);
 	}, [session, gameId, queryClient]);
 
-	const submitNoop = useMutation({
-		mutationFn: () => gamesApi.submitOrder(gameId, { kind: "noop" }),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.gameSnapshot(gameId) }),
-	});
-
 	const leave = useMutation({
 		mutationFn: () => gamesApi.leave(gameId),
 		onSuccess: () => router.push("/games"),
@@ -132,7 +129,7 @@ export default function PlayPage() {
 				lat: c.lat,
 				name: c.name,
 				population: cs?.population ?? c.basePopulation,
-				ownerColor: owner?.color ?? null,
+				ownerColor: owner ? factionToHex(owner.color) : null,
 				ownerName: owner?.displayName ?? null,
 				isMine: !!cs?.ownerPlayerId && cs.ownerPlayerId === snapshot.data?.mePlayerId,
 				isCapital: c.isCapital,
@@ -423,18 +420,29 @@ export default function PlayPage() {
 							<div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
 								Nation
 							</div>
-							<div className="mt-1 flex items-baseline justify-between font-mono text-xs">
-								<span className="text-muted-foreground">Cities owned</span>
-								<span className="text-foreground">{myCities.length}</span>
-							</div>
-							<div className="flex items-baseline justify-between font-mono text-xs">
-								<span className="text-muted-foreground">Players in game</span>
-								<span className="text-foreground">{snapshot.data?.players.length ?? 0}</span>
-							</div>
-							<div className="flex items-baseline justify-between font-mono text-xs">
-								<span className="text-muted-foreground">Pending orders</span>
-								<span className="text-foreground">{snapshot.data?.myOrders.length ?? 0}</span>
-							</div>
+							{(
+								[
+									["city", "Cities owned", myCities.length],
+									["alliance", "Players in game", snapshot.data?.players.length ?? 0],
+									["supply", "Pending orders", snapshot.data?.myOrders.length ?? 0],
+								] as const
+							).map(([glyph, label, value]) => (
+								<div
+									key={label}
+									className="mt-1 flex items-center justify-between gap-2 font-mono text-xs"
+								>
+									<span className="inline-flex items-center gap-2 text-muted-foreground">
+										<UnitIcon
+											glyph={glyph}
+											size={14}
+											className="flex-shrink-0 text-muted-foreground/80"
+											aria-hidden
+										/>
+										{label}
+									</span>
+									<span className="text-foreground tabular-nums">{value}</span>
+								</div>
+							))}
 						</section>
 
 						{/* Cities list */}
@@ -465,18 +473,10 @@ export default function PlayPage() {
 						</section>
 
 						{/* Footer actions */}
-						<section className="grid grid-cols-2 gap-px border-t border-border bg-border">
+						<section className="border-t border-border bg-border">
 							<Button
 								variant="ghost"
-								className="h-10 rounded-none bg-card font-mono text-[11px] uppercase tracking-[0.18em] hover:bg-accent"
-								onClick={() => submitNoop.mutate()}
-								disabled={submitNoop.isPending}
-							>
-								{submitNoop.isPending ? "Sending…" : "Test order"}
-							</Button>
-							<Button
-								variant="ghost"
-								className="h-10 rounded-none bg-card font-mono text-[11px] uppercase tracking-[0.18em] text-destructive hover:bg-destructive/10"
+								className="h-10 w-full rounded-none bg-card font-mono text-[11px] uppercase tracking-[0.18em] text-destructive hover:bg-destructive/10"
 								onClick={() => leave.mutate()}
 								disabled={leave.isPending}
 							>

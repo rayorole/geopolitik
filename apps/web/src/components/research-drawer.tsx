@@ -1,5 +1,7 @@
 "use client";
 
+import { type UnitGlyph, UnitIcon } from "@/components/icons";
+import { CATEGORY_TO_GLYPH } from "@/components/icons/mappings";
 import { Button } from "@/components/ui/button";
 import {
 	Sheet,
@@ -14,9 +16,25 @@ import type { GameSnapshot, ResearchProjectRow, ResearchUnlockRow } from "@geopo
 import { getBuildingDef } from "@geopolitik/shared/buildings";
 import type { FactionId } from "@geopolitik/shared/factions";
 import type { ResearchNode, ResearchTreeFile, TreeId } from "@geopolitik/shared/research";
+import { UNIT_TYPES_BY_ID } from "@geopolitik/shared/unit-types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FlaskConical, X } from "lucide-react";
 import { useMemo, useState } from "react";
+
+/** Pick the most representative glyph for a research node, based on the
+ *  category of the first unit it unlocks. Falls back to a tier-appropriate
+ *  default when the unit's category is unknown. */
+function glyphForNode(node: ResearchNode): UnitGlyph {
+	const firstUnitId = node.unlocks.unitTypes[0];
+	if (firstUnitId) {
+		const stub = UNIT_TYPES_BY_ID.get(firstUnitId);
+		if (stub) {
+			const g = CATEGORY_TO_GLYPH[stub.categoryHint];
+			if (g) return g;
+		}
+	}
+	return "research";
+}
 
 /*
  * Research drawer — Phase 4c.
@@ -530,31 +548,71 @@ function TreeCanvas({
 							{nodes.map((node) => {
 								const status = statusForNode(node, unlocks, active);
 								const selected = selectedNodeId === node.id;
-								const stateClass =
+								const glyph = glyphForNode(node);
+
+								// State styling — matches the "unit-card" aesthetic from the
+								// design system: stronger borders on action states, accent
+								// color for the icon panel.
+								const wrapClass =
 									status === "unlocked"
-										? "border-primary/60 bg-primary/10 text-foreground"
+										? "border-primary/60 bg-primary/5"
 										: status === "in_progress"
-											? "border-yellow-500/60 bg-yellow-500/10 text-foreground"
-											: "border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground";
+											? "border-yellow-500/60 bg-yellow-500/5"
+											: "border-border bg-card hover:border-foreground/40";
+								const symbolBg =
+									status === "unlocked"
+										? "bg-primary/10 text-primary"
+										: status === "in_progress"
+											? "bg-yellow-500/10 text-yellow-500"
+											: "bg-accent/30 text-muted-foreground";
 								const ringClass = selected ? "ring-2 ring-primary" : "";
+
+								const statusLabel =
+									status === "unlocked"
+										? "● Unlocked"
+										: status === "in_progress"
+											? "◐ Researching"
+											: "○ Locked";
+								const statusClass =
+									status === "unlocked"
+										? "text-primary"
+										: status === "in_progress"
+											? "text-yellow-500"
+											: "text-muted-foreground";
+
 								return (
 									<button
 										type="button"
 										key={node.id}
 										onClick={() => onSelect(node.id)}
-										className={`flex w-[200px] flex-col gap-1 border px-3 py-2 text-left font-mono text-xs ${stateClass} ${ringClass}`}
+										className={`group relative grid w-[240px] grid-cols-[56px_1fr] gap-2 border text-left transition-colors ${wrapClass} ${ringClass}`}
 									>
-										<span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-											{node.shortName}
-										</span>
-										<span className="leading-tight text-foreground">{node.displayName}</span>
-										<span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-											{status === "unlocked"
-												? "● Unlocked"
-												: status === "in_progress"
-													? "◐ Researching"
-													: "○ Locked"}
-										</span>
+										{/* Symbol cell — military-card style icon block */}
+										<div
+											className={`flex items-center justify-center border-r border-border/60 ${symbolBg}`}
+										>
+											<UnitIcon glyph={glyph} size={28} strokeWidth={1.5} />
+										</div>
+
+										{/* Body */}
+										<div className="flex min-w-0 flex-col gap-0.5 px-2 py-1.5">
+											<div className="flex items-baseline justify-between gap-2">
+												<span className="truncate font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+													{node.shortName}
+												</span>
+												<span className="flex-shrink-0 border border-border bg-background px-1.5 py-px font-mono text-[8px] uppercase tracking-[0.18em] text-foreground">
+													T{node.tier}
+												</span>
+											</div>
+											<span className="truncate text-xs leading-tight text-foreground">
+												{node.displayName}
+											</span>
+											<span
+												className={`mt-0.5 font-mono text-[9px] uppercase tracking-[0.18em] ${statusClass}`}
+											>
+												{statusLabel}
+											</span>
+										</div>
 									</button>
 								);
 							})}

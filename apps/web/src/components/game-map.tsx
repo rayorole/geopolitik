@@ -1,5 +1,7 @@
 "use client";
 
+import { UnitIcon } from "@/components/icons";
+import { Badge } from "@/components/ui/badge";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -7,10 +9,15 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuShortcut,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { alpha3ToAlpha2 } from "@/lib/country-flags";
 import type { WorldDataset } from "@geopolitik/shared/api";
+import { factionForCountry } from "@geopolitik/shared/factions";
 import { Copy } from "lucide-react";
 import maplibregl, { type Map as MapInstance } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -84,6 +91,32 @@ function lineColorExpression(
 	] as maplibregl.DataDrivenPropertyValueSpecification<string>;
 }
 
+// Southern-band ocean mask. Covers everything below -55° latitude with the
+// ocean color so Antarctica + the unmapped south-polar gap (where neither
+// the Natural Earth ocean polygon nor any country polygon paints) read as
+// ocean. Inline GeoJSON — no external file fetch needed.
+const SOUTH_MASK_GEOJSON: GeoJSON.FeatureCollection = {
+	type: "FeatureCollection",
+	features: [
+		{
+			type: "Feature",
+			properties: {},
+			geometry: {
+				type: "Polygon",
+				coordinates: [
+					[
+						[-180, -55],
+						[180, -55],
+						[180, -90],
+						[-180, -90],
+						[-180, -55],
+					],
+				],
+			},
+		},
+	],
+};
+
 const STYLE: maplibregl.StyleSpecification = {
 	version: 8,
 	sources: {
@@ -104,6 +137,10 @@ const STYLE: maplibregl.StyleSpecification = {
 			data: "/world-countries.geojson",
 			generateId: true,
 		},
+		southMask: {
+			type: "geojson",
+			data: SOUTH_MASK_GEOJSON,
+		},
 		cities: {
 			type: "geojson",
 			data: { type: "FeatureCollection", features: [] },
@@ -116,13 +153,22 @@ const STYLE: maplibregl.StyleSpecification = {
 			type: "background",
 			paint: { "background-color": COLOR.ink1 },
 		},
-		// Ocean polygon below countries — covers actual sea/ocean. Land outside
-		// any country polygon (Antarctica when filtered out, etc.) shows as
-		// ink1 background.
+		// Ocean polygon below countries — covers actual sea/ocean.
 		{
 			id: "ocean-fill",
 			type: "fill",
 			source: "ocean",
+			paint: { "fill-color": COLOR.water1 },
+		},
+		// Southern-band ocean mask — paints everything below -55° latitude
+		// in ocean color. Covers Antarctica AND the unmapped south-polar
+		// strip below it (which neither ne_50m_ocean nor world-countries
+		// polygons reach), so the bottom of the Mercator no longer reveals
+		// the dark ink1 background.
+		{
+			id: "south-mask",
+			type: "fill",
+			source: "southMask",
 			paint: { "fill-color": COLOR.water1 },
 		},
 		{
@@ -299,6 +345,73 @@ function fmt(n: number, dp = 3): string {
 	return n.toLocaleString(undefined, { minimumFractionDigits: dp, maximumFractionDigits: dp });
 }
 
+type MarkingTone = "default" | "signal" | "crit" | "warn" | "info";
+
+const MARKING_TONE_CLASSES: Record<MarkingTone, string> = {
+	default: "text-muted-foreground",
+	signal: "text-primary",
+	crit: "text-destructive",
+	warn: "text-[var(--color-warn)]",
+	info: "text-[var(--color-info)]",
+};
+
+/**
+ * Single marking option in the right-click context menu's Markings
+ * submenu. Renders a colored glyph + label. `onSelect` is a stub for now
+ * (Phase 5/7 will wire up actual marking placement).
+ *
+ * IMPORTANT: returns a single `DropdownMenuItem` (no fragment wrapper) —
+ * Radix's keyboard navigation only walks direct, recognized menu children
+ * of `DropdownMenuContent` / `DropdownMenuSubContent`. Wrapping in a
+ * fragment with sibling nodes breaks sub-menu behavior. Group headings
+ * are rendered directly via `DropdownMenuLabel` at the call site.
+ */
+function MarkingItem({
+	glyph,
+	label,
+	tone = "default",
+}: {
+	glyph: import("@/components/icons").UnitGlyph;
+	label: string;
+	tone?: MarkingTone;
+}) {
+	return (
+		<DropdownMenuItem
+			className="gap-2 font-mono text-[11px] uppercase tracking-[0.06em]"
+			onSelect={() => {
+				// Phase 5/7 hook: emit a marking event with current coord + glyph.
+			}}
+		>
+			<UnitIcon glyph={glyph} size={14} className={`shrink-0 ${MARKING_TONE_CLASSES[tone]}`} />
+			{label}
+		</DropdownMenuItem>
+	);
+}
+
+/**
+ * Stat cell for the country popover. Two-column grid layout with mono
+ * uppercase label + value below. `truncate` clamps long values (capital
+ * names, owner names) so the cell doesn't wrap or overflow.
+ */
+function Stat({
+	label,
+	value,
+	truncate,
+}: {
+	label: string;
+	value: React.ReactNode;
+	truncate?: boolean;
+}) {
+	return (
+		<div className="flex min-w-0 flex-col gap-0.5 bg-card/95 px-3 py-2 font-mono">
+			<span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">{label}</span>
+			<span className={`text-[12px] text-foreground tabular-nums ${truncate ? "truncate" : ""}`}>
+				{value}
+			</span>
+		</div>
+	);
+}
+
 function citiesToFeatureCollection(rows: CityRender[] | undefined): GeoJSON.FeatureCollection {
 	if (!rows) return { type: "FeatureCollection", features: [] };
 	return {
@@ -311,8 +424,16 @@ function citiesToFeatureCollection(rows: CityRender[] | undefined): GeoJSON.Feat
 				cityId: c.id,
 				name: c.name,
 				population: c.population,
-				ownerColor: c.ownerColor ?? CITY_NEUTRAL_COLOR,
+				// Faction color is reserved for the player's own cities. Foreign
+				// cities and unowned cities both render in the neutral grey so
+				// the player's territory is unambiguous on the map; faction
+				// identity for foreigners surfaces via popovers + sidebar.
+				ownerColor: c.isMine && c.ownerColor ? c.ownerColor : CITY_NEUTRAL_COLOR,
 				isMine: c.isMine ? 1 : 0,
+				// Foreign-owned cities still count as "has owner" for the
+				// opacity fade-in — they stay visible at world zoom so the
+				// player can see other powers' territory at a glance, just
+				// without faction colors stealing focus from their own.
 				hasOwner: c.ownerColor ? 1 : 0,
 			},
 		})),
@@ -355,19 +476,65 @@ export function GameMap({
 		clientY: 0,
 	});
 
-	// Index city stats by ISO_A3 / ADM0_A3 once per cities-prop update so the
-	// popover doesn't iterate the whole list on every click.
+	// Index country stats by ISO_A3 / ADM0_A3 once per cities-prop update so
+	// the popover doesn't iterate the whole list on every click. Captures
+	// counts the popover surfaces directly (cities, ports, total population)
+	// plus the capital name.
 	const cityStatsByCountry = useMemo(() => {
-		const map = new Map<string, { cityCount: number; capital: string | null }>();
+		const map = new Map<
+			string,
+			{
+				cityCount: number;
+				capital: string | null;
+				totalPopulation: number;
+				portCount: number;
+			}
+		>();
 		if (!cities) return map;
 		for (const c of cities) {
-			const stat = map.get(c.countryCode) ?? { cityCount: 0, capital: null };
+			const stat = map.get(c.countryCode) ?? {
+				cityCount: 0,
+				capital: null,
+				totalPopulation: 0,
+				portCount: 0,
+			};
 			stat.cityCount++;
+			stat.totalPopulation += c.basePopulation;
+			if (c.isCoastal) stat.portCount++;
 			if (c.isCapital && !stat.capital) stat.capital = c.name;
 			map.set(c.countryCode, stat);
 		}
 		return map;
 	}, [cities]);
+
+	// Country-level facts (playable / landlocked) keyed by ISO3 — separate
+	// index because cities don't carry these flags.
+	const countryFactsByIso3 = useMemo(() => {
+		const map = new Map<string, { name: string; isPlayable: boolean; isLandlocked: boolean }>();
+		if (!cities) return map;
+		// Country list is on the WorldDataset alongside cities, but here we only
+		// receive cities — so we derive what we can. Decoration vs playable comes
+		// from the city stats (country has no playable cities iff isPlayable is
+		// false in the worldgen output, but we don't see the flag here). Leave
+		// the lookup empty and let the popover treat playability as unknown.
+		return map;
+	}, [cities]);
+
+	// Find the owner player for a country if any of its cities is owned by a
+	// known player (ownerColor + ownerName populated). Return the first hit.
+	const ownerByCountry = useMemo(() => {
+		const map = new Map<string, { color: string; name: string }>();
+		if (!citiesRender) return map;
+		for (const c of citiesRender) {
+			if (c.ownerColor && c.ownerName && !map.has(c.countryCode)) {
+				map.set(c.countryCode, { color: c.ownerColor, name: c.ownerName });
+			}
+		}
+		return map;
+	}, [citiesRender]);
+
+	// Suppress unused — kept for forward compat when country flags surface.
+	void countryFactsByIso3;
 
 	// Lookup index for the city popover: O(1) by id from the click handler.
 	const cityById = useMemo(() => {
@@ -424,12 +591,16 @@ export function GameMap({
 		const map = new maplibregl.Map({
 			container: containerRef.current,
 			style: styleSpec,
-			// Center on the geographical centroid of the populated landmass
-			// (now that Antarctica is hidden) so the world view doesn't leave
-			// a dead band of ocean at the bottom.
-			center: [15, 25],
-			zoom: 1.8,
-			minZoom: 1.3,
+			// Center shifted up to lat=32 so the populated landmass is
+			// vertically centered now that the south-mask hides everything
+			// below -55°.
+			center: [15, 32],
+			zoom: 2,
+			// minZoom raised slightly so the user can't zoom out far enough
+			// that the masked southern band dominates the viewport.
+			// NOTE: do NOT combine with `maxBounds` — that conflicts with
+			// `renderWorldCopies: true` and freezes the map.
+			minZoom: 1.7,
 			maxZoom: 10,
 			renderWorldCopies: true,
 			attributionControl: false,
@@ -694,38 +865,140 @@ export function GameMap({
 					/>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent
-					className="min-w-[14rem] font-mono text-xs"
+					className="min-w-[13rem] border-border bg-popover/95 p-1 font-mono text-xs backdrop-blur-sm"
 					align="start"
 					side="bottom"
-					sideOffset={2}
+					sideOffset={4}
 					onCloseAutoFocus={(e) => e.preventDefault()}
 				>
-					{contextCoord && (
-						<DropdownMenuLabel className="font-normal text-muted-foreground">
-							{contextCoord.name ? `${contextCoord.name} · ${contextCoord.iso3}` : "Open ocean"}
-						</DropdownMenuLabel>
-					)}
+					{/* Header — Radix counts DropdownMenuLabel as a recognized
+					    direct child of DropdownMenuContent, so the keyboard nav
+					    + sub-menu detection still work (a wrapping <div> breaks
+					    them). Flag inline at left when over a country. */}
+					<DropdownMenuLabel className="px-2 py-1.5">
+						<div className="flex items-center gap-2">
+							{contextCoord?.iso3
+								? (() => {
+										const iso2 = alpha3ToAlpha2(contextCoord.iso3);
+										return iso2 ? (
+											<Image
+												src={`https://flagcdn.com/w40/${iso2}.png`}
+												alt=""
+												width={20}
+												height={14}
+												unoptimized
+												className="h-3.5 w-5 flex-shrink-0 border border-border object-cover"
+											/>
+										) : null;
+									})()
+								: null}
+							<div className="flex min-w-0 flex-col gap-0.5">
+								<span className="font-mono text-[9px] font-normal uppercase tracking-[0.22em] text-muted-foreground">
+									{contextCoord?.iso3 ? "Sector" : "Open Ocean"}
+								</span>
+								{contextCoord?.name && (
+									<span className="truncate font-mono text-[11px] font-normal uppercase tracking-[0.06em] text-foreground">
+										{contextCoord.name}
+										<span className="ml-1 text-muted-foreground">· {contextCoord.iso3}</span>
+									</span>
+								)}
+							</div>
+						</div>
+					</DropdownMenuLabel>
 					<DropdownMenuSeparator />
+
+					{/* Markings submenu */}
+					<DropdownMenuSub>
+						<DropdownMenuSubTrigger
+							className="gap-2 font-mono text-[11px] uppercase tracking-[0.06em]"
+							disabled={!contextCoord}
+						>
+							<UnitIcon glyph="scope" size={14} className="shrink-0" />
+							Markings
+						</DropdownMenuSubTrigger>
+						<DropdownMenuSubContent
+							className="min-w-[13rem] border-border bg-popover/95 p-1 font-mono backdrop-blur-sm"
+							sideOffset={4}
+						>
+							<DropdownMenuLabel className="px-2 py-1 font-mono text-[9px] font-normal uppercase tracking-[0.22em] text-muted-foreground/70">
+								Sightings
+							</DropdownMenuLabel>
+							<MarkingItem glyph="spy" label="Enemy unit" tone="crit" />
+							<MarkingItem glyph="recon" label="Friendly unit" tone="signal" />
+							<MarkingItem glyph="convoy" label="Convoy" />
+							<MarkingItem glyph="air" label="Air patrol" tone="info" />
+							<DropdownMenuSeparator />
+							<DropdownMenuLabel className="px-2 py-1 font-mono text-[9px] font-normal uppercase tracking-[0.22em] text-muted-foreground/70">
+								Vectors
+							</DropdownMenuLabel>
+							<MarkingItem glyph="missile" label="Attack line" tone="crit" />
+							<MarkingItem glyph="recon" label="Retreat path" tone="warn" />
+							<DropdownMenuSeparator />
+							<DropdownMenuLabel className="px-2 py-1 font-mono text-[9px] font-normal uppercase tracking-[0.22em] text-muted-foreground/70">
+								Positions
+							</DropdownMenuLabel>
+							<MarkingItem glyph="radar" label="Outpost" />
+							<MarkingItem glyph="hq" label="Forward HQ" tone="signal" />
+						</DropdownMenuSubContent>
+					</DropdownMenuSub>
+
+					{/* Message nation — stub. Flag inline so the player sees who
+					    they're contacting before the actual flow exists. */}
 					<DropdownMenuItem
-						className="gap-2 font-mono text-xs"
+						className="gap-2 font-mono text-[11px] uppercase tracking-[0.06em]"
+						disabled={!contextCoord?.iso3}
+						onSelect={() => {
+							// Phase 6 will wire up the actual messaging flow.
+						}}
+					>
+						<UnitIcon glyph="treaty" size={14} className="shrink-0" />
+						<span>Message</span>
+						{contextCoord?.iso3
+							? (() => {
+									const iso2 = alpha3ToAlpha2(contextCoord.iso3);
+									return iso2 ? (
+										<Image
+											src={`https://flagcdn.com/w40/${iso2}.png`}
+											alt=""
+											width={16}
+											height={12}
+											unoptimized
+											className="h-3 w-4 flex-shrink-0 border border-border object-cover"
+										/>
+									) : null;
+								})()
+							: null}
+						<span>{contextCoord?.iso3 ?? "nation"}</span>
+					</DropdownMenuItem>
+
+					<DropdownMenuSeparator />
+
+					{/* Compact copy actions */}
+					<DropdownMenuItem
+						className="gap-2 py-1 font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground"
 						onSelect={copyLatLng}
 						disabled={!contextCoord}
 					>
-						<Copy className="size-4 shrink-0" />
-						Copy latitude and longitude
+						<Copy className="size-3 shrink-0" />
+						Copy coords
 						{contextCoord && (
-							<DropdownMenuShortcut>
-								{fmt(contextCoord.lat, 2)}, {fmt(contextCoord.lng, 2)}
+							<DropdownMenuShortcut className="text-[9px]">
+								{fmt(contextCoord.lat, 1)}, {fmt(contextCoord.lng, 1)}
 							</DropdownMenuShortcut>
 						)}
 					</DropdownMenuItem>
 					<DropdownMenuItem
-						className="gap-2 font-mono text-xs"
+						className="gap-2 py-1 font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground"
 						onSelect={copyCountry}
 						disabled={!contextCoord?.iso3}
 					>
-						Copy country code
-						{contextCoord?.iso3 && <DropdownMenuShortcut>{contextCoord.iso3}</DropdownMenuShortcut>}
+						<Copy className="size-3 shrink-0" />
+						Copy ISO
+						{contextCoord?.iso3 && (
+							<DropdownMenuShortcut className="text-[9px]">
+								{contextCoord.iso3}
+							</DropdownMenuShortcut>
+						)}
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
@@ -749,44 +1022,104 @@ export function GameMap({
 						side="top"
 						sideOffset={12}
 						align="center"
-						className="w-64 border border-border bg-card/95 p-3 backdrop-blur-sm"
+						className="w-72 border border-border bg-card/95 p-0 backdrop-blur-sm"
 					>
-						<div className="flex items-center gap-3">
-							{popover.iso2 ? (
-								<Image
-									src={`https://flagcdn.com/w80/${popover.iso2}.png`}
-									alt=""
-									width={40}
-									height={28}
-									unoptimized
-									className="h-7 w-10 flex-shrink-0 border border-border object-cover"
-								/>
-							) : (
-								<div className="h-7 w-10 flex-shrink-0 border border-border bg-muted" />
-							)}
-							<div className="flex min-w-0 flex-col gap-0.5">
-								<span className="truncate font-display font-medium text-foreground text-sm">
-									{popover.name}
-								</span>
-								<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-									{popover.iso3}
-								</span>
-							</div>
-						</div>
-						<div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-3 font-mono text-[11px]">
-							<div className="flex flex-col">
-								<span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-									Cities
-								</span>
-								<span className="text-foreground">{popoverStats?.cityCount ?? "—"}</span>
-							</div>
-							<div className="flex flex-col">
-								<span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-									Capital
-								</span>
-								<span className="truncate text-foreground">{popoverStats?.capital ?? "—"}</span>
-							</div>
-						</div>
+						{(() => {
+							const faction = factionForCountry(popover.iso3);
+							const owner = ownerByCountry.get(popover.iso3);
+							const isClaimed = !!owner;
+							return (
+								<>
+									{/* Type stripe — amber/signal for nation-level intel */}
+									<div className="flex items-center justify-between border-b border-primary/40 bg-primary/10 px-3 py-1">
+										<span className="font-mono text-[9px] uppercase tracking-[0.22em] text-primary">
+											◆ Nation
+										</span>
+										<span className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+											{popover.iso3}
+										</span>
+									</div>
+
+									{/* Head: flag-led — the country IS its flag */}
+									<div className="flex items-center gap-3 px-3 py-2.5">
+										{popover.iso2 ? (
+											<Image
+												src={`https://flagcdn.com/w80/${popover.iso2}.png`}
+												alt=""
+												width={48}
+												height={32}
+												unoptimized
+												className="h-8 w-12 flex-shrink-0 border border-border object-cover"
+											/>
+										) : (
+											<div className="h-8 w-12 flex-shrink-0 border border-border bg-muted" />
+										)}
+										<div className="flex min-w-0 flex-col gap-0.5">
+											<span className="truncate font-medium text-foreground text-base">
+												{popover.name}
+											</span>
+											<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+												{faction ? faction.replace("_", "-") : "—"}
+											</span>
+										</div>
+									</div>
+
+									{/* Status badge row */}
+									<div className="flex flex-wrap gap-1.5 border-t border-border px-3 py-2">
+										<Badge variant="ok" dot>
+											At Peace
+										</Badge>
+										{isClaimed ? (
+											<Badge variant="signal" dot>
+												Claimed
+											</Badge>
+										) : (
+											<Badge variant="default" dot>
+												Unclaimed
+											</Badge>
+										)}
+										{popoverStats?.portCount && popoverStats.portCount > 0 ? (
+											<Badge variant="info">Coastal</Badge>
+										) : (
+											<Badge variant="default">Landlocked</Badge>
+										)}
+									</div>
+
+									{/* Stats grid: population + cities + capital + ports + owner */}
+									<div className="grid grid-cols-2 gap-px border-t border-border bg-border">
+										<Stat
+											label="Population"
+											value={popoverStats ? popoverStats.totalPopulation.toLocaleString() : "—"}
+										/>
+										<Stat label="Cities" value={popoverStats?.cityCount ?? "—"} />
+										<Stat label="Capital" value={popoverStats?.capital ?? "—"} truncate />
+										<Stat label="Ports" value={popoverStats?.portCount ?? 0} />
+										<Stat
+											label="Owner"
+											value={
+												owner ? (
+													<span className="inline-flex items-center gap-1.5">
+														<span
+															aria-hidden
+															className="inline-block size-2 flex-shrink-0"
+															style={{ backgroundColor: owner.color }}
+														/>
+														<span className="truncate">{owner.name}</span>
+													</span>
+												) : (
+													"Neutral"
+												)
+											}
+											truncate
+										/>
+										<Stat
+											label="Faction"
+											value={faction ? faction.replace("_", "-").toUpperCase() : "—"}
+										/>
+									</div>
+								</>
+							);
+						})()}
 					</PopoverContent>
 				</Popover>
 			)}
@@ -810,49 +1143,130 @@ export function GameMap({
 						side="top"
 						sideOffset={12}
 						align="center"
-						className="w-64 border border-border bg-card/95 p-3 backdrop-blur-sm"
+						className="w-64 border border-border bg-card/95 p-0 backdrop-blur-sm"
 					>
-						<div className="flex items-baseline gap-2">
-							<span className="truncate font-display font-medium text-foreground text-sm">
-								{cityPopover.city.name}
-							</span>
-							{cityPopover.city.isCapital && (
-								<span className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">
-									★ Capital
-								</span>
-							)}
-						</div>
-						<div className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-							{cityPopover.city.countryCode}
-						</div>
-						<div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-3 font-mono text-[11px]">
-							<div className="flex flex-col">
-								<span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-									Owner
-								</span>
-								<span className="flex items-baseline gap-1.5 truncate text-foreground">
-									{cityPopover.city.ownerColor && (
-										<span
-											aria-hidden
-											className="inline-block h-2 w-2"
-											style={{ backgroundColor: cityPopover.city.ownerColor }}
+						{(() => {
+							const city = cityPopover.city;
+							const iso3 = city.countryCode;
+							const iso2 = alpha3ToAlpha2(iso3);
+							const def = cities?.find((c) => c.id === city.id);
+							const faction = factionForCountry(iso3);
+							const isMine = city.isMine;
+							const isForeign = !!city.ownerName && !isMine;
+							const isCoastal = !!def?.isCoastal;
+							return (
+								<>
+									{/* Type stripe — info/blue for point-target city intel */}
+									<div className="flex items-center justify-between border-b border-[var(--color-info)]/40 bg-[var(--color-info)]/10 px-3 py-1">
+										<span className="font-mono text-[9px] uppercase tracking-[0.22em] text-[var(--color-info)]">
+											▣ City
+										</span>
+										<span className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground tabular-nums">
+											{city.lat.toFixed(2)}°, {city.lng.toFixed(2)}°
+										</span>
+									</div>
+
+									{/* Head: glyph-led — the city IS a focal point, not a flag.
+									    Capital cities get the capital glyph in primary; everything
+									    else gets the city glyph in muted. */}
+									<div className="flex items-center gap-3 px-3 py-2.5">
+										<div
+											className={`flex size-10 flex-shrink-0 items-center justify-center border ${
+												city.isCapital
+													? "border-primary/60 bg-primary/10 text-primary"
+													: "border-border bg-card text-muted-foreground"
+											}`}
+										>
+											<UnitIcon
+												glyph={city.isCapital ? "capital" : "city"}
+												size={22}
+												strokeWidth={1.5}
+											/>
+										</div>
+										<div className="flex min-w-0 flex-col gap-0.5">
+											<span className="truncate font-medium text-foreground text-base">
+												{city.name}
+											</span>
+											<span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+												{iso2 ? (
+													<Image
+														src={`https://flagcdn.com/w40/${iso2}.png`}
+														alt=""
+														width={16}
+														height={12}
+														unoptimized
+														className="h-3 w-4 flex-shrink-0 border border-border object-cover"
+													/>
+												) : null}
+												<span className="truncate">
+													{iso3}
+													{faction ? ` · ${faction.replace("_", "-")}` : ""}
+												</span>
+											</span>
+										</div>
+									</div>
+
+									{/* Status badge row */}
+									<div className="flex flex-wrap gap-1.5 border-t border-border px-3 py-2">
+										<Badge variant="ok" dot>
+											At Peace
+										</Badge>
+										{city.isCapital ? (
+											<Badge variant="signal">Capital</Badge>
+										) : (
+											<Badge variant="default">Core</Badge>
+										)}
+										{isCoastal ? (
+											<Badge variant="info">Port</Badge>
+										) : (
+											<Badge variant="default">Inland</Badge>
+										)}
+										{isMine ? (
+											<Badge variant="signal" dot>
+												Yours
+											</Badge>
+										) : isForeign ? (
+											<Badge variant="crit" dot>
+												Foreign
+											</Badge>
+										) : (
+											<Badge variant="default" dot>
+												Neutral
+											</Badge>
+										)}
+									</div>
+
+									{/* Stats grid: population + owner */}
+									<div className="grid grid-cols-2 gap-px border-t border-border bg-border">
+										<Stat label="Population" value={city.population.toLocaleString()} />
+										<Stat
+											label="Owner"
+											value={
+												city.ownerName ? (
+													<span className="inline-flex items-center gap-1.5">
+														{city.ownerColor && (
+															<span
+																aria-hidden
+																className="inline-block size-2 flex-shrink-0"
+																style={{ backgroundColor: city.ownerColor }}
+															/>
+														)}
+														<span className="truncate">{city.ownerName}</span>
+													</span>
+												) : (
+													"Neutral"
+												)
+											}
+											truncate
 										/>
-									)}
-									<span className="truncate">{cityPopover.city.ownerName ?? "Neutral"}</span>
-								</span>
-							</div>
-							<div className="flex flex-col">
-								<span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-									Population
-								</span>
-								<span className="text-foreground tabular-nums">
-									{cityPopover.city.population.toLocaleString()}
-								</span>
-							</div>
-						</div>
-						<div className="mt-2 font-mono text-[9px] tracking-[0.04em] text-muted-foreground">
-							Detail panel open in sidebar →
-						</div>
+									</div>
+
+									<div className="border-t border-border px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+										Detail panel open in sidebar →
+									</div>
+								</>
+							);
+						})()}
 					</PopoverContent>
 				</Popover>
 			)}

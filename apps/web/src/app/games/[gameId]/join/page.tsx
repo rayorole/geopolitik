@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { gamesApi, queryKeys, worldApi } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
+import { factionToCss } from "@/lib/faction-colors";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Search } from "lucide-react";
@@ -227,7 +228,9 @@ export default function JoinGamePage() {
 														<span
 															aria-hidden="true"
 															className="inline-block h-2 w-2 flex-shrink-0 rounded-full"
-															style={{ backgroundColor: owner.color }}
+															style={{
+																backgroundColor: factionToCss(owner.color) ?? "transparent",
+															}}
 														/>
 														<span className="truncate">{owner.displayName}</span>
 													</span>

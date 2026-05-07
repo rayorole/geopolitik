@@ -77,3 +77,48 @@ export function DropdownMenuShortcut({ className, ...props }: HTMLAttributes<HTM
 		<span className={cn("ml-auto text-xs tracking-widest opacity-60", className)} {...props} />
 	);
 }
+
+export const DropdownMenuSub = DropdownMenuPrimitive.Sub;
+
+export const DropdownMenuSubTrigger = forwardRef<
+	ElementRef<typeof DropdownMenuPrimitive.SubTrigger>,
+	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubTrigger> & { inset?: boolean }
+>(({ className, inset, children, ...props }, ref) => (
+	<DropdownMenuPrimitive.SubTrigger
+		ref={ref}
+		className={cn(
+			"flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent",
+			inset && "pl-8",
+			className,
+		)}
+		{...props}
+	>
+		{children}
+		<span className="ml-auto opacity-60" aria-hidden>
+			›
+		</span>
+	</DropdownMenuPrimitive.SubTrigger>
+));
+DropdownMenuSubTrigger.displayName = DropdownMenuPrimitive.SubTrigger.displayName;
+
+export const DropdownMenuSubContent = forwardRef<
+	ElementRef<typeof DropdownMenuPrimitive.SubContent>,
+	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
+>(({ className, ...props }, ref) => (
+	// Wrap in Portal so the submenu escapes the parent Content's
+	// `overflow-hidden` (used for border-radius clipping on the main menu).
+	// Without this, the submenu gets clipped at the parent's right edge
+	// instead of rendering to the right of the trigger.
+	<DropdownMenuPrimitive.Portal>
+		<DropdownMenuPrimitive.SubContent
+			ref={ref}
+			className={cn(
+				"z-50 min-w-32 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md",
+				"data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+				className,
+			)}
+			{...props}
+		/>
+	</DropdownMenuPrimitive.Portal>
+));
+DropdownMenuSubContent.displayName = DropdownMenuPrimitive.SubContent.displayName;
