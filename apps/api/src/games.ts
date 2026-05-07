@@ -24,6 +24,7 @@ import { pickFactionColor } from "./colors";
 import { db } from "./db";
 import { logger } from "./logger";
 import { rateLimit } from "./rate-limit";
+import { applyCancelResearch, applyStartResearch } from "./research-orders";
 import { getStartingResources } from "./tick-formula";
 
 export function createGamesRouter() {
@@ -612,11 +613,13 @@ export function createGamesRouter() {
 
 		const orderId = newId();
 
-		// build / cancel_build apply at REST time under the per-game lock so
-		// the client gets a synchronous accept/reject and the city_building
-		// row is the single source of truth from the moment of acceptance.
-		// noop and set_slider continue to defer work to the tick worker.
-		if (parsed.data.kind === "build" || parsed.data.kind === "cancel_build") {
+		// build / cancel_build / start_research / cancel_research apply at REST
+		// time under the per-game lock so the client gets a synchronous
+		// accept/reject and the persisted row is the single source of truth from
+		// the moment of acceptance. noop and set_slider continue to defer work
+		// to the tick worker.
+		const RESOLVE_AT_REST = ["build", "cancel_build", "start_research", "cancel_research"] as const;
+		if ((RESOLVE_AT_REST as readonly string[]).includes(parsed.data.kind)) {
 			const txResult = await db.transaction(async (tx) => {
 				const [g] = await tx
 					.select({ tick: schema.game.tick, status: schema.game.status })
@@ -632,6 +635,12 @@ export function createGamesRouter() {
 					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
 				} else if (parsed.data.kind === "cancel_build") {
 					const r = await applyCancelBuildOrder(tx, gameId, me.id, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "start_research") {
+					const r = await applyStartResearch(tx, gameId, me.id, g.tick, parsed.data.payload);
+					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
+				} else if (parsed.data.kind === "cancel_research") {
+					const r = await applyCancelResearch(tx, gameId, me.id, g.tick, parsed.data.payload);
 					if (!r.ok) return { http: 400 as const, body: { error: r.reason } };
 				}
 

@@ -19,7 +19,14 @@ import {
 } from "drizzle-orm/pg-core";
 import { game, player } from "./game";
 
-export const orderKind = pgEnum("order_kind", ["noop", "build", "cancel_build", "set_slider"]);
+export const orderKind = pgEnum("order_kind", [
+	"noop",
+	"build",
+	"cancel_build",
+	"set_slider",
+	"start_research",
+	"cancel_research",
+]);
 
 export const orderStatus = pgEnum("order_status", [
 	"queued",

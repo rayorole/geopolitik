@@ -54,10 +54,34 @@ export const setSliderOrder = z
 	})
 	.strict();
 
+export const startResearchOrder = z
+	.object({
+		kind: z.literal("start_research"),
+		payload: z
+			.object({
+				nodeId: z.string().min(1).max(64),
+			})
+			.strict(),
+	})
+	.strict();
+
+export const cancelResearchOrder = z
+	.object({
+		kind: z.literal("cancel_research"),
+		payload: z
+			.object({
+				projectId: z.string().uuid(),
+			})
+			.strict(),
+	})
+	.strict();
+
 export const submitOrderBodyV3 = z.discriminatedUnion("kind", [
 	noopOrder,
 	buildOrder,
 	cancelBuildOrder,
 	setSliderOrder,
+	startResearchOrder,
+	cancelResearchOrder,
 ]);
 export type SubmitOrderBodyV3 = z.infer<typeof submitOrderBodyV3>;
