@@ -68,6 +68,11 @@ const DENYLIST_ISO3 = new Set([
 const PLAYABLE_TIER = { top: 12, mid: 10, low: 8 } as const;
 const DECORATION_TIER = { top: 6, mid: 4, low: 3 } as const;
 
+// Min-distance veto floor. Larger countries scale up via the formula in
+// minDistanceKm() below.
+const MIN_DISTANCE_FLOOR_KM = 30;
+const MIN_DISTANCE_SCALE = 0.4;
+
 const OUT_JSON = join(REPO_ROOT, "packages", "world-data", "test-world.json");
 const OUT_SQL = join(REPO_ROOT, "packages", "db", "drizzle", "0008_world_v2_seed.sql");
 const BONUSES_PATH = join(REPO_ROOT, "packages", "world-data", "city-bonuses.json");
@@ -176,18 +181,71 @@ async function loadCitiesByIso2(targetIso2: Set<string>): Promise<Map<string, Ra
 
 // ── 3. Curation ─────────────────────────────────────────────────────────────
 
+const EARTH_RADIUS_KM = 6371;
+
+function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+	const toRad = (x: number) => (x * Math.PI) / 180;
+	const dLat = toRad(b.lat - a.lat);
+	const dLng = toRad(b.lng - a.lng);
+	const lat1 = toRad(a.lat);
+	const lat2 = toRad(b.lat);
+	const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+	return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(h));
+}
+
+/*
+ * Country-area-aware minimum spacing between picked cities.
+ * 30 km floor; scales as sqrt(area/N) so larger countries spread further.
+ *   Romania (238k km², N=10) -> 62 km
+ *   USA    (9.6M km², N=12) -> 358 km
+ *   Belgium (31k km², N=6)  -> floor (30 km)
+ */
+function minDistanceKm(areaKm2: number, targetCount: number): number {
+	const target = Math.max(1, targetCount);
+	return Math.max(MIN_DISTANCE_FLOOR_KM, MIN_DISTANCE_SCALE * Math.sqrt(areaKm2 / target));
+}
+
+/*
+ * Pick the country's cities under three rules:
+ *   1. Drop GeoNames PPLX entries (sections of populated place — Bucharest
+ *      Sector 2/3/4/5/6, etc.). These are subdivisions of bigger cities and
+ *      cluster on top of capitals.
+ *   2. Always include the capital (PPLC) and the largest non-capital city —
+ *      these two anchors ignore the spread veto so famous cities are never
+ *      dropped.
+ *   3. Fill remaining slots greedy-by-pop, vetoing any candidate within
+ *      minDistanceKm() of an already-picked city.
+ */
 function pickCitiesFor(country: CountryInfo, raw: RawCity[], limit: number): RawCity[] {
-	const sorted = [...raw].sort((a, b) => b.population - a.population);
-	const capitals = sorted.filter((c) => c.featureCode === "PPLC");
-	const others = sorted.filter((c) => c.featureCode !== "PPLC");
+	const sorted = [...raw]
+		.filter((c) => c.featureCode !== "PPLX")
+		.sort((a, b) => b.population - a.population);
+	const minKm = minDistanceKm(country.areaKm2, limit);
+
 	const picked: RawCity[] = [];
-	if (capitals[0]) picked.push(capitals[0]);
-	for (const c of others) {
+
+	// Anchor 1: capital
+	const capital = sorted.find((c) => c.featureCode === "PPLC");
+	if (capital) picked.push(capital);
+
+	// Anchor 2: largest non-capital (exempt from veto by design)
+	const largestNonCapital = sorted.find((c) => c.featureCode !== "PPLC");
+	if (largestNonCapital && !picked.includes(largestNonCapital) && picked.length < limit) {
+		picked.push(largestNonCapital);
+	}
+
+	// Fill: greedy-by-pop with min-distance veto
+	for (const c of sorted) {
 		if (picked.length >= limit) break;
+		if (picked.includes(c)) continue;
+		if (picked.some((p) => haversineKm(p, c) < minKm)) continue;
 		picked.push(c);
 	}
+
 	if (picked.length < limit) {
-		console.warn(`[warn] ${country.name} (${country.iso3}) only ${picked.length}/${limit} cities`);
+		console.warn(
+			`[warn] ${country.name} (${country.iso3}) only ${picked.length}/${limit} cities (min spacing ${minKm.toFixed(0)} km)`,
+		);
 	}
 	return picked;
 }
