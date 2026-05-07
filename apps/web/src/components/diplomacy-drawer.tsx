@@ -1,6 +1,7 @@
 "use client";
 
 import { AlliancesTab } from "@/components/diplomacy/alliances-tab";
+import { MessagesTab } from "@/components/diplomacy/messages-tab";
 import { NationsTab } from "@/components/diplomacy/nations-tab";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -66,9 +67,9 @@ export interface DiplomacyDrawerProps {
 
 export function DiplomacyDrawer({
 	gameId,
-	mePlayerId: _mePlayerId,
-	pendingProposalCount = 0,
-	unreadMessageCount = 0,
+	mePlayerId,
+	pendingProposalCount,
+	unreadMessageCount,
 }: DiplomacyDrawerProps) {
 	const [open, setOpen] = useState(false);
 	const [tab, setTab] = useState<DiplomacyTab>("nations");
@@ -84,14 +85,27 @@ export function DiplomacyDrawer({
 		staleTime: 60 * 60 * 1000,
 		enabled: open,
 	});
+	// Always poll diplomacy lightly so the badge is live even before the
+	// drawer is opened. Lightweight enough — one query per ~30s window.
 	const diplomacy = useQuery({
 		queryKey: queryKeys.gameDiplomacy(gameId),
 		queryFn: () => gamesApi.diplomacy(gameId),
-		enabled: open,
+		enabled: !!mePlayerId,
+		staleTime: 15_000,
 	});
 
-	const showProposalDot = pendingProposalCount > 0;
-	const showUnreadDot = unreadMessageCount > 0;
+	const proposalCount =
+		pendingProposalCount ??
+		(diplomacy.data
+			? diplomacy.data.incomingTreaties.length +
+				diplomacy.data.incomingTrades.length +
+				diplomacy.data.incomingApps.length
+			: 0);
+	const unreadCount =
+		unreadMessageCount ?? (diplomacy.data ? totalUnread(diplomacy.data, mePlayerId) : 0);
+
+	const showProposalDot = proposalCount > 0;
+	const showUnreadDot = unreadCount > 0;
 
 	return (
 		<Sheet open={open} onOpenChange={setOpen}>
@@ -101,13 +115,13 @@ export function DiplomacyDrawer({
 					<span className="font-mono text-[10px] uppercase tracking-[0.18em]">Diplomacy</span>
 					{showProposalDot && (
 						<span
-							aria-label={`${pendingProposalCount} pending proposals`}
+							aria-label={`${proposalCount} pending proposals`}
 							className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-destructive"
 						/>
 					)}
 					{showUnreadDot && !showProposalDot && (
 						<span
-							aria-label={`${unreadMessageCount} unread messages`}
+							aria-label={`${unreadCount} unread messages`}
 							className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-[var(--color-warn)]"
 						/>
 					)}
@@ -170,7 +184,9 @@ export function DiplomacyDrawer({
 							currentTick={snapshot.data?.game.tick ?? 0}
 						/>
 					)}
-					{tab === "messages" && <MessagesTabPlaceholder />}
+					{tab === "messages" && (
+						<MessagesTab gameId={gameId} diplomacy={diplomacy.data} gameSnapshot={snapshot.data} />
+					)}
 					{tab === "trades" && <TradesTabPlaceholder />}
 				</div>
 			</SheetContent>
@@ -188,15 +204,6 @@ function EmptyTab({ title, body }: { title: string; body: string }) {
 				{body}
 			</span>
 		</div>
-	);
-}
-
-function MessagesTabPlaceholder() {
-	return (
-		<EmptyTab
-			title="Messages — coming in Phase 6e"
-			body="Discord-style messaging: 1:1 nation DMs, alliance group chat, and a global broadcast channel. 2000-char max, 30 msg/min, 5 broadcasts/hour."
-		/>
 	);
 }
 
@@ -408,6 +415,51 @@ function TreatyRow({
 			</div>
 		</div>
 	);
+}
+
+/**
+ * Sum of unread messages across DM, alliance, and broadcast channels.
+ * Walks the player's `message_read` markers and counts every message
+ * newer than the marker that wasn't sent by the player.
+ */
+function totalUnread(snap: DiplomacySnapshot, myId: string | null): number {
+	if (!myId) return 0;
+	const newerThan = (
+		msgs: { id: string; senderId: string; sentAtTick: number }[],
+		lastSeenId: string | undefined,
+	) => {
+		if (!lastSeenId) return msgs.filter((m) => m.senderId !== myId).length;
+		const sortedAsc = [...msgs].sort((a, b) => a.sentAtTick - b.sentAtTick);
+		const idx = sortedAsc.findIndex((m) => m.id === lastSeenId);
+		if (idx === -1) return sortedAsc.filter((m) => m.senderId !== myId).length;
+		return sortedAsc.slice(idx + 1).filter((m) => m.senderId !== myId).length;
+	};
+	const broadcastSeen = snap.messages.reads.find(
+		(r) => r.channel === "broadcast" && r.peerKey === "g",
+	)?.lastSeenMessageId;
+	let total = newerThan(snap.messages.broadcast, broadcastSeen);
+	if (snap.myAlliance) {
+		const aKey = `a:${snap.myAlliance.id}`;
+		const seen = snap.messages.reads.find(
+			(r) => r.channel === "alliance" && r.peerKey === aKey,
+		)?.lastSeenMessageId;
+		total += newerThan(snap.messages.alliance, seen);
+	}
+	const peerMap = new Map<string, typeof snap.messages.dms>();
+	for (const m of snap.messages.dms) {
+		const peer = m.senderId === myId ? m.recipientPlayerId : m.senderId;
+		if (!peer) continue;
+		const arr = peerMap.get(peer) ?? [];
+		arr.push(m);
+		peerMap.set(peer, arr);
+	}
+	for (const [peer, msgs] of peerMap) {
+		const seen = snap.messages.reads.find(
+			(r) => r.channel === "dm" && r.peerKey === `p:${peer}`,
+		)?.lastSeenMessageId;
+		total += newerThan(msgs, seen);
+	}
+	return total;
 }
 
 function TreatyTypeBadge({ type }: { type: DiplomacyTreaty["type"] }) {
