@@ -26,6 +26,78 @@
 			"cost": { "money": 120000, "oil": 50000, "steel": 15000, "electronics": 60000 },
 			"researchTimeTicks": 60,
 			"introYear": 1992
+		},
+		{
+			"id": "j_10a",
+			"tree": "air",
+			"tier": 2,
+			"displayName": "J-10A Vigorous Dragon",
+			"shortName": "J-10A",
+			"prereqs": ["j_8ii"],
+			"unlocks": { "unitTypes": ["unit_j_10a"] },
+			"cost": { "money": 300000, "oil": 125000, "steel": 37500, "electronics": 150000 },
+			"researchTimeTicks": 120,
+			"introYear": 2003
+		},
+		{
+			"id": "j_11b",
+			"tree": "air",
+			"tier": 2,
+			"displayName": "J-11B Flanker-derived Fighter",
+			"shortName": "J-11B",
+			"prereqs": ["j_8ii"],
+			"unlocks": { "unitTypes": ["unit_j_11b"] },
+			"cost": { "money": 320000, "oil": 130000, "steel": 40000, "electronics": 145000 },
+			"researchTimeTicks": 120,
+			"introYear": 2007
+		},
+		{
+			"id": "j_10c",
+			"tree": "air",
+			"tier": 3,
+			"displayName": "J-10C Vigorous Dragon",
+			"shortName": "J-10C",
+			"prereqs": ["j_10a"],
+			"unlocks": { "unitTypes": ["unit_j_10c"] },
+			"cost": { "money": 600000, "oil": 250000, "steel": 75000, "electronics": 300000 },
+			"researchTimeTicks": 240,
+			"introYear": 2017
+		},
+		{
+			"id": "j_16",
+			"tree": "air",
+			"tier": 3,
+			"displayName": "J-16 Multirole Strike",
+			"shortName": "J-16",
+			"prereqs": ["j_11b"],
+			"unlocks": { "unitTypes": ["unit_j_16"] },
+			"cost": { "money": 600000, "oil": 250000, "steel": 75000, "electronics": 320000 },
+			"researchTimeTicks": 240,
+			"introYear": 2015
+		},
+		{
+			"id": "j_20",
+			"tree": "air",
+			"tier": 4,
+			"displayName": "J-20 Mighty Dragon",
+			"shortName": "J-20",
+			"prereqs": ["j_10c"],
+			"unlocks": { "unitTypes": ["unit_j_20"] },
+			"cost": { "money": 960000, "oil": 400000, "steel": 120000, "electronics": 600000 },
+			"researchTimeTicks": 480,
+			"introYear": 2017
+		},
+		{
+			"id": "j_35",
+			"tree": "air",
+			"tier": 4,
+			"displayName": "J-35 Stealth Carrier Fighter",
+			"shortName": "J-35",
+			"prereqs": ["j_16"],
+			"unlocks": { "unitTypes": ["unit_j_35"] },
+			"cost": { "money": 1100000, "oil": 400000, "steel": 130000, "electronics": 650000 },
+			"researchTimeTicks": 480,
+			"introYear": 2025
 		}
 	]
 }

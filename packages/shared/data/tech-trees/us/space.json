@@ -29,6 +29,42 @@
 			"cost": { "money": 200000, "steel": 10000, "electronics": 100000 },
 			"researchTimeTicks": 60,
 			"introYear": 1995
+		},
+		{
+			"id": "lacrosse_onyx",
+			"tree": "space",
+			"tier": 2,
+			"displayName": "Lacrosse / Onyx SAR Constellation",
+			"shortName": "Onyx",
+			"prereqs": ["kh_11_evolved"],
+			"unlocks": { "unitTypes": ["unit_lacrosse_onyx"] },
+			"cost": { "money": 500000, "steel": 25000, "electronics": 250000 },
+			"researchTimeTicks": 120,
+			"introYear": 1988
+		},
+		{
+			"id": "muos_constellation",
+			"tree": "space",
+			"tier": 3,
+			"displayName": "MUOS Communications Constellation",
+			"shortName": "MUOS",
+			"prereqs": ["lacrosse_onyx"],
+			"unlocks": { "unitTypes": ["unit_muos_constellation"] },
+			"cost": { "money": 1000000, "steel": 50000, "electronics": 500000 },
+			"researchTimeTicks": 240,
+			"introYear": 2012
+		},
+		{
+			"id": "tracking_layer",
+			"tree": "space",
+			"tier": 4,
+			"displayName": "SDA Tracking Layer Constellation",
+			"shortName": "SDA Tracking",
+			"prereqs": ["muos_constellation"],
+			"unlocks": { "unitTypes": ["unit_tracking_layer"] },
+			"cost": { "money": 1600000, "steel": 80000, "electronics": 800000 },
+			"researchTimeTicks": 480,
+			"introYear": 2027
 		}
 	]
 }

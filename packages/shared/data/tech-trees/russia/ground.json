@@ -26,6 +26,42 @@
 			"cost": { "money": 50000, "oil": 5000, "steel": 20000, "electronics": 5000 },
 			"researchTimeTicks": 60,
 			"introYear": 1998
+		},
+		{
+			"id": "russian_inf_ratnik",
+			"tree": "ground",
+			"tier": 2,
+			"displayName": "Ratnik Combat Equipment Infantry",
+			"shortName": "Ratnik",
+			"prereqs": ["russian_inf_t1"],
+			"unlocks": { "unitTypes": ["unit_russian_inf_ratnik"] },
+			"cost": { "money": 125000, "oil": 12500, "steel": 50000, "electronics": 12500 },
+			"researchTimeTicks": 120,
+			"introYear": 2015
+		},
+		{
+			"id": "russian_inf_sotnik",
+			"tree": "ground",
+			"tier": 3,
+			"displayName": "Sotnik Networked Infantry",
+			"shortName": "Sotnik",
+			"prereqs": ["russian_inf_ratnik"],
+			"unlocks": { "unitTypes": ["unit_russian_inf_sotnik"] },
+			"cost": { "money": 250000, "oil": 25000, "steel": 100000, "electronics": 25000 },
+			"researchTimeTicks": 240,
+			"introYear": 2025
+		},
+		{
+			"id": "russian_inf_legionnaire",
+			"tree": "ground",
+			"tier": 4,
+			"displayName": "Legionnaire Future Soldier Concept",
+			"shortName": "Legionnaire",
+			"prereqs": ["russian_inf_sotnik"],
+			"unlocks": { "unitTypes": ["unit_russian_inf_legionnaire"] },
+			"cost": { "money": 400000, "oil": 40000, "steel": 160000, "electronics": 40000 },
+			"researchTimeTicks": 480,
+			"introYear": 2030
 		}
 	]
 }

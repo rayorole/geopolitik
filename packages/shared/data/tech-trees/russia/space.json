@@ -29,6 +29,42 @@
 			"cost": { "money": 200000, "steel": 10000, "electronics": 100000 },
 			"researchTimeTicks": 60,
 			"introYear": 2009
+		},
+		{
+			"id": "persona",
+			"tree": "space",
+			"tier": 2,
+			"displayName": "Persona High-Resolution Recon Satellite",
+			"shortName": "Persona",
+			"prereqs": ["lotos_s"],
+			"unlocks": { "unitTypes": ["unit_persona"] },
+			"cost": { "money": 500000, "steel": 25000, "electronics": 250000 },
+			"researchTimeTicks": 120,
+			"introYear": 2008
+		},
+		{
+			"id": "meridian_m",
+			"tree": "space",
+			"tier": 3,
+			"displayName": "Meridian-M Communications Satellite",
+			"shortName": "Meridian-M",
+			"prereqs": ["persona"],
+			"unlocks": { "unitTypes": ["unit_meridian_m"] },
+			"cost": { "money": 1000000, "steel": 50000, "electronics": 500000 },
+			"researchTimeTicks": 240,
+			"introYear": 2019
+		},
+		{
+			"id": "sphere_constellation",
+			"tree": "space",
+			"tier": 4,
+			"displayName": "Sphere (Sfera) Constellation",
+			"shortName": "Sphere",
+			"prereqs": ["meridian_m"],
+			"unlocks": { "unitTypes": ["unit_sphere_constellation"] },
+			"cost": { "money": 1600000, "steel": 80000, "electronics": 800000 },
+			"researchTimeTicks": 480,
+			"introYear": 2030
 		}
 	]
 }

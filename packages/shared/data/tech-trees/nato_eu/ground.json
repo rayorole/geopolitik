@@ -26,6 +26,42 @@
 			"cost": { "money": 50000, "oil": 5000, "steel": 20000, "electronics": 5000 },
 			"researchTimeTicks": 60,
 			"introYear": 1995
+		},
+		{
+			"id": "nato_eu_inf_t2",
+			"tree": "ground",
+			"tier": 2,
+			"displayName": "European Light Strike Infantry",
+			"shortName": "EU Inf (Strike)",
+			"prereqs": ["nato_eu_inf_t1"],
+			"unlocks": { "unitTypes": ["unit_nato_eu_inf_t2"] },
+			"cost": { "money": 125000, "oil": 12500, "steel": 50000, "electronics": 12500 },
+			"researchTimeTicks": 120,
+			"introYear": 2005
+		},
+		{
+			"id": "nato_eu_inf_t3",
+			"tree": "ground",
+			"tier": 3,
+			"displayName": "European Networked Infantry",
+			"shortName": "EU Inf (Net)",
+			"prereqs": ["nato_eu_inf_t2"],
+			"unlocks": { "unitTypes": ["unit_nato_eu_inf_t3"] },
+			"cost": { "money": 250000, "oil": 25000, "steel": 100000, "electronics": 25000 },
+			"researchTimeTicks": 240,
+			"introYear": 2015
+		},
+		{
+			"id": "nato_eu_inf_t4",
+			"tree": "ground",
+			"tier": 4,
+			"displayName": "European Future Soldier Programme",
+			"shortName": "EU FSP",
+			"prereqs": ["nato_eu_inf_t3"],
+			"unlocks": { "unitTypes": ["unit_nato_eu_inf_t4"] },
+			"cost": { "money": 400000, "oil": 40000, "steel": 160000, "electronics": 40000 },
+			"researchTimeTicks": 480,
+			"introYear": 2025
 		}
 	]
 }

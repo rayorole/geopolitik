@@ -26,6 +26,42 @@
 			"cost": { "money": 150000, "oil": 10000, "steel": 80000, "electronics": 30000 },
 			"researchTimeTicks": 60,
 			"introYear": 2018
+		},
+		{
+			"id": "steregushchiy_class",
+			"tree": "naval",
+			"tier": 2,
+			"displayName": "Steregushchiy-class Corvette",
+			"shortName": "Steregushchiy",
+			"prereqs": ["gorshkov_class"],
+			"unlocks": { "unitTypes": ["unit_steregushchiy_class"] },
+			"cost": { "money": 375000, "oil": 25000, "steel": 200000, "electronics": 75000 },
+			"researchTimeTicks": 120,
+			"introYear": 2008
+		},
+		{
+			"id": "gremyashchy_class",
+			"tree": "naval",
+			"tier": 3,
+			"displayName": "Gremyashchy-class Corvette",
+			"shortName": "Gremyashchy",
+			"prereqs": ["steregushchiy_class"],
+			"unlocks": { "unitTypes": ["unit_gremyashchy_class"] },
+			"cost": { "money": 750000, "oil": 50000, "steel": 400000, "electronics": 150000 },
+			"researchTimeTicks": 240,
+			"introYear": 2018
+		},
+		{
+			"id": "super_gorshkov",
+			"tree": "naval",
+			"tier": 4,
+			"displayName": "Project 22350M Super Gorshkov",
+			"shortName": "22350M",
+			"prereqs": ["gremyashchy_class"],
+			"unlocks": { "unitTypes": ["unit_super_gorshkov"] },
+			"cost": { "money": 1200000, "oil": 80000, "steel": 640000, "electronics": 240000 },
+			"researchTimeTicks": 480,
+			"introYear": 2030
 		}
 	]
 }

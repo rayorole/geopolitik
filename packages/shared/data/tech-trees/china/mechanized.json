@@ -26,6 +26,54 @@
 			"cost": { "money": 80000, "oil": 15000, "steel": 60000, "electronics": 8000 },
 			"researchTimeTicks": 60,
 			"introYear": 1988
+		},
+		{
+			"id": "type_99",
+			"tree": "mechanized",
+			"tier": 2,
+			"displayName": "Type 99",
+			"shortName": "Type 99",
+			"prereqs": ["type_88"],
+			"unlocks": { "unitTypes": ["unit_type_99"] },
+			"cost": { "money": 200000, "oil": 37500, "steel": 150000, "electronics": 20000 },
+			"researchTimeTicks": 120,
+			"introYear": 2001
+		},
+		{
+			"id": "type_15",
+			"tree": "mechanized",
+			"tier": 2,
+			"displayName": "Type 15 Light Tank",
+			"shortName": "Type 15",
+			"prereqs": ["type_88"],
+			"unlocks": { "unitTypes": ["unit_type_15"] },
+			"cost": { "money": 175000, "oil": 35000, "steel": 130000, "electronics": 22000 },
+			"researchTimeTicks": 120,
+			"introYear": 2018
+		},
+		{
+			"id": "type_99a",
+			"tree": "mechanized",
+			"tier": 3,
+			"displayName": "Type 99A",
+			"shortName": "Type 99A",
+			"prereqs": ["type_99"],
+			"unlocks": { "unitTypes": ["unit_type_99a"] },
+			"cost": { "money": 400000, "oil": 75000, "steel": 300000, "electronics": 40000 },
+			"researchTimeTicks": 240,
+			"introYear": 2011
+		},
+		{
+			"id": "type_100",
+			"tree": "mechanized",
+			"tier": 4,
+			"displayName": "Type 100 (4th-gen MBT Concept)",
+			"shortName": "Type 100",
+			"prereqs": ["type_99a"],
+			"unlocks": { "unitTypes": ["unit_type_100"] },
+			"cost": { "money": 640000, "oil": 120000, "steel": 480000, "electronics": 80000 },
+			"researchTimeTicks": 480,
+			"introYear": 2030
 		}
 	]
 }

@@ -26,6 +26,42 @@
 			"cost": { "money": 50000, "oil": 5000, "steel": 20000, "electronics": 5000 },
 			"researchTimeTicks": 60,
 			"introYear": 2003
+		},
+		{
+			"id": "chinese_inf_qbz_191",
+			"tree": "ground",
+			"tier": 2,
+			"displayName": "QBZ-191 Modular Rifle Infantry",
+			"shortName": "QBZ-191",
+			"prereqs": ["chinese_inf_t1"],
+			"unlocks": { "unitTypes": ["unit_chinese_inf_qbz_191"] },
+			"cost": { "money": 125000, "oil": 12500, "steel": 50000, "electronics": 12500 },
+			"researchTimeTicks": 120,
+			"introYear": 2019
+		},
+		{
+			"id": "chinese_inf_digital",
+			"tree": "ground",
+			"tier": 3,
+			"displayName": "PLA Digitized Combat Infantry",
+			"shortName": "Digital PLA",
+			"prereqs": ["chinese_inf_qbz_191"],
+			"unlocks": { "unitTypes": ["unit_chinese_inf_digital"] },
+			"cost": { "money": 250000, "oil": 25000, "steel": 100000, "electronics": 25000 },
+			"researchTimeTicks": 240,
+			"introYear": 2025
+		},
+		{
+			"id": "chinese_inf_exoskeleton",
+			"tree": "ground",
+			"tier": 4,
+			"displayName": "PLA Exoskeleton Infantry Concept",
+			"shortName": "Exo PLA",
+			"prereqs": ["chinese_inf_digital"],
+			"unlocks": { "unitTypes": ["unit_chinese_inf_exoskeleton"] },
+			"cost": { "money": 400000, "oil": 40000, "steel": 160000, "electronics": 40000 },
+			"researchTimeTicks": 480,
+			"introYear": 2030
 		}
 	]
 }

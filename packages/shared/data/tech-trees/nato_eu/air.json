@@ -26,6 +26,90 @@
 			"cost": { "money": 120000, "oil": 50000, "steel": 15000, "electronics": 60000 },
 			"researchTimeTicks": 60,
 			"introYear": 1984
+		},
+		{
+			"id": "rafale_f1",
+			"tree": "air",
+			"tier": 2,
+			"displayName": "Dassault Rafale F1",
+			"shortName": "Rafale F1",
+			"prereqs": ["mirage_2000"],
+			"unlocks": { "unitTypes": ["unit_rafale_f1"] },
+			"cost": { "money": 300000, "oil": 125000, "steel": 37500, "electronics": 150000 },
+			"researchTimeTicks": 120,
+			"introYear": 2004
+		},
+		{
+			"id": "eurofighter_t1",
+			"tree": "air",
+			"tier": 2,
+			"displayName": "Eurofighter Typhoon Tranche 1",
+			"shortName": "EF T1",
+			"prereqs": ["mirage_2000"],
+			"unlocks": { "unitTypes": ["unit_eurofighter_t1"] },
+			"cost": { "money": 300000, "oil": 125000, "steel": 37500, "electronics": 175000 },
+			"researchTimeTicks": 120,
+			"introYear": 2003
+		},
+		{
+			"id": "rafale_f3r",
+			"tree": "air",
+			"tier": 3,
+			"displayName": "Dassault Rafale F3R",
+			"shortName": "Rafale F3R",
+			"prereqs": ["rafale_f1"],
+			"unlocks": { "unitTypes": ["unit_rafale_f3r"] },
+			"cost": { "money": 600000, "oil": 250000, "steel": 75000, "electronics": 300000 },
+			"researchTimeTicks": 240,
+			"introYear": 2018
+		},
+		{
+			"id": "eurofighter_t3",
+			"tree": "air",
+			"tier": 3,
+			"displayName": "Eurofighter Typhoon Tranche 3",
+			"shortName": "EF T3",
+			"prereqs": ["eurofighter_t1"],
+			"unlocks": { "unitTypes": ["unit_eurofighter_t3"] },
+			"cost": { "money": 600000, "oil": 250000, "steel": 75000, "electronics": 350000 },
+			"researchTimeTicks": 240,
+			"introYear": 2014
+		},
+		{
+			"id": "rafale_f4",
+			"tree": "air",
+			"tier": 4,
+			"displayName": "Dassault Rafale F4",
+			"shortName": "Rafale F4",
+			"prereqs": ["rafale_f3r"],
+			"unlocks": { "unitTypes": ["unit_rafale_f4"] },
+			"cost": { "money": 960000, "oil": 400000, "steel": 120000, "electronics": 480000 },
+			"researchTimeTicks": 480,
+			"introYear": 2024
+		},
+		{
+			"id": "fcas",
+			"tree": "air",
+			"tier": 4,
+			"displayName": "Future Combat Air System (FCAS) Concept",
+			"shortName": "FCAS",
+			"prereqs": ["rafale_f3r"],
+			"unlocks": { "unitTypes": ["unit_fcas"] },
+			"cost": { "money": 1200000, "oil": 400000, "steel": 150000, "electronics": 600000 },
+			"researchTimeTicks": 480,
+			"introYear": 2040
+		},
+		{
+			"id": "tempest",
+			"tree": "air",
+			"tier": 4,
+			"displayName": "Tempest (GCAP) Concept",
+			"shortName": "Tempest",
+			"prereqs": ["eurofighter_t3"],
+			"unlocks": { "unitTypes": ["unit_tempest"] },
+			"cost": { "money": 1200000, "oil": 400000, "steel": 150000, "electronics": 600000 },
+			"researchTimeTicks": 480,
+			"introYear": 2035
 		}
 	]
 }

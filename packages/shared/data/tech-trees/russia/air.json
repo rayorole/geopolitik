@@ -26,6 +26,78 @@
 			"cost": { "money": 120000, "oil": 50000, "steel": 15000, "electronics": 60000 },
 			"researchTimeTicks": 60,
 			"introYear": 1983
+		},
+		{
+			"id": "su_30mk",
+			"tree": "air",
+			"tier": 2,
+			"displayName": "Su-30MK Flanker-C",
+			"shortName": "Su-30MK",
+			"prereqs": ["mig_29a"],
+			"unlocks": { "unitTypes": ["unit_su_30mk"] },
+			"cost": { "money": 300000, "oil": 125000, "steel": 37500, "electronics": 150000 },
+			"researchTimeTicks": 120,
+			"introYear": 1992
+		},
+		{
+			"id": "mig_35",
+			"tree": "air",
+			"tier": 2,
+			"displayName": "MiG-35 Fulcrum-F",
+			"shortName": "MiG-35",
+			"prereqs": ["mig_29a"],
+			"unlocks": { "unitTypes": ["unit_mig_35"] },
+			"cost": { "money": 280000, "oil": 120000, "steel": 35000, "electronics": 160000 },
+			"researchTimeTicks": 120,
+			"introYear": 2019
+		},
+		{
+			"id": "su_35",
+			"tree": "air",
+			"tier": 3,
+			"displayName": "Su-35S Flanker-E",
+			"shortName": "Su-35",
+			"prereqs": ["su_30mk"],
+			"unlocks": { "unitTypes": ["unit_su_35"] },
+			"cost": { "money": 600000, "oil": 250000, "steel": 75000, "electronics": 300000 },
+			"researchTimeTicks": 240,
+			"introYear": 2014
+		},
+		{
+			"id": "su_34",
+			"tree": "air",
+			"tier": 3,
+			"displayName": "Su-34 Fullback Strike Aircraft",
+			"shortName": "Su-34",
+			"prereqs": ["su_30mk"],
+			"unlocks": { "unitTypes": ["unit_su_34"] },
+			"cost": { "money": 550000, "oil": 240000, "steel": 80000, "electronics": 280000 },
+			"researchTimeTicks": 240,
+			"introYear": 2014
+		},
+		{
+			"id": "su_57",
+			"tree": "air",
+			"tier": 4,
+			"displayName": "Su-57 Felon",
+			"shortName": "Su-57",
+			"prereqs": ["su_35"],
+			"unlocks": { "unitTypes": ["unit_su_57"] },
+			"cost": { "money": 960000, "oil": 400000, "steel": 120000, "electronics": 600000 },
+			"researchTimeTicks": 480,
+			"introYear": 2020
+		},
+		{
+			"id": "su_75_checkmate",
+			"tree": "air",
+			"tier": 4,
+			"displayName": "Su-75 Checkmate Concept",
+			"shortName": "Su-75",
+			"prereqs": ["su_35", "su_57"],
+			"unlocks": { "unitTypes": ["unit_su_75_checkmate"] },
+			"cost": { "money": 1200000, "oil": 400000, "steel": 150000, "electronics": 700000 },
+			"researchTimeTicks": 480,
+			"introYear": 2027
 		}
 	]
 }

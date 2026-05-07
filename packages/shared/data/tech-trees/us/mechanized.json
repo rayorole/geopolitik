@@ -26,6 +26,42 @@
 			"cost": { "money": 80000, "oil": 15000, "steel": 60000, "electronics": 8000 },
 			"researchTimeTicks": 60,
 			"introYear": 1985
+		},
+		{
+			"id": "m1a2",
+			"tree": "mechanized",
+			"tier": 2,
+			"displayName": "M1A2 Abrams",
+			"shortName": "M1A2",
+			"prereqs": ["m1a1"],
+			"unlocks": { "unitTypes": ["unit_m1a2"] },
+			"cost": { "money": 200000, "oil": 37500, "steel": 150000, "electronics": 20000 },
+			"researchTimeTicks": 120,
+			"introYear": 1992
+		},
+		{
+			"id": "m1a2_sepv3",
+			"tree": "mechanized",
+			"tier": 3,
+			"displayName": "M1A2 SEPv3 Abrams",
+			"shortName": "M1A2 SEPv3",
+			"prereqs": ["m1a2"],
+			"unlocks": { "unitTypes": ["unit_m1a2_sepv3"] },
+			"cost": { "money": 400000, "oil": 75000, "steel": 300000, "electronics": 40000 },
+			"researchTimeTicks": 240,
+			"introYear": 2017
+		},
+		{
+			"id": "m1e3",
+			"tree": "mechanized",
+			"tier": 4,
+			"displayName": "M1E3 Abrams (AbramsX class)",
+			"shortName": "M1E3",
+			"prereqs": ["m1a2_sepv3"],
+			"unlocks": { "unitTypes": ["unit_m1e3"] },
+			"cost": { "money": 640000, "oil": 120000, "steel": 480000, "electronics": 64000 },
+			"researchTimeTicks": 480,
+			"introYear": 2030
 		}
 	]
 }

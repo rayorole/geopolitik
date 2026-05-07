@@ -29,6 +29,42 @@
 			"cost": { "money": 200000, "steel": 10000, "electronics": 100000 },
 			"researchTimeTicks": 60,
 			"introYear": 2004
+		},
+		{
+			"id": "musis_csg",
+			"tree": "space",
+			"tier": 2,
+			"displayName": "MUSIS / CSO Imaging Constellation",
+			"shortName": "CSO",
+			"prereqs": ["helios_2"],
+			"unlocks": { "unitTypes": ["unit_musis_csg"] },
+			"cost": { "money": 500000, "steel": 25000, "electronics": 250000 },
+			"researchTimeTicks": 120,
+			"introYear": 2018
+		},
+		{
+			"id": "syracuse_iv",
+			"tree": "space",
+			"tier": 3,
+			"displayName": "Syracuse IV Comms Satellite",
+			"shortName": "Syracuse IV",
+			"prereqs": ["musis_csg"],
+			"unlocks": { "unitTypes": ["unit_syracuse_iv"] },
+			"cost": { "money": 1000000, "steel": 50000, "electronics": 500000 },
+			"researchTimeTicks": 240,
+			"introYear": 2021
+		},
+		{
+			"id": "iris_squared",
+			"tree": "space",
+			"tier": 4,
+			"displayName": "IRIS² Sovereign Constellation",
+			"shortName": "IRIS²",
+			"prereqs": ["syracuse_iv"],
+			"unlocks": { "unitTypes": ["unit_iris_squared"] },
+			"cost": { "money": 1600000, "steel": 80000, "electronics": 800000 },
+			"researchTimeTicks": 480,
+			"introYear": 2030
 		}
 	]
 }

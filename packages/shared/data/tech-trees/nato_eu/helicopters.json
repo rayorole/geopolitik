@@ -26,6 +26,42 @@
 			"cost": { "money": 100000, "oil": 25000, "steel": 25000, "electronics": 50000 },
 			"researchTimeTicks": 60,
 			"introYear": 2003
+		},
+		{
+			"id": "tiger_had",
+			"tree": "helicopters",
+			"tier": 2,
+			"displayName": "Eurocopter Tiger HAD",
+			"shortName": "Tiger HAD",
+			"prereqs": ["tiger_uht"],
+			"unlocks": { "unitTypes": ["unit_tiger_had"] },
+			"cost": { "money": 250000, "oil": 62500, "steel": 62500, "electronics": 125000 },
+			"researchTimeTicks": 120,
+			"introYear": 2009
+		},
+		{
+			"id": "nh90_caiman",
+			"tree": "helicopters",
+			"tier": 3,
+			"displayName": "NH90 Caiman",
+			"shortName": "NH90",
+			"prereqs": ["tiger_had"],
+			"unlocks": { "unitTypes": ["unit_nh90_caiman"] },
+			"cost": { "money": 500000, "oil": 125000, "steel": 125000, "electronics": 250000 },
+			"researchTimeTicks": 240,
+			"introYear": 2010
+		},
+		{
+			"id": "tiger_mk3",
+			"tree": "helicopters",
+			"tier": 4,
+			"displayName": "Tiger Mk3 Standard",
+			"shortName": "Tiger Mk3",
+			"prereqs": ["nh90_caiman"],
+			"unlocks": { "unitTypes": ["unit_tiger_mk3"] },
+			"cost": { "money": 800000, "oil": 200000, "steel": 200000, "electronics": 400000 },
+			"researchTimeTicks": 480,
+			"introYear": 2030
 		}
 	]
 }

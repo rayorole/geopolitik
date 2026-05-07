@@ -26,6 +26,42 @@
 			"cost": { "money": 150000, "oil": 10000, "steel": 80000, "electronics": 30000 },
 			"researchTimeTicks": 60,
 			"introYear": 1996
+		},
+		{
+			"id": "fremm_class",
+			"tree": "naval",
+			"tier": 2,
+			"displayName": "FREMM Multirole Frigate",
+			"shortName": "FREMM",
+			"prereqs": ["la_fayette_class"],
+			"unlocks": { "unitTypes": ["unit_fremm_class"] },
+			"cost": { "money": 375000, "oil": 25000, "steel": 200000, "electronics": 75000 },
+			"researchTimeTicks": 120,
+			"introYear": 2012
+		},
+		{
+			"id": "type_26_frigate",
+			"tree": "naval",
+			"tier": 3,
+			"displayName": "Type 26 City-class Frigate",
+			"shortName": "Type 26",
+			"prereqs": ["fremm_class"],
+			"unlocks": { "unitTypes": ["unit_type_26_frigate"] },
+			"cost": { "money": 750000, "oil": 50000, "steel": 400000, "electronics": 150000 },
+			"researchTimeTicks": 240,
+			"introYear": 2027
+		},
+		{
+			"id": "type_31_frigate",
+			"tree": "naval",
+			"tier": 4,
+			"displayName": "Type 31 Inspiration-class Frigate",
+			"shortName": "Type 31",
+			"prereqs": ["type_26_frigate"],
+			"unlocks": { "unitTypes": ["unit_type_31_frigate"] },
+			"cost": { "money": 1200000, "oil": 80000, "steel": 640000, "electronics": 240000 },
+			"researchTimeTicks": 480,
+			"introYear": 2027
 		}
 	]
 }
