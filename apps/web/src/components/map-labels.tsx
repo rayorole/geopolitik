@@ -185,9 +185,17 @@ export function MapLabels({ map, cities, countries, citiesRender, onCityClick }:
 		}
 	}
 
-	// Capital star markers — projected at every zoom (capitals are always
-	// shown as a star instead of a dot). Color matches the corresponding
-	// city-circle rule (mine=amber, ally=blue, foreign/unowned=grey).
+	// Capital star markers — replace the dot for capital cities. Track the
+	// same opacity + size behavior as city-circle (game-map.tsx) so capitals
+	// fade out at world zoom and grow as the player zooms in. Color matches
+	// the dot rule: mine=amber, ally=blue, foreign/unowned=grey.
+	//
+	// City-circle's visibility ramp is 2.8→3.2 (owned cities visible above
+	// 2.8, all visible above 3.2). Use the same window for the star — below
+	// 2.4 we don't even render the DOM node since the star would be a single
+	// fuzzy pixel.
+	const capitalOpacity = clamp01(rampUp(zoom, 2.4, 3.2));
+	const capitalSizePx = lerp(zoom, 2.4, 8, 7, 18);
 	const visibleCapitalMarkers: Array<{
 		id: string;
 		name: string;
@@ -195,7 +203,7 @@ export function MapLabels({ map, cities, countries, citiesRender, onCityClick }:
 		x: number;
 		y: number;
 	}> = [];
-	if (map && citiesRender) {
+	if (map && citiesRender && capitalOpacity > 0) {
 		const bounds = map.getBounds();
 		const sw = bounds.getSouthWest();
 		const ne = bounds.getNorthEast();
@@ -250,9 +258,10 @@ export function MapLabels({ map, cities, countries, citiesRender, onCityClick }:
 			const p = map.project([c.lng, c.lat]);
 			const w = approxTextWidth(c.name, fontPx, 0.4);
 			const h = fontPx + 2;
-			// City label is anchored 14px above the dot — collision rect
-			// matches that offset so we test the actual rendered position.
-			const rect = { x: p.x - w / 2 - 4, y: p.y - 14 - h / 2 - 2, w: w + 8, h: h + 4 };
+			// City label is bottom-anchored 14px above the city center
+			// (see JSX). Collision rect matches that geometry so the test
+			// uses the actual rendered position.
+			const rect = { x: p.x - w / 2 - 4, y: p.y - 14 - h - 2, w: w + 8, h: h + 4 };
 			if (placed.some((r) => rectsOverlap(rect, r))) continue;
 			placed.push(rect);
 			visibleCityLabels.push({
@@ -274,58 +283,53 @@ export function MapLabels({ map, cities, countries, citiesRender, onCityClick }:
 			className="pointer-events-none absolute inset-0 overflow-hidden"
 			aria-hidden
 		>
-			{/* Country labels — Space Grotesk, mil-spec uppercase + tracking */}
+			{/* Country labels — Space Grotesk, mil-spec uppercase + tracking.
+				`pointer-events-none` lets clicks fall through to MapLibre's
+				country-fill layer beneath, which opens the country popover. */}
 			{countryOpacity > 0 &&
 				visibleCountryLabels.map((c) => (
-					<button
-						type="button"
+					<span
 						key={`c:${c.iso3}`}
-						onClick={(e) => {
-							e.stopPropagation();
-							setHidden((prev) => {
-								const next = new Set(prev);
-								next.add(`c:${c.iso3}`);
-								return next;
-							});
-						}}
-						className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer select-none whitespace-nowrap font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-foreground/85 transition-opacity duration-150 hover:text-foreground"
+						className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 select-none whitespace-nowrap font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-foreground/85 transition-opacity duration-150"
 						style={{
 							left: `${c.x}px`,
 							top: `${c.y}px`,
 							opacity: countryOpacity,
 							textShadow: "0 0 4px #0a0e14, 0 0 4px #0a0e14, 0 0 4px #0a0e14",
 						}}
-						title={`${c.name} — click to hide`}
 					>
 						{c.name}
-					</button>
+					</span>
 				))}
 
 			{/* Capital star markers — replace the city dot for capital
-				cities. Always rendered (no zoom gate) so every nation's
-				capital is identifiable on the map. Color matches the dot
-				rule: mine=amber, ally=blue, foreign/unowned=neutral grey. */}
-			{visibleCapitalMarkers.map((m) => (
-				<button
-					type="button"
-					key={`star:${m.id}`}
-					aria-label={`Capital of ${m.name}`}
-					onClick={(e) => {
-						e.stopPropagation();
-						onCityClick?.(m.id);
-					}}
-					className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer select-none transition-transform duration-150 hover:scale-110"
-					style={{
-						left: `${m.x}px`,
-						top: `${m.y}px`,
-						color: m.color,
-						filter: "drop-shadow(0 0 1.5px #0a0e14) drop-shadow(0 0 1.5px #0a0e14)",
-					}}
-					title={m.name}
-				>
-					<UnitIcon glyph="capital" size={14} aria-hidden />
-				</button>
-			))}
+				cities. Opacity + size scale with zoom so capitals fade out
+				at world zoom and grow as the player zooms in, matching the
+				city-circle ramp. Color rule: mine=amber, ally=blue,
+				foreign/unowned=neutral grey. */}
+			{capitalOpacity > 0 &&
+				visibleCapitalMarkers.map((m) => (
+					<button
+						type="button"
+						key={`star:${m.id}`}
+						aria-label={`Capital of ${m.name}`}
+						onClick={(e) => {
+							e.stopPropagation();
+							onCityClick?.(m.id);
+						}}
+						className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer select-none transition-transform duration-150 hover:scale-110"
+						style={{
+							left: `${m.x}px`,
+							top: `${m.y}px`,
+							color: m.color,
+							opacity: capitalOpacity,
+							filter: "drop-shadow(0 0 1.5px #0a0e14) drop-shadow(0 0 1.5px #0a0e14)",
+						}}
+						title={m.name}
+					>
+						<UnitIcon glyph="capital" size={capitalSizePx} aria-hidden />
+					</button>
+				))}
 
 			{/* City labels — JetBrains Mono, anchored above the dot */}
 			{cityOpacity > 0 &&
@@ -341,11 +345,14 @@ export function MapLabels({ map, cities, countries, citiesRender, onCityClick }:
 								return next;
 							});
 						}}
-						className="pointer-events-auto absolute -translate-x-1/2 cursor-pointer select-none whitespace-nowrap font-mono text-[10px] text-foreground/90 tabular-nums transition-opacity duration-150 hover:text-foreground"
+						className="pointer-events-auto absolute -translate-x-1/2 -translate-y-full cursor-pointer select-none whitespace-nowrap font-mono text-[10px] text-foreground/90 tabular-nums transition-opacity duration-150 hover:text-foreground"
 						style={{
 							left: `${c.x}px`,
-							// 14px above the dot. Dots top out at radius ~6px + stroke,
-							// so this keeps the label clear of the marker at every zoom.
+							// Bottom edge of the label sits 14px above the city
+							// center — clears the largest capital star (radius
+							// 9px) plus a small gap so the text never touches the
+							// marker. -translate-y-full anchors the bottom of the
+							// label to the `top` coordinate.
 							top: `${c.y - 14}px`,
 							opacity: cityOpacity,
 							textShadow: "0 0 3px #0a0e14, 0 0 3px #0a0e14, 0 0 3px #0a0e14",
@@ -373,6 +380,16 @@ function rampDown(z: number, start: number, end: number) {
 
 function clamp01(n: number) {
 	return n < 0 ? 0 : n > 1 ? 1 : n;
+}
+
+/** Linear interpolation: at zoom ≤ z0 return v0, at zoom ≥ z1 return v1,
+ *  else linearly interpolate. No clamping needed for our use cases since
+ *  callers gate on opacity = 0 below z0. */
+function lerp(zoom: number, z0: number, v0: number, z1: number, v1: number): number {
+	if (zoom <= z0) return v0;
+	if (zoom >= z1) return v1;
+	const t = (zoom - z0) / (z1 - z0);
+	return v0 + t * (v1 - v0);
 }
 
 /**
