@@ -9,6 +9,7 @@ import {
 	type HoveredCountry,
 } from "@/components/game-map";
 import { PolicyPanel } from "@/components/policy-panel";
+import { ResearchDrawer } from "@/components/research-drawer";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -263,6 +264,8 @@ export default function PlayPage() {
 					<code className="font-mono text-sm tracking-[0.14em] text-foreground">
 						{snapshot.data?.game.code ?? "…"}
 					</code>
+					<span className="h-4 w-px bg-border" />
+					<ResearchDrawer gameId={gameId} mePlayerId={snapshot.data?.mePlayerId ?? null} />
 				</div>
 
 				<div className="pointer-events-auto absolute top-3 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1 border border-border bg-card/95 px-4 py-2 backdrop-blur-sm">

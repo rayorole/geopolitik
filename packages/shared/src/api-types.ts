@@ -171,6 +171,37 @@ export const mineGameSummary = z.object({
 
 export type MineGameSummary = z.infer<typeof mineGameSummary>;
 
+// ── Research (Phase 4) ───────────────────────────────────────────────────────
+
+export const researchUnlockRow = z.object({
+	nodeId: z.string(),
+	unlockedAtTick: z.number().int().nonnegative(),
+	viaProjectId: z.string().uuid().nullable(),
+});
+
+export type ResearchUnlockRow = z.infer<typeof researchUnlockRow>;
+
+export const researchProjectRow = z.object({
+	id: z.string().uuid(),
+	nodeId: z.string(),
+	status: z.enum(["in_progress", "completed", "cancelled"]),
+	startedAtTick: z.number().int().nonnegative(),
+	expectedCompletionTick: z.number().int().nonnegative(),
+	resolvedAtTick: z.number().int().nonnegative().nullable(),
+});
+
+export type ResearchProjectRow = z.infer<typeof researchProjectRow>;
+
+export const playerResearchResponse = z.object({
+	gameId: z.string().uuid(),
+	playerId: z.string().uuid(),
+	faction: z.enum(["nato_eu", "us", "china", "russia"]),
+	unlocks: z.array(researchUnlockRow),
+	activeProjects: z.array(researchProjectRow),
+});
+
+export type PlayerResearchResponse = z.infer<typeof playerResearchResponse>;
+
 // ── Account profile ──────────────────────────────────────────────────────────
 
 export const updateProfileBody = z.object({

@@ -3,14 +3,18 @@ import {
 	type GameSnapshot,
 	type GameSummary,
 	type MineGameSummary,
+	type PlayerResearchResponse,
 	createGameResponse,
 	gameSnapshot,
 	gameSummary,
 	joinGameBody,
 	mineGameSummary,
+	playerResearchResponse,
 	submitOrderResponse,
 } from "@geopolitik/shared/api";
+import { factionForCountry } from "@geopolitik/shared/factions";
 import { submitOrderBodyV3 } from "@geopolitik/shared/orders";
+import { tier0NodeIdsForFaction } from "@geopolitik/shared/research";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { requireAuth } from "./auth-helper";
@@ -286,6 +290,32 @@ export function createGamesRouter() {
 				population: 0,
 			});
 
+			// Phase 4: tier-0 starter pack — seed research_unlock rows for every
+			// tier-0 node in the joining player's faction. via_project_id is null
+			// to flag these as starter unlocks, not researched. Idempotent on
+			// rejoin via onConflictDoNothing on the (game, player, node) PK.
+			const faction = factionForCountry(countryCode);
+			if (!faction) {
+				// Should be unreachable: factions.json covers every country in
+				// world-data (asserted by validator unit test). Defensive guard.
+				throw new Error(`country ${countryCode} has no faction mapping`);
+			}
+			const tier0Ids = tier0NodeIdsForFaction(faction);
+			if (tier0Ids.length > 0) {
+				await tx
+					.insert(schema.researchUnlock)
+					.values(
+						tier0Ids.map((nodeId) => ({
+							gameId,
+							playerId,
+							nodeId,
+							unlockedAtTick: g.tick,
+							viaProjectId: null,
+						})),
+					)
+					.onConflictDoNothing();
+			}
+
 			// Initial city ownership: every city tagged with this country code
 			// becomes owned by the new player. city_state rows get inserted on
 			// first ownership; population starts at base_population.
@@ -488,6 +518,72 @@ export function createGamesRouter() {
 		};
 
 		return c.json(gameSnapshot.parse(snapshot));
+	});
+
+	// ── GET /games/:id/research ───────────────────────────────────────────────
+	// Phase 4b: returns the player's research_unlocks (tier 0 + later
+	// unlocked tiers) and any in-progress research_projects. Auth required;
+	// 403 if the caller isn't a player in this game. Active projects are
+	// always [] in 4b — the order kinds land in 4c.
+	games.get("/games/:id/research", async (c) => {
+		const authResult = await requireAuth(c.req.raw);
+		if (authResult instanceof Response) return authResult;
+		const { userId } = authResult;
+
+		const gameId = c.req.param("id");
+
+		const [me] = await db
+			.select({
+				id: schema.player.id,
+				countryCode: schema.player.countryCode,
+			})
+			.from(schema.player)
+			.where(and(eq(schema.player.gameId, gameId), eq(schema.player.userId, userId)))
+			.limit(1);
+		if (!me) return c.json({ error: "not_a_player" }, 403);
+
+		const faction = factionForCountry(me.countryCode);
+		if (!faction) {
+			return c.json({ error: "country_has_no_faction" }, 500);
+		}
+
+		const unlocks = await db
+			.select({
+				nodeId: schema.researchUnlock.nodeId,
+				unlockedAtTick: schema.researchUnlock.unlockedAtTick,
+				viaProjectId: schema.researchUnlock.viaProjectId,
+			})
+			.from(schema.researchUnlock)
+			.where(
+				and(eq(schema.researchUnlock.gameId, gameId), eq(schema.researchUnlock.playerId, me.id)),
+			);
+
+		const activeProjects = await db
+			.select({
+				id: schema.researchProject.id,
+				nodeId: schema.researchProject.nodeId,
+				status: schema.researchProject.status,
+				startedAtTick: schema.researchProject.startedAtTick,
+				expectedCompletionTick: schema.researchProject.expectedCompletionTick,
+				resolvedAtTick: schema.researchProject.resolvedAtTick,
+			})
+			.from(schema.researchProject)
+			.where(
+				and(
+					eq(schema.researchProject.gameId, gameId),
+					eq(schema.researchProject.playerId, me.id),
+					eq(schema.researchProject.status, "in_progress"),
+				),
+			);
+
+		const response: PlayerResearchResponse = {
+			gameId,
+			playerId: me.id,
+			faction,
+			unlocks,
+			activeProjects,
+		};
+		return c.json(playerResearchResponse.parse(response));
 	});
 
 	// ── POST /games/:id/orders ────────────────────────────────────────────────
