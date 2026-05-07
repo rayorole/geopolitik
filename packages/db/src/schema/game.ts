@@ -88,11 +88,11 @@ export const nationState = pgTable(
 		steel: bigint("steel", { mode: "number" }).notNull().default(0),
 		electronics: bigint("electronics", { mode: "number" }).notNull().default(0),
 		population: bigint("population", { mode: "number" }).notNull().default(0),
-		rp: bigint("rp", { mode: "number" }).notNull().default(0),
 		taxation: integer("taxation").notNull().default(30),
 		welfare: integer("welfare").notNull().default(50),
 		healthcare: integer("healthcare").notNull().default(50),
 		propaganda: integer("propaganda").notNull().default(30),
+		researchSlotMax: integer("research_slot_max").notNull().default(2),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 	},
 	(t) => ({

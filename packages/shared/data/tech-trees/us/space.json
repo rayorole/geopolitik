@@ -1,0 +1,34 @@
+{
+	"version": 1,
+	"faction": "us",
+	"tree": "space",
+	"nodes": [
+		{
+			"id": "kh_11",
+			"tree": "space",
+			"tier": 0,
+			"displayName": "KH-11 Kennen",
+			"shortName": "KH-11",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_kh_11"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1976
+		},
+		{
+			"id": "kh_11_evolved",
+			"tree": "space",
+			"tier": 1,
+			"displayName": "KH-11 Evolved Enhanced",
+			"shortName": "KH-11 EE",
+			"prereqs": ["kh_11"],
+			"unlocks": {
+				"unitTypes": ["unit_kh_11_evolved"],
+				"systems": ["satellite_scope"]
+			},
+			"cost": { "money": 200000, "steel": 10000, "electronics": 100000 },
+			"researchTimeTicks": 60,
+			"introYear": 1995
+		}
+	]
+}

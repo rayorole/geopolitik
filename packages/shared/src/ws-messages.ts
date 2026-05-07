@@ -74,7 +74,6 @@ export const tickNationState = z.object({
 	steel: z.number().int().nonnegative(),
 	electronics: z.number().int(),
 	population: z.number().int().nonnegative(),
-	rp: z.number().int().nonnegative(),
 	taxation: z.number().int().min(0).max(100),
 	welfare: z.number().int().min(0).max(100),
 	healthcare: z.number().int().min(0).max(100),

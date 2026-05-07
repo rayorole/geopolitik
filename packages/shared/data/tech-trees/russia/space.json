@@ -1,0 +1,34 @@
+{
+	"version": 1,
+	"faction": "russia",
+	"tree": "space",
+	"nodes": [
+		{
+			"id": "zenit",
+			"tree": "space",
+			"tier": 0,
+			"displayName": "Zenit Recon Satellite",
+			"shortName": "Zenit",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_zenit"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1962
+		},
+		{
+			"id": "lotos_s",
+			"tree": "space",
+			"tier": 1,
+			"displayName": "Lotos-S Recon Satellite",
+			"shortName": "Lotos-S",
+			"prereqs": ["zenit"],
+			"unlocks": {
+				"unitTypes": ["unit_lotos_s"],
+				"systems": ["satellite_scope"]
+			},
+			"cost": { "money": 200000, "steel": 10000, "electronics": 100000 },
+			"researchTimeTicks": 60,
+			"introYear": 2009
+		}
+	]
+}

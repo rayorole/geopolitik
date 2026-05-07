@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "us",
+	"tree": "mechanized",
+	"nodes": [
+		{
+			"id": "m60a3",
+			"tree": "mechanized",
+			"tier": 0,
+			"displayName": "M60A3 Patton",
+			"shortName": "M60A3",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_m60a3"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1978
+		},
+		{
+			"id": "m1a1",
+			"tree": "mechanized",
+			"tier": 1,
+			"displayName": "M1A1 Abrams",
+			"shortName": "M1A1",
+			"prereqs": ["m60a3"],
+			"unlocks": { "unitTypes": ["unit_m1a1"] },
+			"cost": { "money": 80000, "oil": 15000, "steel": 60000, "electronics": 8000 },
+			"researchTimeTicks": 60,
+			"introYear": 1985
+		}
+	]
+}

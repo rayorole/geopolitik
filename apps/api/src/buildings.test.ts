@@ -53,14 +53,13 @@ describe("aggregateBuildingYields", () => {
 		const out = aggregateBuildingYields([
 			{ type: "steel_industry", builtByPlayerId: aliceId, ownerPlayerId: aliceId },
 			{ type: "oil_refinery", builtByPlayerId: aliceId, ownerPlayerId: aliceId },
-			{ type: "research_lab", builtByPlayerId: bobId, ownerPlayerId: bobId },
+			{ type: "chip_factory", builtByPlayerId: bobId, ownerPlayerId: bobId },
 		]);
 		const a = out.get(aliceId);
 		expect(a?.steel).toBeGreaterThan(0);
 		expect(a?.oil).toBeGreaterThan(0);
-		expect(a?.rp ?? 0).toBe(0);
 		const b = out.get(bobId);
-		expect(b?.rp).toBeGreaterThan(0);
+		expect(b?.electronics).toBeGreaterThan(0);
 		expect(b?.steel ?? 0).toBe(0);
 	});
 
@@ -87,15 +86,20 @@ describe("aggregateBuildingYields", () => {
 		// Inert military buildings do appear in the aggregate but with zero yield
 		// in every resource — assert that explicitly.
 		const a = out.get(aliceId);
-		expect(a).toEqual({ money: 0, oil: 0, steel: 0, electronics: 0, rp: 0 });
+		expect(a).toEqual({ money: 0, oil: 0, steel: 0, electronics: 0 });
 	});
 
-	it("research_lab is the sole rp source", () => {
+	it("research_lab yields nothing in Phase 4 — its value lives in the effects field", () => {
 		const out = aggregateBuildingYields([
 			{ type: "research_lab", builtByPlayerId: aliceId, ownerPlayerId: aliceId },
 			{ type: "steel_industry", builtByPlayerId: aliceId, ownerPlayerId: aliceId },
 		]);
 		const a = out.get(aliceId);
-		expect(a?.rp).toBeGreaterThan(0);
+		expect(a).toBeDefined();
+		// research_lab contributes 0 to all resource yields; steel_industry's yield is what we see.
+		expect(a?.money).toBe(0);
+		expect(a?.oil).toBe(0);
+		expect(a?.electronics).toBe(0);
+		expect(a?.steel).toBeGreaterThan(0);
 	});
 });

@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "china",
+	"tree": "deep_water",
+	"nodes": [
+		{
+			"id": "type_051c",
+			"tree": "deep_water",
+			"tier": 0,
+			"displayName": "Type 051C Destroyer",
+			"shortName": "051C",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_type_051c"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 2006
+		},
+		{
+			"id": "liaoning",
+			"tree": "deep_water",
+			"tier": 1,
+			"displayName": "Liaoning",
+			"shortName": "CV-16",
+			"prereqs": ["type_051c"],
+			"unlocks": { "unitTypes": ["unit_liaoning"] },
+			"cost": { "money": 250000, "oil": 80000, "steel": 120000, "electronics": 80000 },
+			"researchTimeTicks": 60,
+			"introYear": 2012
+		}
+	]
+}

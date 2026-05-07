@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "china",
+	"tree": "mechanized",
+	"nodes": [
+		{
+			"id": "type_79",
+			"tree": "mechanized",
+			"tier": 0,
+			"displayName": "Type 79",
+			"shortName": "Type 79",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_type_79"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1984
+		},
+		{
+			"id": "type_88",
+			"tree": "mechanized",
+			"tier": 1,
+			"displayName": "Type 88",
+			"shortName": "Type 88",
+			"prereqs": ["type_79"],
+			"unlocks": { "unitTypes": ["unit_type_88"] },
+			"cost": { "money": 80000, "oil": 15000, "steel": 60000, "electronics": 8000 },
+			"researchTimeTicks": 60,
+			"introYear": 1988
+		}
+	]
+}

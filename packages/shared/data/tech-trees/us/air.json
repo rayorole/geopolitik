@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "us",
+	"tree": "air",
+	"nodes": [
+		{
+			"id": "f_5e",
+			"tree": "air",
+			"tier": 0,
+			"displayName": "F-5E Tiger II",
+			"shortName": "F-5E",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_f_5e"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1972
+		},
+		{
+			"id": "f_16_block_30",
+			"tree": "air",
+			"tier": 1,
+			"displayName": "F-16C Block 30 Fighting Falcon",
+			"shortName": "F-16 Blk 30",
+			"prereqs": ["f_5e"],
+			"unlocks": { "unitTypes": ["unit_f_16_block_30"] },
+			"cost": { "money": 120000, "oil": 50000, "steel": 15000, "electronics": 60000 },
+			"researchTimeTicks": 60,
+			"introYear": 1987
+		}
+	]
+}

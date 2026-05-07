@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "china",
+	"tree": "air",
+	"nodes": [
+		{
+			"id": "j_7",
+			"tree": "air",
+			"tier": 0,
+			"displayName": "J-7",
+			"shortName": "J-7",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_j_7"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1966
+		},
+		{
+			"id": "j_8ii",
+			"tree": "air",
+			"tier": 1,
+			"displayName": "J-8II Finback",
+			"shortName": "J-8II",
+			"prereqs": ["j_7"],
+			"unlocks": { "unitTypes": ["unit_j_8ii"] },
+			"cost": { "money": 120000, "oil": 50000, "steel": 15000, "electronics": 60000 },
+			"researchTimeTicks": 60,
+			"introYear": 1992
+		}
+	]
+}

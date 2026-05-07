@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "nato_eu",
+	"tree": "helicopters",
+	"nodes": [
+		{
+			"id": "lynx",
+			"tree": "helicopters",
+			"tier": 0,
+			"displayName": "Westland Lynx",
+			"shortName": "Lynx",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_lynx"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1978
+		},
+		{
+			"id": "tiger_uht",
+			"tree": "helicopters",
+			"tier": 1,
+			"displayName": "Eurocopter Tiger UHT",
+			"shortName": "Tiger UHT",
+			"prereqs": ["lynx"],
+			"unlocks": { "unitTypes": ["unit_tiger_uht"] },
+			"cost": { "money": 100000, "oil": 25000, "steel": 25000, "electronics": 50000 },
+			"researchTimeTicks": 60,
+			"introYear": 2003
+		}
+	]
+}

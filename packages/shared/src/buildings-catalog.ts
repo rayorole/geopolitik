@@ -32,10 +32,31 @@ export const buildingYield = z
 		steel: z.number().int().nonnegative().optional(),
 		oil: z.number().int().nonnegative().optional(),
 		electronics: z.number().int().nonnegative().optional(),
-		rp: z.number().int().nonnegative().optional(),
 	})
 	.strict();
 export type BuildingYield = z.infer<typeof buildingYield>;
+
+/*
+ * Building effects — Phase 4. Generic effect-bag, forward-compatible: future
+ * buildings can carry different effect shapes without schema churn.
+ *
+ * Current effects:
+ *   - researchCostDiscountPct: percent off the upfront `start_research` cost
+ *     per instance of this building, linear, capped at `stackCap`.
+ *   - economyYieldBoostPct: percent boost to `category: "economy"` building
+ *     yields per instance, linear, capped at `stackCap`. Does not boost
+ *     non-economy buildings (military/research).
+ */
+export const buildingEffects = z
+	.object({
+		researchCostDiscountPct: z.number().int().nonnegative().optional(),
+		economyYieldBoostPct: z.number().int().nonnegative().optional(),
+		stack: z.literal("linear").optional(),
+		stackCap: z.number().int().positive().optional(),
+	})
+	.strict()
+	.optional();
+export type BuildingEffects = z.infer<typeof buildingEffects>;
 
 export const buildingDef = z
 	.object({
@@ -45,6 +66,7 @@ export const buildingDef = z
 		cost: buildingCost,
 		buildTimeTicks: z.number().int().positive(),
 		nationYieldPerTick: buildingYield,
+		effects: buildingEffects,
 	})
 	.strict();
 export type BuildingDef = z.infer<typeof buildingDef>;

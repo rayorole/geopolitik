@@ -126,3 +126,50 @@ describe("PATCH /account/profile body validation", () => {
 		expect(res.status).toBe(400);
 	});
 });
+
+describe("GET /world/factions", () => {
+	it("returns the factions catalog without auth", async () => {
+		const app = createApp();
+		const res = await app.request("/world/factions");
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as {
+			version: number;
+			factions: Record<string, unknown>;
+			countryToFaction: Record<string, string>;
+		};
+		expect(body.version).toBe(1);
+		expect(Object.keys(body.factions).sort()).toEqual(["china", "nato_eu", "russia", "us"]);
+		expect(body.countryToFaction.USA).toBe("us");
+		expect(body.countryToFaction.ITA).toBe("nato_eu");
+	});
+});
+
+describe("GET /world/research/:faction", () => {
+	it("returns 7 trees for a known faction", async () => {
+		const app = createApp();
+		const res = await app.request("/world/research/us");
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as {
+			faction: string;
+			trees: { tree: string; nodes: unknown[] }[];
+		};
+		expect(body.faction).toBe("us");
+		expect(body.trees).toHaveLength(7);
+		const treeIds = body.trees.map((t) => t.tree).sort();
+		expect(treeIds).toEqual([
+			"air",
+			"deep_water",
+			"ground",
+			"helicopters",
+			"mechanized",
+			"naval",
+			"space",
+		]);
+	});
+
+	it("returns 404 for unknown faction", async () => {
+		const app = createApp();
+		const res = await app.request("/world/research/atlantis");
+		expect(res.status).toBe(404);
+	});
+});

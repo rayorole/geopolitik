@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "russia",
+	"tree": "air",
+	"nodes": [
+		{
+			"id": "mig_21",
+			"tree": "air",
+			"tier": 0,
+			"displayName": "MiG-21 Fishbed",
+			"shortName": "MiG-21",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_mig_21"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1959
+		},
+		{
+			"id": "mig_29a",
+			"tree": "air",
+			"tier": 1,
+			"displayName": "MiG-29A Fulcrum",
+			"shortName": "MiG-29A",
+			"prereqs": ["mig_21"],
+			"unlocks": { "unitTypes": ["unit_mig_29a"] },
+			"cost": { "money": 120000, "oil": 50000, "steel": 15000, "electronics": 60000 },
+			"researchTimeTicks": 60,
+			"introYear": 1983
+		}
+	]
+}

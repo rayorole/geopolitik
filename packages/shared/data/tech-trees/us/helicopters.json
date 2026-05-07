@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "us",
+	"tree": "helicopters",
+	"nodes": [
+		{
+			"id": "ah_1_cobra",
+			"tree": "helicopters",
+			"tier": 0,
+			"displayName": "AH-1 Cobra",
+			"shortName": "AH-1",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_ah_1_cobra"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1967
+		},
+		{
+			"id": "ah_64a",
+			"tree": "helicopters",
+			"tier": 1,
+			"displayName": "AH-64A Apache",
+			"shortName": "AH-64A",
+			"prereqs": ["ah_1_cobra"],
+			"unlocks": { "unitTypes": ["unit_ah_64a"] },
+			"cost": { "money": 100000, "oil": 25000, "steel": 25000, "electronics": 50000 },
+			"researchTimeTicks": 60,
+			"introYear": 1986
+		}
+	]
+}

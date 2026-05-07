@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "china",
+	"tree": "naval",
+	"nodes": [
+		{
+			"id": "type_053h",
+			"tree": "naval",
+			"tier": 0,
+			"displayName": "Type 053H Frigate",
+			"shortName": "053H",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_type_053h"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1975
+		},
+		{
+			"id": "type_054",
+			"tree": "naval",
+			"tier": 1,
+			"displayName": "Type 054 Frigate",
+			"shortName": "054",
+			"prereqs": ["type_053h"],
+			"unlocks": { "unitTypes": ["unit_type_054"] },
+			"cost": { "money": 150000, "oil": 10000, "steel": 80000, "electronics": 30000 },
+			"researchTimeTicks": 60,
+			"introYear": 2005
+		}
+	]
+}

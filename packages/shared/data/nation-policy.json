@@ -1,11 +1,10 @@
 {
-	"version": 2,
+	"version": 3,
 	"startingResources": {
 		"money": 500000,
 		"oil": 350000,
 		"steel": 50000,
-		"electronics": 20000,
-		"rp": 0
+		"electronics": 20000
 	},
 	"cityProduction": {
 		"moneyPerPopMillion": 1500,

@@ -41,12 +41,14 @@ describe("buildings catalog", () => {
 		expect(getBuildingDef("not_a_building")).toBeUndefined();
 	});
 
-	it("research_lab is the sole rp source", () => {
-		const rpSources = BUILDINGS_CATALOG.buildings.filter(
-			(b) => b.nationYieldPerTick.rp && b.nationYieldPerTick.rp > 0,
-		);
-		expect(rpSources).toHaveLength(1);
-		expect(rpSources[0]?.type).toBe("research_lab");
+	it("research_lab carries Phase 4 effects, no rp yield", () => {
+		const def = getBuildingDef("research_lab");
+		expect(def).toBeDefined();
+		expect(Object.keys(def?.nationYieldPerTick ?? {})).toHaveLength(0);
+		expect(def?.effects?.researchCostDiscountPct).toBe(10);
+		expect(def?.effects?.economyYieldBoostPct).toBe(5);
+		expect(def?.effects?.stack).toBe("linear");
+		expect(def?.effects?.stackCap).toBe(5);
 	});
 
 	it("military buildings are inert in Phase 3 (empty yield)", () => {

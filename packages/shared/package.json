@@ -10,7 +10,10 @@
 		"./env": "./src/env.ts",
 		"./buildings": "./src/buildings-catalog.ts",
 		"./orders": "./src/order-payloads.ts",
-		"./policy": "./src/nation-policy.ts"
+		"./policy": "./src/nation-policy.ts",
+		"./factions": "./src/factions.ts",
+		"./unit-types": "./src/unit-types.ts",
+		"./research": "./src/research-catalog.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",

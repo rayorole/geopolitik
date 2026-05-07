@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "nato_eu",
+	"tree": "mechanized",
+	"nodes": [
+		{
+			"id": "leopard_1",
+			"tree": "mechanized",
+			"tier": 0,
+			"displayName": "Leopard 1",
+			"shortName": "Leo 1",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_leopard_1"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1965
+		},
+		{
+			"id": "leopard_2a4",
+			"tree": "mechanized",
+			"tier": 1,
+			"displayName": "Leopard 2A4",
+			"shortName": "Leo 2A4",
+			"prereqs": ["leopard_1"],
+			"unlocks": { "unitTypes": ["unit_leopard_2a4"] },
+			"cost": { "money": 80000, "oil": 15000, "steel": 60000, "electronics": 8000 },
+			"researchTimeTicks": 60,
+			"introYear": 1985
+		}
+	]
+}

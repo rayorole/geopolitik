@@ -1,0 +1,31 @@
+{
+	"version": 1,
+	"faction": "us",
+	"tree": "deep_water",
+	"nodes": [
+		{
+			"id": "kitty_hawk",
+			"tree": "deep_water",
+			"tier": 0,
+			"displayName": "Kitty Hawk-class Carrier",
+			"shortName": "CV-63",
+			"prereqs": [],
+			"unlocks": { "unitTypes": ["unit_kitty_hawk"] },
+			"cost": {},
+			"researchTimeTicks": 0,
+			"introYear": 1961
+		},
+		{
+			"id": "nimitz_class",
+			"tree": "deep_water",
+			"tier": 1,
+			"displayName": "Nimitz-class Supercarrier",
+			"shortName": "Nimitz",
+			"prereqs": ["kitty_hawk"],
+			"unlocks": { "unitTypes": ["unit_nimitz_class"] },
+			"cost": { "money": 250000, "oil": 80000, "steel": 120000, "electronics": 80000 },
+			"researchTimeTicks": 60,
+			"introYear": 1975
+		}
+	]
+}
