@@ -106,6 +106,7 @@ export const worldCity = z.object({
 	lng: z.number(),
 	basePopulation: z.number().int().nonnegative(),
 	isCapital: z.boolean(),
+	isCoastal: z.boolean(),
 	moneyMult: z.number(),
 	steelMult: z.number(),
 	electronicsMult: z.number(),
@@ -115,6 +116,8 @@ export const worldCity = z.object({
 export const worldCountry = z.object({
 	code: z.string().length(3),
 	name: z.string(),
+	isPlayable: z.boolean(),
+	isLandlocked: z.boolean(),
 });
 
 export const worldDataset = z.object({

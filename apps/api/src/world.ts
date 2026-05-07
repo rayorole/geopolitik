@@ -14,7 +14,12 @@ export function createWorldRouter() {
 	// underlying rows but the response shape is stable.
 	w.get("/world/cities", async (c) => {
 		const countries = await db
-			.select({ code: schema.country.code, name: schema.country.name })
+			.select({
+				code: schema.country.code,
+				name: schema.country.name,
+				isPlayable: schema.country.isPlayable,
+				isLandlocked: schema.country.isLandlocked,
+			})
 			.from(schema.country);
 		const cities = await db
 			.select({
@@ -25,6 +30,7 @@ export function createWorldRouter() {
 				lng: schema.city.lng,
 				basePopulation: schema.city.basePopulation,
 				isCapital: schema.city.isCapital,
+				isCoastal: schema.city.isCoastal,
 				moneyMult: schema.city.moneyMult,
 				steelMult: schema.city.steelMult,
 				electronicsMult: schema.city.electronicsMult,
